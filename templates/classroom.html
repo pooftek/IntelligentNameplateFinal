@@ -1,0 +1,578 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — {{ class_obj.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        background: #FFFFFF !important;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .classroom-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .classroom-header {
+        flex-shrink: 0;
+        padding: 2rem 8rem 1.25rem;
+    }
+
+    .classroom-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .classroom-header-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .classroom-header-icon {
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        color: #0B1E33;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+
+    .responsive-title {
+        font-family: 'Inter', sans-serif;
+        font-size: clamp(2.5rem, 6.25vw, 3.75rem);
+        font-weight: 600;
+        color: #0B1E33;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .btn-return-home {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-decoration: none;
+    }
+
+    .btn-return-home:hover {
+        background-color: #3BA8C8 !important;
+        color: #FFFFFF !important;
+    }
+
+    .classroom-content {
+        flex: 1;
+        min-height: 0;
+        padding: 0.75rem 8rem;
+        display: flex;
+    }
+
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: clamp(12px, 2vw, 28px);
+        width: 100%;
+        height: 100%;
+    }
+
+    .option-card {
+        background-color: #0B1E33;
+        border-radius: var(--card-border-radius);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        padding: 1rem;
+    }
+
+    .option-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(11, 30, 51, 0.25);
+    }
+
+    .option-icon i {
+        font-size: clamp(4.5rem, 10vw, 9rem);
+        color: #7A99B5;
+        display: block;
+        margin-bottom: clamp(0.125rem, 0.375vh, 0.25rem);
+    }
+
+    #startClassCard.live-class .option-icon i {
+        color: #57C5E4 !important;
+    }
+
+    .option-card h5 {
+        font-family: 'Inter', sans-serif;
+        color: #FFFFFF;
+        font-size: clamp(1.4rem, 3vw, 2.4rem);
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .classroom-branding {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 1.5rem 0 1.25rem;
+    }
+
+    .classroom-branding img {
+        height: 34px;
+        width: auto;
+    }
+
+    /* suppress auto-tooltip on class title */
+    #classTitle.truncated-text[title]:hover::after,
+    #classTitle.truncated-text[title]:hover::before {
+        display: none !important;
+    }
+
+    .classroom-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-shrink: 0;
+    }
+
+    .classroom-live-badge {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 500;
+        color: #57C5E4;
+        letter-spacing: 0.08em;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-right: 2.5rem;
+    }
+
+    .classroom-live-dot {
+        width: 13px;
+        height: 13px;
+        background-color: #57C5E4;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    /* ── Settings Modal ── */
+    .settings-modal-dialog {
+        max-width: 520px;
+    }
+    #settingsModal .modal-content {
+        border: none;
+        border-radius: var(--card-border-radius);
+    }
+    #settingsModal .modal-header {
+        justify-content: center;
+        border-bottom: 1px solid #e5e7eb;
+        position: relative;
+    }
+    #settingsModal .modal-title {
+        flex: 1;
+        text-align: center;
+        font-weight: 700;
+        color: #0B1E33;
+        font-family: 'Inter', sans-serif;
+    }
+    #settingsModal .btn-close {
+        position: absolute;
+        right: 1rem;
+    }
+    #settingsModal .modal-footer {
+        justify-content: center;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 1.25rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    #settingsModal .modal-footer .btn {
+        min-width: 130px;
+        height: 40px;
+        border-radius: 9999px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #settingsModal .btn-primary {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+    }
+    #settingsModal .btn-primary:hover {
+        background-color: #3BA8C8 !important;
+        border-color: #3BA8C8 !important;
+    }
+    #settingsModal .btn-light {
+        background-color: #e5e7eb !important;
+        color: #374151 !important;
+        border-color: #e5e7eb !important;
+    }
+    #settingsModal .form-label {
+        color: #0B1E33;
+        font-size: 0.875rem;
+        margin-bottom: 0.3rem;
+    }
+    #settingsModal .form-control {
+        background-color: #FFFFFF;
+        border: 1px solid #d1d5db;
+        color: #0B1E33;
+        border-radius: 8px;
+    }
+    #settingsModal .form-control:focus {
+        background-color: #FFFFFF;
+        border-color: #57C5E4;
+        color: #0B1E33;
+        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+    }
+    #settingsModal .form-check-label {
+        color: #0B1E33;
+        font-weight: 400;
+    }
+    #settingsModal .form-check-input {
+        background-color: #e5e7eb;
+        border-color: #d1d5db;
+        cursor: pointer;
+    }
+    #settingsModal .form-check-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+    }
+    .settings-divider {
+        border: none;
+        border-top: 2px solid #e5e7eb;
+        margin: 1rem 0;
+    }
+    .settings-section-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #0B1E33;
+        margin: 0 0 0.75rem;
+        font-family: 'Inter', sans-serif;
+    }
+    .btn-delete-class {
+        background-color: rgba(220, 53, 69, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(220, 53, 69, 0.35);
+        border-radius: 9999px;
+        padding: 0.4rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .btn-delete-class:hover {
+        background-color: rgba(220, 53, 69, 0.28);
+    }
+    #settingsModal .delete-class-action-pair button {
+        min-height: 2.5rem;
+        padding: 0.4rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 9999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        box-sizing: border-box;
+        line-height: 1.2;
+    }
+    .settings-delete-warning {
+        color: #374151;
+        font-size: 0.875rem;
+        margin: 0 0 0.75rem;
+        line-height: 1.4;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="classroom-container">
+
+    <div class="classroom-header">
+        <div class="classroom-header-inner">
+            <div class="classroom-header-title-group">
+                <i class="bi bi-globe2 classroom-header-icon"></i>
+                <h1 class="responsive-title" id="classTitle">{{ class_obj.name }}</h1>
+            </div>
+            <div class="classroom-header-actions">
+                {% if class_obj.is_active %}
+                <div class="classroom-live-badge">
+                    LIVE <span class="classroom-live-dot"></span>
+                </div>
+                {% endif %}
+                <a href="/dashboard" class="btn-return-home">
+                    <i class="bi bi-house-fill"></i> Return Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="classroom-content">
+        <div class="cards-grid">
+
+            <div class="option-card" onclick="window.location.href='/classroom/{{ class_obj.id }}/class_data'">
+                <div class="option-icon"><i class="bi bi-list-ul"></i></div>
+                <h5>Class Data</h5>
+            </div>
+
+            <div class="option-card {% if class_obj.is_active %}live-class{% endif %}" onclick="handleStartClass()" id="startClassCard">
+                <div class="option-icon"><i class="bi bi-play-circle-fill"></i></div>
+                <h5 id="startClassText">{% if class_obj.is_active %}Return to Class{% else %}Start Class{% endif %}</h5>
+            </div>
+
+            <div class="option-card" onclick="window.location.href='/classroom/{{ class_obj.id }}/students'">
+                <div class="option-icon"><i class="bi bi-people-fill"></i></div>
+                <h5>Students</h5>
+            </div>
+
+            <div class="option-card" onclick="showSettings()">
+                <div class="option-icon"><i class="bi bi-gear-fill"></i></div>
+                <h5>Settings</h5>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="classroom-branding">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
+    </div>
+
+</div>
+
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered settings-modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Class Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Class Information -->
+                <p class="settings-section-title">Class Information</p>
+                <form id="settingsForm">
+                    <div class="mb-3">
+                        <label for="className" class="form-label">Class Title</label>
+                        <input type="text" class="form-control" id="className" value="{{ class_obj.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="classCode" class="form-label">Class Code</label>
+                        <input type="text" class="form-control" id="classCode" value="{{ class_obj.class_code }}" required>
+                    </div>
+                </form>
+                <hr class="settings-divider">
+
+                <!-- Display Preferences -->
+                <p class="settings-section-title">Display Preferences</p>
+                <form id="preferencesForm">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="showFirstNameOnly"
+                               {{ 'checked' if settings.show_first_name_only else '' }}>
+                        <label class="form-check-label" for="showFirstNameOnly">Show First Name Only</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="quietMode"
+                               {{ 'checked' if settings.quiet_mode else '' }}>
+                        <label class="form-check-label" for="quietMode">Quiet Mode</label>
+                    </div>
+                </form>
+                <hr class="settings-divider">
+
+                <div id="deleteClassSection">
+                    <div id="deleteClassInitial">
+                        <button type="button" class="btn-delete-class" onclick="showDeleteClassConfirm()">
+                            <i class="bi bi-trash"></i> Delete Class
+                        </button>
+                    </div>
+                    <div id="deleteClassConfirm" class="d-none">
+                        <p class="settings-delete-warning">This action cannot be undone. All class data will be permanently deleted.</p>
+                        <div class="d-flex flex-wrap gap-2 align-items-center delete-class-action-pair">
+                            <button type="button" class="btn btn-light" onclick="hideDeleteClassConfirm()">Cancel</button>
+                            <button type="button" class="btn-delete-class" onclick="confirmDeleteClass()">
+                                <i class="bi bi-trash"></i> Delete Class
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function adjustClassTitleFontSize() {
+    const title = document.getElementById('classTitle');
+    if (!title) return;
+
+    const container = title.closest('.classroom-header-title-group');
+    const headerInner = title.closest('.classroom-header-inner');
+    if (!container || !headerInner) return;
+
+    const homeButton = headerInner.querySelector('.btn-return-home');
+    const homeButtonWidth = homeButton ? homeButton.offsetWidth : 0;
+    const gap = 16;
+
+    const headerWidth = headerInner.offsetWidth;
+    const availableWidth = headerWidth - homeButtonWidth - gap;
+
+    title.style.fontSize = '';
+    const defaultSize = parseFloat(window.getComputedStyle(title).fontSize);
+    const minSize = defaultSize * 0.3;
+
+    const tempElement = title.cloneNode(true);
+    tempElement.style.visibility = 'hidden';
+    tempElement.style.position = 'absolute';
+    tempElement.style.whiteSpace = 'nowrap';
+    tempElement.style.width = 'auto';
+    tempElement.style.fontSize = '';
+    document.body.appendChild(tempElement);
+
+    tempElement.style.fontSize = minSize + 'px';
+    const textWidthAtMin = tempElement.offsetWidth;
+
+    let finalSize;
+    if (textWidthAtMin > availableWidth) {
+        finalSize = minSize;
+    } else {
+        let min = minSize;
+        let max = defaultSize;
+        let bestSize = minSize;
+
+        while (max - min > 0.5) {
+            const testSize = (min + max) / 2;
+            tempElement.style.fontSize = testSize + 'px';
+            if (tempElement.offsetWidth <= availableWidth) {
+                bestSize = testSize;
+                min = testSize;
+            } else {
+                max = testSize;
+            }
+        }
+        finalSize = bestSize;
+    }
+
+    document.body.removeChild(tempElement);
+    title.style.fontSize = finalSize + 'px';
+}
+
+window.addEventListener('load', adjustClassTitleFontSize);
+window.addEventListener('resize', adjustClassTitleFontSize);
+
+async function handleStartClass() {
+    {% if class_obj.is_active %}
+        window.location.href = '/faculty_dashboard/{{ class_obj.id }}';
+    {% else %}
+        await startClass();
+    {% endif %}
+}
+
+async function startClass() {
+    const response = await fetch(`/api/start_class/{{ class_obj.id }}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ exclude_from_grading: false })
+    });
+    const data = await response.json();
+    if (data.success) {
+        window.location.href = data.redirect;
+    }
+}
+
+async function stopClass() {
+    if (confirm('Are you sure you want to stop the class? This will update the class data.')) {
+        const response = await fetch(`/api/stop_class/{{ class_obj.id }}`, {method: 'POST'});
+        const data = await response.json();
+        if (data.success) { location.reload(); }
+    }
+}
+
+function showSettings() {
+    const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
+    modal.show();
+}
+
+async function saveSettings() {
+    const data = {
+        class_name: document.getElementById('className').value.trim(),
+        class_code: document.getElementById('classCode').value.trim(),
+        show_first_name_only: document.getElementById('showFirstNameOnly').checked,
+        quiet_mode: document.getElementById('quietMode').checked
+    };
+
+    if (!data.class_name || !data.class_code) {
+        alert('Class title and class code are required');
+        return;
+    }
+
+    const response = await fetch(`/api/update_settings/{{ class_obj.id }}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    if (result.success) {
+        bootstrap.Modal.getInstance(document.getElementById('settingsModal')).hide();
+        alert('Settings saved!');
+        location.reload();
+    } else {
+        alert(result.error || 'Failed to save settings');
+    }
+}
+
+function showDeleteClassConfirm() {
+    document.getElementById('deleteClassInitial').classList.add('d-none');
+    document.getElementById('deleteClassConfirm').classList.remove('d-none');
+}
+
+function hideDeleteClassConfirm() {
+    document.getElementById('deleteClassConfirm').classList.add('d-none');
+    document.getElementById('deleteClassInitial').classList.remove('d-none');
+}
+
+document.getElementById('settingsModal').addEventListener('hidden.bs.modal', hideDeleteClassConfirm);
+
+async function confirmDeleteClass() {
+    const response = await fetch(`/api/delete_class/{{ class_obj.id }}`, { method: 'DELETE' });
+    const data = await response.json();
+    if (data.success) {
+        alert('Class deleted successfully');
+        window.location.href = '/dashboard';
+    } else {
+        alert('Error deleting class: ' + (data.error || 'Unknown error'));
+    }
+}
+</script>
+{% endblock %}
