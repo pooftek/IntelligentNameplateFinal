@@ -43,6 +43,27 @@
             flex-direction: column;
             min-height: 100%;
             position: relative;
+            isolation: isolate;
+        }
+        /* Peer rating: only on student-facing (back) screen — not full dual-monitor viewport */
+        #npBack .peer-participation-backdrop {
+            position: absolute;
+            inset: 0;
+            z-index: 2990;
+            background: rgba(0, 0, 0, 0.45);
+            pointer-events: auto;
+        }
+        #npBack #peerParticipationModal {
+            position: absolute !important;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            z-index: 3000;
+        }
+        #npBack #peerParticipationModal .modal-dialog {
+            max-height: calc(100% - 2rem);
+            overflow-y: auto;
         }
         #backGlobalStatus.session-top {
             background: #fff;
@@ -287,6 +308,46 @@
             color: #495057;
             padding: 2rem;
             text-align: center;
+        }
+        .poll-result-row {
+            flex-shrink: 0;
+            padding: 0.65rem clamp(1rem, 3vw, 1.5rem);
+            border-bottom: 1px solid #e9ecef;
+            font-size: clamp(0.95rem, 2.8vw, 1.35rem);
+        }
+        .poll-result-row:last-of-type { border-bottom: none; }
+        .poll-result-correct {
+            box-shadow: inset 4px 0 0 0 #28a745;
+            background: rgba(40, 167, 69, 0.06);
+        }
+        .poll-result-label {
+            display: block;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 0.35rem;
+        }
+        .poll-result-meta {
+            font-size: 0.88em;
+            color: #6c757d;
+        }
+        .poll-result-bar-wrap {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-top: 0.45rem;
+            overflow: hidden;
+        }
+        .poll-result-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.35s ease;
+        }
+        .poll-result-footer {
+            flex-shrink: 0;
+            padding: 0.5rem clamp(1rem, 3vw, 1.5rem) 0.75rem;
+            font-size: clamp(0.85rem, 2.2vw, 1rem);
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
         }
         .session-top {
             flex-shrink: 0;
@@ -610,6 +671,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- Peer rates classmate participation — scoped to back (student-facing) screen only -->
+        <div id="peerParticipationDim" class="peer-participation-backdrop panel-hidden" aria-hidden="true"></div>
+        <div class="modal fade" id="peerParticipationModal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true" aria-labelledby="peerParticipationModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 15px;">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="peerParticipationModalLabel">Rate participation</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2" id="peerParticipationSubjectLine"></p>
+                        <p class="text-muted small mb-3">Choose 0–4. Each level maps to a percentage: 0 = 0%, 1 = 25%, 2 = 50%, 3 = 75%, 4 = 100%.</p>
+                        <div class="d-flex flex-wrap gap-2 justify-content-center mb-3" id="peerParticipationScale" role="group" aria-label="Participation rating">
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="0">0<small>0%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="1">1<small>25%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="2">2<small>50%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="3">3<small>75%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="4">4<small>100%</small></button>
+                        </div>
+                        <div id="peerParticipationError" class="alert alert-danger py-2" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary-gradient fw-bold btn-peer-participation-submit" id="btnPeerParticipationSubmit" disabled>Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 </div>
 
@@ -639,32 +727,6 @@
     </div>
 </div>
 
-<!-- Peer rates classmate participation (0–4 → %); shown when instructor submits -->
-<div class="modal fade" id="peerParticipationModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="peerParticipationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 15px;">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="peerParticipationModalLabel">Rate participation</h5>
-            </div>
-            <div class="modal-body">
-                <p class="mb-2" id="peerParticipationSubjectLine"></p>
-                <p class="text-muted small mb-3">Choose 0–4. Each level maps to a percentage: 0 = 0%, 1 = 25%, 2 = 50%, 3 = 75%, 4 = 100%.</p>
-                <div class="d-flex flex-wrap gap-2 justify-content-center mb-3" id="peerParticipationScale" role="group" aria-label="Participation rating">
-                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="0">0<small>0%</small></button>
-                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="1">1<small>25%</small></button>
-                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="2">2<small>50%</small></button>
-                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="3">3<small>75%</small></button>
-                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="4">4<small>100%</small></button>
-                </div>
-                <div id="peerParticipationError" class="alert alert-danger py-2" style="display: none;"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary-gradient fw-bold btn-peer-participation-submit" id="btnPeerParticipationSubmit" disabled>Submit</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 <script>
@@ -678,6 +740,15 @@
     let currentPoll = null;
     var peerParticipationPending = null;
     var selectedPeerRating = null;
+    var pollResultsDismissTimer = null;
+    var POLL_RESULTS_DISPLAY_MS = 7500;
+
+    function clearPollResultsDismissTimer() {
+        if (pollResultsDismissTimer) {
+            clearTimeout(pollResultsDismissTimer);
+            pollResultsDismissTimer = null;
+        }
+    }
 
     const NP_STUDENT_TOKEN_KEY = 'np_student_token';
 
@@ -708,12 +779,87 @@
     var POLL_OPTION_BTN_FG = ['#ffffff', '#ffffff', '#212529', '#ffffff', '#ffffff'];
 
     function hideBackPollUI() {
+        clearPollResultsDismissTimer();
         var el = document.getElementById('backPollFullscreen');
         if (el) el.classList.add('panel-hidden');
         var opts = document.getElementById('backPollOptions');
         if (opts) { opts.innerHTML = ''; opts.classList.remove('panel-hidden'); }
         var sub = document.getElementById('backPollSubmitted');
         if (sub) { sub.classList.add('panel-hidden'); sub.textContent = ''; }
+    }
+
+    /** Brief aggregate results after professor ends the poll (same room as poll_started). */
+    function showBriefPollResults(results) {
+        clearPollResultsDismissTimer();
+        if (!results || !results.options) {
+            hideBackPollUI();
+            resetDefaultFrontPlate();
+            refreshInteractionState();
+            return;
+        }
+        var pq = document.getElementById('backPollQuestion');
+        var opts = document.getElementById('backPollOptions');
+        var sub = document.getElementById('backPollSubmitted');
+        if (!pq || !opts) return;
+        sub.classList.add('panel-hidden');
+        sub.textContent = '';
+        var total = Number(results.total_responses) || 0;
+        pq.innerHTML = '';
+        var qLine = document.createElement('div');
+        qLine.textContent = results.question || 'Poll';
+        pq.appendChild(qLine);
+        var subLine = document.createElement('div');
+        subLine.style.fontSize = 'clamp(0.85rem, 2.5vw, 1.05rem)';
+        subLine.style.fontWeight = '600';
+        subLine.style.color = '#6c757d';
+        subLine.style.marginTop = '0.35rem';
+        subLine.textContent = 'Results · ' + total + ' response' + (total === 1 ? '' : 's');
+        pq.appendChild(subLine);
+
+        opts.innerHTML = '';
+        opts.classList.remove('panel-hidden');
+        var counts = results.counts || [];
+        var options = results.options || [];
+        var graded = results.is_graded && results.correct_answer !== null && results.correct_answer !== undefined && results.correct_answer !== '';
+        var ca = graded ? Number(results.correct_answer) : NaN;
+        options.forEach(function (opt, i) {
+            var c = counts[i] != null ? Number(counts[i]) : 0;
+            var pct = total > 0 ? Math.round((c / total) * 100) : 0;
+            var row = document.createElement('div');
+            row.className = 'poll-result-row';
+            if (graded && !isNaN(ca) && ca === i) row.classList.add('poll-result-correct');
+            var label = document.createElement('span');
+            label.className = 'poll-result-label';
+            label.textContent = String(opt);
+            var meta = document.createElement('span');
+            meta.className = 'poll-result-meta';
+            meta.textContent = c + ' (' + pct + '%)' + (graded && !isNaN(ca) && ca === i ? ' — Correct' : '');
+            var barWrap = document.createElement('div');
+            barWrap.className = 'poll-result-bar-wrap';
+            var bar = document.createElement('div');
+            bar.className = 'poll-result-bar';
+            bar.style.width = pct + '%';
+            bar.style.background = POLL_OPTION_BG[i] || '#6c757d';
+            barWrap.appendChild(bar);
+            row.appendChild(label);
+            row.appendChild(meta);
+            row.appendChild(barWrap);
+            opts.appendChild(row);
+        });
+        var foot = document.createElement('div');
+        foot.className = 'poll-result-footer';
+        foot.textContent = 'Closing automatically…';
+        opts.appendChild(foot);
+
+        document.getElementById('backPollFullscreen').classList.remove('panel-hidden');
+        resetDefaultFrontPlate();
+        clearPollResultsDismissTimer();
+        pollResultsDismissTimer = setTimeout(function () {
+            pollResultsDismissTimer = null;
+            hideBackPollUI();
+            resetDefaultFrontPlate();
+            refreshInteractionState();
+        }, POLL_RESULTS_DISPLAY_MS);
     }
 
     function resetDefaultFrontPlate() {
@@ -1250,8 +1396,19 @@
             resetDefaultFrontPlate();
             showBackPollFullscreen(data);
         });
-        socket.on('poll_stopped', function () {
+        socket.on('poll_stopped', function (data) {
+            clearPollResultsDismissTimer();
             currentPoll = null;
+            if (
+                data &&
+                data.results &&
+                currentClassId != null &&
+                data.class_id != null &&
+                String(data.class_id) === String(currentClassId)
+            ) {
+                showBriefPollResults(data.results);
+                return;
+            }
             hideBackPollUI();
             resetDefaultFrontPlate();
             refreshInteractionState();
@@ -1310,6 +1467,7 @@
         // Professor ended class (in session) or live status changed (My Classes)
         socket.on('class_stopped', function (d) {
             if (currentClassId && d && String(d.class_id) === String(currentClassId)) {
+                clearPollResultsDismissTimer();
                 flushThumbsBeforeLeave();
                 patchMyClassActive(d.class_id, false);
                 currentClassId = null;
@@ -1554,6 +1712,12 @@
         disconnectSocket();
         hideBackPollUI();
         resetDefaultFrontPlate();
+        var pmEl = document.getElementById('peerParticipationModal');
+        if (pmEl) {
+            var pmi = bootstrap.Modal.getInstance(pmEl);
+            if (pmi) pmi.hide();
+        }
+        hidePeerParticipationBackdrop();
         currentStudent = null;
         currentClassId = null;
         currentClassMeta = null;
@@ -1574,6 +1738,21 @@
     document.getElementById('btnLogoutHome').addEventListener('click', () => doLogout(false));
     document.getElementById('btnSessionLogout').addEventListener('click', () => doLogout(true));
 
+    function showPeerParticipationBackdrop() {
+        var dim = document.getElementById('peerParticipationDim');
+        if (dim) {
+            dim.classList.remove('panel-hidden');
+            dim.setAttribute('aria-hidden', 'false');
+        }
+    }
+    function hidePeerParticipationBackdrop() {
+        var dim = document.getElementById('peerParticipationDim');
+        if (dim) {
+            dim.classList.add('panel-hidden');
+            dim.setAttribute('aria-hidden', 'true');
+        }
+    }
+
     function openPeerParticipationModal(d) {
         peerParticipationPending = { round_id: d.round_id, class_id: d.class_id };
         selectedPeerRating = null;
@@ -1587,7 +1766,11 @@
         var sub = document.getElementById('btnPeerParticipationSubmit');
         if (sub) sub.disabled = true;
         var el = document.getElementById('peerParticipationModal');
-        if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+        if (el) {
+            showPeerParticipationBackdrop();
+            /* Backdrop stays on student-facing #npBack only (not full dual-monitor viewport). */
+            bootstrap.Modal.getOrCreateInstance(el, { backdrop: false, keyboard: true }).show();
+        }
     }
 
     async function submitPeerParticipationRating() {
@@ -1626,6 +1809,12 @@
     }
 
     function setupPeerParticipationModal() {
+        var pm = document.getElementById('peerParticipationModal');
+        if (pm) {
+            pm.addEventListener('hidden.bs.modal', function () {
+                hidePeerParticipationBackdrop();
+            });
+        }
         var scale = document.getElementById('peerParticipationScale');
         if (!scale) return;
         scale.addEventListener('click', function (e) {

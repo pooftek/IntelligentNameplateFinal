@@ -891,9 +891,13 @@
                         <input class="form-check-input" type="checkbox" id="isGraded">
                         <label class="form-check-label" for="isGraded">Graded (Counts toward student grades)</label>
                     </div>
-                    <div class="form-check">
+                    <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="isAnonymous">
                         <label class="form-check-label" for="isAnonymous">Anonymous Mode</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="showResultsWhenStopped" checked>
+                        <label class="form-check-label" for="showResultsWhenStopped">Display Poll Results</label>
                     </div>
                 </form>
             </div>
@@ -1408,6 +1412,7 @@ async function createPoll() {
     const correctAnswer = document.getElementById('correctAnswer').value;
     const isGraded = document.getElementById('isGraded').checked;
     const isAnonymous = document.getElementById('isAnonymous').checked;
+    const showResultsWhenStopped = document.getElementById('showResultsWhenStopped').checked;
 
     const response = await fetch(`/api/create_poll/${classId}`, {
         method: 'POST',
@@ -1417,7 +1422,8 @@ async function createPoll() {
             options,
             correct_answer: correctAnswer ? parseInt(correctAnswer) : null,
             is_graded: isGraded,
-            is_anonymous: isAnonymous
+            is_anonymous: isAnonymous,
+            show_results_when_stopped: showResultsWhenStopped
         })
     });
 

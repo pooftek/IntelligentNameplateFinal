@@ -157,6 +157,9 @@ class Poll(db.Model):
     correct_answer = db.Column(db.Integer, nullable=True)
     is_graded = db.Column(db.Boolean, default=False)  # Whether this poll counts toward grade
     is_anonymous = db.Column(db.Boolean, default=False)
+    show_results_when_stopped = db.Column(
+        db.Boolean, default=True, nullable=False
+    )  # If True, students see aggregate results (and correct answer if set) when poll ends
     is_active = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     class_obj = db.relationship('Class', backref=db.backref('polls', lazy=True))
@@ -489,9 +492,49 @@ def deactivate_active_polls_for_class(class_id):
     return ids
 
 
+def poll_results_payload(poll_id):
+    """Aggregate counts for Socket.IO clients when a poll ends (student results flash)."""
+    poll = Poll.query.get(poll_id)
+    if not poll:
+        return None
+    if not bool(poll.show_results_when_stopped):
+        return None
+    try:
+        options = json.loads(poll.options) if poll.options else []
+    except (json.JSONDecodeError, TypeError):
+        options = []
+    n = len(options)
+    counts = [0] * n
+    for r in PollResponse.query.filter_by(poll_id=poll_id).all():
+        try:
+            ai = int(r.answer)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= ai < n:
+            counts[ai] += 1
+    total = sum(counts)
+    return {
+        'question': poll.question,
+        'options': options,
+        'counts': counts,
+        'total_responses': total,
+        'is_graded': bool(poll.is_graded),
+        'correct_answer': poll.correct_answer,
+        'is_anonymous': bool(poll.is_anonymous),
+    }
+
+
 def emit_poll_stopped_events(class_id, poll_ids):
     for pid in poll_ids:
-        socketio.emit('poll_stopped', {'poll_id': pid}, room=f'class_{class_id}')
+        socketio.emit(
+            'poll_stopped',
+            {
+                'poll_id': pid,
+                'class_id': class_id,
+                'results': poll_results_payload(pid),
+            },
+            room=f'class_{class_id}',
+        )
 
 
 def effective_attendance_and_poll_weights(class_id, grading_weights):
@@ -723,7 +766,15 @@ def logout():
     if active_classes:
         db.session.commit()
         for cid, pid in poll_stops_after_commit:
-            socketio.emit('poll_stopped', {'poll_id': pid}, room=f'class_{cid}')
+            socketio.emit(
+                'poll_stopped',
+                {
+                    'poll_id': pid,
+                    'class_id': cid,
+                    'results': poll_results_payload(pid),
+                },
+                room=f'class_{cid}',
+            )
     logout_user()
     return redirect(url_for('login'))
 
@@ -1573,7 +1624,8 @@ def create_poll(class_id):
     correct_answer = data.get('correct_answer')
     is_graded = data.get('is_graded', False)
     is_anonymous = data.get('is_anonymous', False)
-    
+    show_results_when_stopped = bool(data.get('show_results_when_stopped', True))
+
     # Validate options
     if not options or len(options) < 2:
         return jsonify({'success': False, 'error': 'At least 2 options are required'}), 400
@@ -1593,6 +1645,7 @@ def create_poll(class_id):
         correct_answer=correct_answer,
         is_graded=is_graded,
         is_anonymous=is_anonymous,
+        show_results_when_stopped=show_results_when_stopped,
         is_active=True
     )
     db.session.add(poll)
@@ -1618,9 +1671,17 @@ def stop_poll(poll_id):
     
     poll.is_active = False
     db.session.commit()
-    
-    socketio.emit('poll_stopped', {'poll_id': poll_id}, room=f'class_{poll.class_id}')
-    
+
+    socketio.emit(
+        'poll_stopped',
+        {
+            'poll_id': poll_id,
+            'class_id': poll.class_id,
+            'results': poll_results_payload(poll_id),
+        },
+        room=f'class_{poll.class_id}',
+    )
+
     return jsonify({'success': True})
 
 @app.route('/api/toggle_poll_graded/<int:poll_id>', methods=['POST'])
@@ -3884,6 +3945,18 @@ def migrate_database():
                 except Exception as e:
                     db.session.rollback()
                     print(f"[ERROR] Error adding is_graded column: {e}")
+            inspector = inspect(db.engine)
+            poll_columns = [col['name'] for col in inspector.get_columns('poll')]
+            if 'show_results_when_stopped' not in poll_columns:
+                try:
+                    db.session.execute(
+                        text('ALTER TABLE poll ADD COLUMN show_results_when_stopped BOOLEAN DEFAULT 1')
+                    )
+                    db.session.commit()
+                    print("[OK] Added show_results_when_stopped column to poll table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding show_results_when_stopped to poll: {e}")
         
         # Check if class_session table exists and add exclude_from_grading column
         if 'class_session' in table_names:
