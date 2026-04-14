@@ -32,7 +32,7 @@ def test_preferences_api_saves_and_loads(professor_page, live_server):
         const r = await fetch('/api/preferences', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({show_first_name_only: true, quiet_mode: false})
+            body: JSON.stringify({show_first_name_only: true, quiet_mode: false, dark_mode: false})
         });
         return r.json();
     }""")
@@ -46,3 +46,4 @@ def test_preferences_api_saves_and_loads(professor_page, live_server):
     assert load_result.get("success") is True
     assert load_result.get("show_first_name_only") is True
     assert load_result.get("quiet_mode") is False
+    assert load_result.get("dark_mode") is False

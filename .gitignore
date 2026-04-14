@@ -47,6 +47,9 @@ instance/
 .env
 .env.local
 
+# Dev password-reset fallback (contains sensitive links)
+password_reset_last_link.txt
+
 # Pytest
 .pytest_cache/
 

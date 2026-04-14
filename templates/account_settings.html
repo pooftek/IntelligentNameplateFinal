@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — Account settings{% endblock %}
+
+{% block extra_css %}
+<style>
+    .responsive-title {
+        font-size: clamp(2rem, 6vw, 4rem);
+        font-weight: bold;
+    }
+    .settings-card {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .account-section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--comet-navy, #0B1E33);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="text-white responsive-title mb-0">Account settings</h1>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('preferences') }}" class="btn btn-outline-light">Preferences</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-light">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card settings-card">
+        <div class="card-body p-4">
+            <p class="text-muted small mb-4">Change your Username, email, or password. Your current password is required to save any changes.</p>
+
+            <form id="accountForm" autocomplete="off">
+                <h5 class="account-section-title">Profile</h5>
+                <div class="mb-3">
+                    <label for="accUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="accUsername" name="username" required autocomplete="username">
+                </div>
+                <div class="mb-4">
+                    <label for="accEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="accEmail" name="email" required autocomplete="email">
+                </div>
+
+                <h5 class="account-section-title">Security</h5>
+                <div class="mb-3">
+                    <label for="currentPassword" class="form-label">Current password</label>
+                    <input type="password" class="form-control" id="currentPassword" name="current_password" required autocomplete="current-password">
+                </div>
+                <div class="mb-3">
+                    <label for="newPassword" class="form-label">New password <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="password" class="form-control" id="newPassword" name="new_password" autocomplete="new-password" placeholder="Leave blank to keep current password" minlength="8">
+                </div>
+                <div class="mb-4">
+                    <label for="confirmPassword" class="form-label">Confirm new password</label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirm_password" autocomplete="new-password" placeholder="Required if setting a new password">
+                </div>
+
+                <div id="accountError" class="alert alert-danger" style="display: none;" role="alert"></div>
+
+                <div class="d-flex justify-content-end gap-2 settings-form-actions">
+                    <a href="{{ url_for('preferences') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary" id="saveAccountBtn">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const resp = await fetch('/api/account');
+        const data = await resp.json();
+        if (data.success) {
+            document.getElementById('accUsername').value = data.username || '';
+            document.getElementById('accEmail').value = data.email || '';
+        }
+    } catch (e) { /* ignore */ }
+});
+
+document.getElementById('accountForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('accountError');
+    errEl.style.display = 'none';
+
+    const newPw = document.getElementById('newPassword').value;
+    const confirmPw = document.getElementById('confirmPassword').value;
+    if (newPw || confirmPw) {
+        if (newPw.length < 8) {
+            errEl.textContent = 'New password must be at least 8 characters.';
+            errEl.style.display = 'block';
+            return;
+        }
+        if (newPw !== confirmPw) {
+            errEl.textContent = 'New password and confirmation do not match.';
+            errEl.style.display = 'block';
+            return;
+        }
+    }
+
+    const btn = document.getElementById('saveAccountBtn');
+    const payload = {
+        username: document.getElementById('accUsername').value.trim(),
+        email: document.getElementById('accEmail').value.trim(),
+        current_password: document.getElementById('currentPassword').value,
+        new_password: newPw,
+        confirm_password: confirmPw
+    };
+
+    await withLoading(btn, async () => {
+        const response = await fetch('/api/account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.success) {
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            showToast('Account settings saved.');
+        } else {
+            errEl.textContent = result.error || 'Could not save changes.';
+            errEl.style.display = 'block';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -83,7 +83,7 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% if ui_dark_mode %}theme-dark{% endif %}">
     {% block content %}{% endblock %}
 
     <!-- Toast container -->

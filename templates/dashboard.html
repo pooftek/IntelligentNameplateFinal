@@ -307,6 +307,29 @@
         background-color: #57C5E4 !important;
         border-color: #57C5E4 !important;
     }
+
+    /* Dark mode: dashboard-specific modal (responsive-title + canvas from comet.css body.theme-dark) */
+    body.theme-dark #preferencesModal .modal-title,
+    body.theme-dark #addClassModal .modal-title {
+        color: #e8eef5 !important;
+    }
+    body.theme-dark #preferencesModal .form-label,
+    body.theme-dark #preferencesModal .form-check-label,
+    body.theme-dark #addClassModal .form-label,
+    body.theme-dark #addClassModal .form-check-label {
+        color: #c5d4e3 !important;
+    }
+    body.theme-dark #preferencesModal .form-control,
+    body.theme-dark #addClassModal .form-control {
+        background-color: #0a1526 !important;
+        border-color: #243e5a !important;
+        color: #e8eef5 !important;
+    }
+    body.theme-dark #preferencesModal .text-muted,
+    body.theme-dark #preferencesModal .border-secondary-subtle {
+        color: #92a8c2 !important;
+        border-color: #122638 !important;
+    }
 </style>
 {% endblock %}
 
@@ -399,6 +422,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-3 border-bottom border-secondary-subtle">
+                    <span class="small text-muted">Update your login and profile</span>
+                    <a href="{{ url_for('account_settings') }}" class="btn btn-sm btn-outline-primary">Account settings</a>
+                </div>
                 <form id="preferencesForm">
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="prefShowFirstNameOnly">
@@ -410,6 +437,12 @@
                         <input class="form-check-input" type="checkbox" id="prefQuietMode">
                         <label class="form-check-label" for="prefQuietMode">
                             Quiet Mode
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="prefDarkMode">
+                        <label class="form-check-label" for="prefDarkMode">
+                            Dark mode
                         </label>
                     </div>
                 </form>
@@ -454,7 +487,8 @@ async function addClass() {
 async function savePreferences() {
     const data = {
         show_first_name_only: document.getElementById('prefShowFirstNameOnly').checked,
-        quiet_mode: document.getElementById('prefQuietMode').checked
+        quiet_mode: document.getElementById('prefQuietMode').checked,
+        dark_mode: document.getElementById('prefDarkMode').checked
     };
     const btn = document.querySelector('#preferencesModal .btn-primary');
     await withLoading(btn, async () => {
@@ -466,6 +500,9 @@ async function savePreferences() {
         const result = await response.json();
         bootstrap.Modal.getInstance(document.getElementById('preferencesModal')).hide();
         if (result.success) {
+            if (typeof result.dark_mode === 'boolean') {
+                document.body.classList.toggle('theme-dark', result.dark_mode);
+            }
             showToast('Preferences saved successfully.');
         } else {
             showToast(result.error || 'Failed to save preferences.', 'danger');
@@ -483,6 +520,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     document.getElementById('prefShowFirstNameOnly').checked = data.show_first_name_only;
                     document.getElementById('prefQuietMode').checked = data.quiet_mode;
+                    const dm = document.getElementById('prefDarkMode');
+                    if (dm) dm.checked = !!data.dark_mode;
                 }
             } catch (e) { /* silently ignore */ }
         });

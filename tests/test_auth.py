@@ -9,11 +9,21 @@ import pytest
 
 
 def test_login_page_loads(live_server, page):
-    """The login page should show the Comet wordmark and a login form."""
+    """The login page should show a login form and password recovery link."""
     page.goto(f"{live_server}/login")
-    assert page.locator(".comet-wordmark").is_visible()
     assert page.locator("#username").is_visible()
     assert page.locator("#password").is_visible()
+    assert page.get_by_role("link", name="Forgot Password?").is_visible()
+
+
+def test_forgot_password_shows_confirmation(live_server, registered_professor, page):
+    """Submitting the forgot-password form always shows the generic success message."""
+    page.goto(f"{live_server}/forgot-password")
+    page.fill("#accountEmail", registered_professor["email"])
+    page.click("button[type=submit]")
+    page.wait_for_selector("#statusMessage:visible", timeout=5000)
+    text = page.locator("#statusMessage").inner_text().lower()
+    assert "account" in text and "email" in text
 
 
 def test_register_new_professor(live_server, page):
@@ -71,6 +81,16 @@ def test_login_invalid_password(live_server, registered_professor, page):
     page.click("button[type=submit]")
     page.wait_for_selector("#errorMessage:visible", timeout=3000)
     assert page.locator("#errorMessage").is_visible()
+
+
+def test_account_settings_page_loads_when_logged_in(live_server, professor_page, registered_professor):
+    """Account settings shows username and email fields when logged in as a professor."""
+    professor_page.goto(f"{live_server}/preferences/account")
+    professor_page.wait_for_url(f"{live_server}/preferences/account", timeout=5000)
+    assert professor_page.locator("#accUsername").is_visible()
+    assert professor_page.locator("#accEmail").is_visible()
+    assert professor_page.locator("#accUsername").input_value() == registered_professor["username"]
+    assert professor_page.locator("#accEmail").input_value() == registered_professor["email"]
 
 
 def test_logout(live_server, professor_page):

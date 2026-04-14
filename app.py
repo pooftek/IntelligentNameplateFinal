@@ -15,16 +15,19 @@ import tempfile
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy import func
 from sqlalchemy.schema import UniqueConstraint
+import smtplib
+import ssl
+from email.mime.text import MIMEText
 
-# Load environment variables from .env file if present
+# Project directory first, then load .env from project (not dependent on cwd)
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(os.path.join(_APP_DIR, '.env'))
 except ImportError:
     pass  # python-dotenv not installed; fall back to OS env vars
 
 # Always load templates from this project folder (avoids stale/wrong UI when cwd differs)
-_APP_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=os.path.join(_APP_DIR, 'templates'))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-insecure-key')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -39,6 +42,9 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 STUDENT_TOKEN_SALT = 'student-session'
 STUDENT_TOKEN_MAX_AGE = 7 * 24 * 60 * 60  # 7 days
+
+PASSWORD_RESET_SALT = 'prof-password-reset'
+PASSWORD_RESET_MAX_AGE = 60 * 60  # 1 hour
 
 
 def _student_token_serializer():
@@ -83,6 +89,128 @@ def _student_id_from_socket_token(data):
     token = data.get('token')
     student_id, _ = verify_student_token(token)
     return student_id
+
+
+def _looks_like_email(s):
+    if not s or not isinstance(s, str):
+        return False
+    s = s.strip()
+    if len(s) > 254 or '@' not in s:
+        return False
+    return bool(re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', s))
+
+
+def _password_reset_serializer():
+    return URLSafeTimedSerializer(app.secret_key, salt=PASSWORD_RESET_SALT)
+
+
+def make_professor_password_reset_token(professor_id):
+    return _password_reset_serializer().dumps({'id': int(professor_id)})
+
+
+def verify_professor_password_reset_token(token, max_age=PASSWORD_RESET_MAX_AGE):
+    if not token or not isinstance(token, str):
+        return None
+    try:
+        data = _password_reset_serializer().loads(token, max_age=max_age)
+        pid = data.get('id')
+        if pid is None:
+            return None
+        return int(pid)
+    except (BadSignature, SignatureExpired, TypeError, ValueError, KeyError):
+        return None
+
+
+def _send_professor_password_reset_email(professor, reset_url, delivery_email=None):
+    """Send password reset instructions. PASSWORD_RESET_EMAIL_TO overrides recipient when set."""
+    override = (os.environ.get('PASSWORD_RESET_EMAIL_TO') or '').strip()
+    if override:
+        to_addr = override
+    else:
+        cand = (delivery_email or '').strip()
+        to_addr = cand if cand else (professor.email or '').strip()
+    if not to_addr:
+        app.logger.error('[password reset] No recipient email for professor id=%s', professor.id)
+        return False
+    subject = 'Comet — Password reset request'
+    body = (
+        f"A password reset was requested for this Comet professor account:\n\n"
+        f"  Username: {professor.username}\n"
+        f"  Email on file: {professor.email}\n"
+        f"  Sending this message to: {to_addr}\n\n"
+        f"Use this link to set a new password (expires in 1 hour):\n{reset_url}\n\n"
+        f"If you did not request this, you can ignore this message.\n"
+    )
+    mail_server = (os.environ.get('MAIL_SERVER') or '').strip()
+    from_addr = (os.environ.get('MAIL_FROM') or os.environ.get('MAIL_USERNAME') or 'noreply@localhost').strip()
+
+    if not mail_server:
+        app.logger.warning(
+            '[password reset] No MAIL_SERVER in .env — email is NOT sent. '
+            'Link for %s (intended recipient %s) written to password_reset_last_link.txt',
+            professor.username,
+            to_addr,
+        )
+        print(
+            f"\n[password reset] NO EMAIL SENT (configure MAIL_SERVER in .env). "
+            f"Reset link for {professor.username} (would go to {to_addr}):\n{reset_url}\n",
+            flush=True,
+        )
+        try:
+            out_path = os.path.join(_APP_DIR, 'password_reset_last_link.txt')
+            with open(out_path, 'w', encoding='utf-8') as f:
+                f.write(
+                    'Password reset (no SMTP configured — copy link below)\n\n'
+                    f'To: {to_addr}\n'
+                    f'Account: {professor.username}\n\n'
+                    f'{reset_url}\n'
+                )
+            app.logger.info('[password reset] Link saved to %s', out_path)
+        except OSError as e:
+            app.logger.warning('Could not write password_reset_last_link.txt: %s', e)
+        return True
+
+    port = int(os.environ.get('MAIL_PORT', '587'))
+    user = (os.environ.get('MAIL_USERNAME') or '').strip()
+    password = (os.environ.get('MAIL_PASSWORD') or '').strip()
+    msg = MIMEText(body, 'plain', 'utf-8')
+    msg['Subject'] = subject
+    msg['From'] = from_addr
+    msg['To'] = to_addr
+
+    try:
+        if port == 465:
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(mail_server, port, context=context) as smtp:
+                if user:
+                    smtp.login(user, password)
+                smtp.sendmail(from_addr, [to_addr], msg.as_string())
+        else:
+            context = ssl.create_default_context()
+            with smtplib.SMTP(mail_server, port) as smtp:
+                smtp.ehlo()
+                smtp.starttls(context=context)
+                smtp.ehlo()
+                if user:
+                    smtp.login(user, password)
+                smtp.sendmail(from_addr, [to_addr], msg.as_string())
+        app.logger.info('[password reset] Email sent via %s to %s', mail_server, to_addr)
+        return True
+    except Exception as e:
+        app.logger.exception('Failed to send password reset email: %s', e)
+        print(f"\n[password reset] Email send failed; reset link for {professor.username}:\n{reset_url}\n", flush=True)
+        try:
+            out_path = os.path.join(_APP_DIR, 'password_reset_last_link.txt')
+            with open(out_path, 'w', encoding='utf-8') as f:
+                f.write(
+                    'Password reset (SMTP failed — use link below)\n\n'
+                    f'To: {to_addr}\n'
+                    f'Error: {e!s}\n\n'
+                    f'{reset_url}\n'
+                )
+        except OSError:
+            pass
+        return False
 
 
 # Database Models
@@ -187,6 +315,7 @@ class ProfessorPreferences(db.Model):
     professor_id = db.Column(db.Integer, db.ForeignKey('professor.id'), nullable=False, unique=True)
     default_show_first_name_only = db.Column(db.Boolean, default=False)
     default_quiet_mode = db.Column(db.Boolean, default=False)
+    dark_mode = db.Column(db.Boolean, default=False)
     professor = db.relationship('Professor', backref=db.backref('preferences', uselist=False))
 
 class ClassSession(db.Model):
@@ -690,7 +819,12 @@ def login():
         user_type = request.form.get('user_type', 'professor')
         
         if user_type == 'professor':
-            professor = Professor.query.filter_by(username=username).first()
+            ident = (username or '').strip()
+            professor = Professor.query.filter_by(username=ident).first() if ident else None
+            if professor is None and ident:
+                professor = Professor.query.filter(
+                    func.lower(Professor.email) == ident.lower()
+                ).first()
             if professor and check_password_hash(professor.password_hash, password):
                 login_user(professor)
                 return jsonify({'success': True, 'redirect': url_for('dashboard')})
@@ -735,6 +869,62 @@ def register():
         return jsonify({'success': True, 'redirect': url_for('dashboard')})
     
     return render_template('register.html')
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Professor password reset request; optional delivery email distinct from account email."""
+    generic_ok = (
+        'If an account exists with that email, password reset instructions have been sent.'
+    )
+    if request.method == 'POST':
+        raw = (request.form.get('account_email') or request.form.get('email') or '').strip()
+        send_to_raw = (request.form.get('send_to_email') or '').strip()
+        if send_to_raw and not _looks_like_email(send_to_raw):
+            return jsonify({
+                'success': False,
+                'error': 'Please enter a valid email address for where to send the reset link.',
+            })
+        email = raw.lower()
+        if email:
+            professor = Professor.query.filter(func.lower(Professor.email) == email).first()
+            if professor:
+                token = make_professor_password_reset_token(professor.id)
+                reset_url = url_for('reset_password', token=token, _external=True)
+                delivery = send_to_raw if send_to_raw else None
+                _send_professor_password_reset_email(professor, reset_url, delivery_email=delivery)
+        return jsonify({'success': True, 'message': generic_ok})
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    professor_id = verify_professor_password_reset_token(token)
+    if professor_id is None:
+        if request.method == 'POST':
+            return jsonify({'success': False, 'error': 'This reset link is invalid or has expired.'}), 400
+        return render_template('reset_password.html', invalid_token=True)
+
+    professor = Professor.query.get(professor_id)
+    if not professor:
+        if request.method == 'POST':
+            return jsonify({'success': False, 'error': 'This reset link is invalid or has expired.'}), 400
+        return render_template('reset_password.html', invalid_token=True)
+
+    if request.method == 'POST':
+        data = request.get_json() if request.is_json else request.form.to_dict()
+        pwd = (data.get('password') or '').strip()
+        confirm = (data.get('confirmPassword') or data.get('confirm_password') or '').strip()
+        if len(pwd) < 8:
+            return jsonify({'success': False, 'error': 'Password must be at least 8 characters.'})
+        if pwd != confirm:
+            return jsonify({'success': False, 'error': 'Passwords do not match.'})
+        professor.password_hash = generate_password_hash(pwd)
+        db.session.commit()
+        return jsonify({'success': True, 'redirect': url_for('login')})
+
+    return render_template('reset_password.html', invalid_token=False, token=token)
+
 
 @app.route('/logout')
 @login_required
@@ -789,6 +979,81 @@ def dashboard():
 def preferences():
     return render_template('preferences.html')
 
+
+@app.route('/preferences/account')
+@login_required
+def account_settings():
+    return render_template('account_settings.html')
+
+
+@app.route('/api/account', methods=['GET'])
+@login_required
+def get_account():
+    """Return current professor username and email (no password)."""
+    p = Professor.query.get(current_user.id)
+    if not p:
+        return jsonify({'success': False, 'error': 'Not found.'}), 404
+    return jsonify({
+        'success': True,
+        'username': p.username,
+        'email': p.email,
+    })
+
+
+@app.route('/api/account', methods=['POST'])
+@login_required
+def update_account():
+    """Update professor username, email, and/or password. Requires current password."""
+    data = request.get_json() or {}
+    current_pw = (data.get('current_password') or '').strip()
+    if not current_pw:
+        return jsonify({'success': False, 'error': 'Enter your current password to save changes.'}), 400
+
+    prof = Professor.query.get(current_user.id)
+    if not prof or not check_password_hash(prof.password_hash, current_pw):
+        return jsonify({'success': False, 'error': 'Current password is incorrect.'}), 400
+
+    username = (data.get('username') or '').strip()
+    email = (data.get('email') or '').strip()
+    new_pw = (data.get('new_password') or '').strip()
+    confirm_pw = (data.get('confirm_password') or '').strip()
+
+    if not username:
+        return jsonify({'success': False, 'error': 'Username cannot be empty.'}), 400
+    if not email or not _looks_like_email(email):
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+
+    changed = False
+
+    if username != prof.username:
+        taken = Professor.query.filter_by(username=username).first()
+        if taken and taken.id != prof.id:
+            return jsonify({'success': False, 'error': 'That Username is already taken.'}), 400
+        prof.username = username
+        changed = True
+
+    if email.lower() != prof.email.lower():
+        taken = Professor.query.filter(func.lower(Professor.email) == email.lower()).first()
+        if taken and taken.id != prof.id:
+            return jsonify({'success': False, 'error': 'That email is already in use.'}), 400
+        prof.email = email
+        changed = True
+
+    if new_pw or confirm_pw:
+        if len(new_pw) < 8:
+            return jsonify({'success': False, 'error': 'New password must be at least 8 characters.'}), 400
+        if new_pw != confirm_pw:
+            return jsonify({'success': False, 'error': 'New password and confirmation do not match.'}), 400
+        prof.password_hash = generate_password_hash(new_pw)
+        changed = True
+
+    if not changed:
+        return jsonify({'success': False, 'error': 'No changes to save.'}), 400
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @app.route('/api/preferences', methods=['GET'])
 @login_required
 def get_preferences():
@@ -801,7 +1066,8 @@ def get_preferences():
     return jsonify({
         'success': True,
         'show_first_name_only': prefs.default_show_first_name_only,
-        'quiet_mode': prefs.default_quiet_mode
+        'quiet_mode': prefs.default_quiet_mode,
+        'dark_mode': bool(getattr(prefs, 'dark_mode', False)),
     })
 
 @app.route('/api/preferences', methods=['POST'])
@@ -815,8 +1081,26 @@ def save_preferences():
         db.session.add(prefs)
     prefs.default_show_first_name_only = bool(data.get('show_first_name_only', False))
     prefs.default_quiet_mode = bool(data.get('quiet_mode', False))
+    prefs.dark_mode = bool(data.get('dark_mode', False))
     db.session.commit()
-    return jsonify({'success': True})
+    return jsonify({
+        'success': True,
+        'dark_mode': bool(getattr(prefs, 'dark_mode', False)),
+    })
+
+
+@app.context_processor
+def inject_ui_theme():
+    """Expose dark mode to templates for logged-in professors."""
+    try:
+        if current_user.is_authenticated:
+            prefs = ProfessorPreferences.query.filter_by(professor_id=current_user.id).first()
+            dark = bool(prefs and getattr(prefs, 'dark_mode', False))
+            return {'ui_dark_mode': dark}
+    except Exception:
+        pass
+    return {'ui_dark_mode': False}
+
 
 @app.route('/classroom/<int:class_id>')
 @login_required
@@ -4098,6 +4382,19 @@ def migrate_database():
                 db.session.rollback()
                 print(f"[WARN] participation_grade_round class_session_id backfill skipped: {e}")
         
+        if 'professor_preferences' in table_names:
+            pp_columns = [col['name'] for col in inspector.get_columns('professor_preferences')]
+            if 'dark_mode' not in pp_columns:
+                try:
+                    db.session.execute(
+                        text('ALTER TABLE professor_preferences ADD COLUMN dark_mode BOOLEAN DEFAULT 0')
+                    )
+                    db.session.commit()
+                    print("[OK] Added dark_mode column to professor_preferences table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding dark_mode to professor_preferences: {e}")
+
         # Check if hand_raise table exists
         if 'hand_raise' not in table_names:
             try:
