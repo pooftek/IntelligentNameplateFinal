@@ -53,3 +53,9 @@ password_reset_last_link.txt
 # Pytest
 .pytest_cache/
 
+# Nested duplicate project tree (legacy copy with its own .git). Kept on disk
+# for anyone who needs to recover uncommitted drafts, but ignored by this repo
+# so `git status` does not surface it as untracked. Review and delete manually
+# once the duplicate is confirmed obsolete.
+/IntelligentNameplateFinal/
+

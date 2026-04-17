@@ -11,7 +11,6 @@ import re
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
-import tempfile
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy import func
 from sqlalchemy.schema import UniqueConstraint
@@ -29,8 +28,33 @@ except ImportError:
 
 # Always load templates from this project folder (avoids stale/wrong UI when cwd differs)
 app = Flask(__name__, template_folder=os.path.join(_APP_DIR, 'templates'))
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-insecure-key')
-app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+# Production is opt-in via PRODUCTION=1 or FLASK_ENV=production. In that mode we
+# refuse to start without a real SECRET_KEY and without an explicit CORS allow-list.
+# Dev / test runs (plain `python app.py`, pytest) keep the old permissive defaults so
+# the app still boots out of the box.
+_IS_TESTING = os.environ.get('TESTING') == '1'
+_IS_PRODUCTION = (
+    os.environ.get('PRODUCTION') == '1'
+    or os.environ.get('FLASK_ENV', '').lower() == 'production'
+)
+_IS_DEBUG = (os.environ.get('FLASK_DEBUG') == '1') or (not _IS_PRODUCTION and not _IS_TESTING)
+
+_SECRET_KEY = os.environ.get('SECRET_KEY')
+if not _SECRET_KEY:
+    if _IS_PRODUCTION:
+        raise RuntimeError(
+            'SECRET_KEY environment variable is required when PRODUCTION=1. '
+            'Set SECRET_KEY in .env or the process environment before starting.'
+        )
+    _SECRET_KEY = 'dev-only-insecure-key'
+    print(
+        '[WARN] SECRET_KEY not set — using insecure dev default. '
+        'Set SECRET_KEY in .env for any real deployment.',
+        flush=True,
+    )
+app.config['SECRET_KEY'] = _SECRET_KEY
+app.config['TEMPLATES_AUTO_RELOAD'] = _IS_DEBUG
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///classroom_app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -38,7 +62,16 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+# Socket.IO CORS: env list wins, otherwise permissive in dev, strict (same-origin) in prod.
+_raw_origins = (os.environ.get('SOCKETIO_ALLOWED_ORIGINS') or '').strip()
+if _raw_origins:
+    _cors_allowed = [o.strip() for o in _raw_origins.split(',') if o.strip()]
+elif _IS_PRODUCTION:
+    _cors_allowed = []
+else:
+    _cors_allowed = '*'
+socketio = SocketIO(app, cors_allowed_origins=_cors_allowed, async_mode="threading")
 
 STUDENT_TOKEN_SALT = 'student-session'
 STUDENT_TOKEN_MAX_AGE = 7 * 24 * 60 * 60  # 7 days
@@ -414,6 +447,33 @@ class PeerParticipationGrade(db.Model):
     )
 
 
+# Composite / secondary indexes for hot filter paths.
+#
+# db.create_all() creates each of these with SQLite's default IF NOT EXISTS semantics
+# on fresh databases. For existing deployments, migrate_database() re-runs create_all
+# which is a no-op for indexes that already exist.
+db.Index('ix_enrollment_class_active', Enrollment.class_id, Enrollment.is_active)
+db.Index('ix_enrollment_student_active', Enrollment.student_id, Enrollment.is_active)
+db.Index('ix_attendance_class_session', Attendance.class_id, Attendance.class_session_id)
+db.Index('ix_attendance_class_student', Attendance.class_id, Attendance.student_id)
+db.Index('ix_attendance_session_student', Attendance.class_session_id, Attendance.student_id)
+db.Index('ix_attendance_class_date', Attendance.class_id, Attendance.date)
+db.Index('ix_participation_class_date', Participation.class_id, Participation.date)
+db.Index('ix_participation_class_student_date', Participation.class_id, Participation.student_id, Participation.date)
+db.Index('ix_pollresponse_poll', PollResponse.poll_id)
+db.Index('ix_pollresponse_poll_student', PollResponse.poll_id, PollResponse.student_id)
+db.Index('ix_poll_class_active', Poll.class_id, Poll.is_active)
+db.Index('ix_poll_class_created', Poll.class_id, Poll.created_at)
+db.Index('ix_classsession_class_end', ClassSession.class_id, ClassSession.end_time)
+db.Index('ix_classsession_class_start', ClassSession.class_id, ClassSession.start_time)
+db.Index('ix_handraise_class_student_cleared', HandRaise.class_id, HandRaise.student_id, HandRaise.cleared)
+db.Index('ix_handraise_class_timestamp', HandRaise.class_id, HandRaise.timestamp)
+db.Index('ix_absence_class_student', AbsenceExemption.class_id, AbsenceExemption.student_id)
+db.Index('ix_pgr_class_subject', ParticipationGradeRound.class_id, ParticipationGradeRound.subject_student_id)
+db.Index('ix_pgr_class_date', ParticipationGradeRound.class_id, ParticipationGradeRound.date)
+db.Index('ix_pgr_session', ParticipationGradeRound.class_session_id)
+
+
 def _peer_rating_to_percent(rating):
     m = {0: 0.0, 1: 25.0, 2: 50.0, 3: 75.0, 4: 100.0}
     if rating not in m:
@@ -607,11 +667,6 @@ def gradebook_poll_responses_by_student(class_id):
     return by_student
 
 
-def poll_responses_for_gradebook(class_id, student_id):
-    """Single-student slice; prefer gradebook_poll_responses_by_student when looping all students."""
-    return gradebook_poll_responses_by_student(class_id).get(student_id, [])
-
-
 def deactivate_active_polls_for_class(class_id):
     """Set all active polls for this class to inactive. Caller must commit. Returns poll ids that were active."""
     active = Poll.query.filter_by(class_id=class_id, is_active=True).all()
@@ -621,6 +676,31 @@ def deactivate_active_polls_for_class(class_id):
     return ids
 
 
+def poll_option_counts(poll, responses=None):
+    """Parse a Poll's option list and count responses per option.
+
+    Pass `responses` when callers have already loaded the rows (avoids a second query).
+    Returns (options_list, option_counts_dict, total_responses).
+    """
+    try:
+        options = json.loads(poll.options) if poll.options else []
+    except (json.JSONDecodeError, TypeError):
+        options = []
+    n = len(options)
+    if responses is None:
+        responses = PollResponse.query.filter_by(poll_id=poll.id).all()
+    option_counts = {i: 0 for i in range(n)}
+    for r in responses:
+        try:
+            ai = int(r.answer)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= ai < n:
+            option_counts[ai] += 1
+    total = sum(option_counts.values())
+    return options, option_counts, total
+
+
 def poll_results_payload(poll_id):
     """Aggregate counts for Socket.IO clients when a poll ends (student results flash)."""
     poll = Poll.query.get(poll_id)
@@ -628,20 +708,8 @@ def poll_results_payload(poll_id):
         return None
     if not bool(poll.show_results_when_stopped):
         return None
-    try:
-        options = json.loads(poll.options) if poll.options else []
-    except (json.JSONDecodeError, TypeError):
-        options = []
-    n = len(options)
-    counts = [0] * n
-    for r in PollResponse.query.filter_by(poll_id=poll_id).all():
-        try:
-            ai = int(r.answer)
-        except (TypeError, ValueError):
-            continue
-        if 0 <= ai < n:
-            counts[ai] += 1
-    total = sum(counts)
+    options, option_counts, total = poll_option_counts(poll)
+    counts = [option_counts[i] for i in range(len(options))]
     return {
         'question': poll.question,
         'options': options,
@@ -798,6 +866,218 @@ def course_mean_session_participation(class_id, student_id, participation_instru
         if sc is not None:
             scores.append(sc)
     return sum(scores) / len(scores) if scores else 0.0
+
+
+def _compute_gradebook_rows(class_id, grading_weights):
+    """Per-class bulk gradebook compute used by both `get_gradebook` and `export_gradebook`.
+
+    Preserves the exact math of `count_graded_attendance_for_student`,
+    `session_participation_score`, `course_mean_session_participation`,
+    `effective_attendance_and_poll_weights`, and `gradebook_poll_responses_by_student`
+    while replacing their per-student / per-session / per-round query fan-out with
+    a fixed, small number of batched queries.
+
+    Returns a list of dicts keyed by `student`, `attendance_grade`, `participation_grade`,
+    `avg_peer_grade`, `avg_instructor_grade`, `poll_grade`, `overall_grade`.
+    """
+    inst_share = float(grading_weights.participation_instructor_share)
+    part_weight = float(grading_weights.participation_weight)
+    aw = float(grading_weights.attendance_weight)
+    pw = float(grading_weights.poll_weight)
+    now = datetime.utcnow()
+
+    students = (
+        db.session.query(Student)
+        .join(Enrollment)
+        .filter(Enrollment.class_id == class_id, Enrollment.is_active == True)
+        .all()
+    )
+
+    all_sessions = ClassSession.query.filter_by(class_id=class_id).all()
+    graded_sessions = [s for s in all_sessions if not s.exclude_from_grading]
+    graded_by_date_count = {}
+    for s in graded_sessions:
+        d = s.start_time.date()
+        graded_by_date_count[d] = graded_by_date_count.get(d, 0) + 1
+
+    attend_by_sid = {}
+    legacy_by_date = {}
+    for a in Attendance.query.filter_by(class_id=class_id).all():
+        if a.class_session_id is not None:
+            attend_by_sid[(a.student_id, a.class_session_id)] = a
+        else:
+            legacy_by_date[(a.student_id, a.date)] = a
+
+    exempt_map = {}
+    for row in AbsenceExemption.query.filter_by(class_id=class_id).all():
+        exempt_map.setdefault(row.student_id, set()).add(row.class_session_id)
+
+    parts_by_student = {}
+    for p in Participation.query.filter_by(class_id=class_id).all():
+        parts_by_student.setdefault(p.student_id, []).append(p)
+
+    hr_by_student = {}
+    for hr in HandRaise.query.filter_by(class_id=class_id).all():
+        hr_by_student.setdefault(hr.student_id, []).append(hr.timestamp)
+
+    rounds = (
+        ParticipationGradeRound.query.filter_by(class_id=class_id)
+        .filter(ParticipationGradeRound.exclude_from_grading.is_(False))
+        .all()
+    )
+    rounds_by_subject = {}
+    for rnd in rounds:
+        rounds_by_subject.setdefault(rnd.subject_student_id, []).append(rnd)
+
+    round_ids = [r.id for r in rounds]
+    instr_by_round = {}
+    peer_avg_by_round = {}
+    if round_ids:
+        for ig in InstructorParticipationGrade.query.filter(
+            InstructorParticipationGrade.round_id.in_(round_ids)
+        ).all():
+            instr_by_round[ig.round_id] = float(ig.score)
+        for rid, avg_val in (
+            db.session.query(
+                PeerParticipationGrade.round_id,
+                func.avg(PeerParticipationGrade.score_percent),
+            )
+            .filter(PeerParticipationGrade.round_id.in_(round_ids))
+            .group_by(PeerParticipationGrade.round_id)
+            .all()
+        ):
+            peer_avg_by_round[rid] = float(avg_val) if avg_val is not None else 0.0
+
+    polls = Poll.query.filter_by(class_id=class_id).all()
+    sessions_with_poll = 0
+    for s in graded_sessions:
+        end = s.end_time or now
+        for poll in polls:
+            t = poll.created_at
+            if t is not None and s.start_time <= t <= end:
+                sessions_with_poll += 1
+                break
+
+    n_graded = len(graded_sessions)
+    if n_graded == 0:
+        eff_att_w, eff_poll_w = aw, pw
+    elif sessions_with_poll == 0:
+        eff_att_w, eff_poll_w = aw + pw, 0.0
+    else:
+        eff_poll_w = pw * (sessions_with_poll / n_graded)
+        eff_att_w = aw + pw * ((n_graded - sessions_with_poll) / n_graded)
+
+    graded_poll_ids = [p.id for p in polls if p.is_graded]
+    poll_in_graded_window = {}
+    poll_by_id = {p.id: p for p in polls}
+    for pid in graded_poll_ids:
+        t = poll_by_id[pid].created_at
+        inside = False
+        if t is not None:
+            for s in graded_sessions:
+                end = s.end_time or now
+                if s.start_time <= t <= end:
+                    inside = True
+                    break
+        poll_in_graded_window[pid] = inside
+
+    poll_map = {}
+    if graded_poll_ids:
+        for pr in PollResponse.query.filter(PollResponse.poll_id.in_(graded_poll_ids)).all():
+            if poll_in_graded_window.get(pr.poll_id):
+                poll_map.setdefault(pr.student_id, []).append(pr)
+
+    def _attended(student_id, session):
+        a = attend_by_sid.get((student_id, session.id))
+        if a is not None:
+            return bool(a.join_time is not None and a.present)
+        d = session.start_time.date()
+        if graded_by_date_count.get(d, 0) != 1:
+            return False
+        leg = legacy_by_date.get((student_id, d))
+        return bool(leg and leg.join_time is not None and leg.present)
+
+    def _session_score(student_id, session, student_hrs, student_rounds):
+        if not _attended(student_id, session):
+            return None
+        session_start = session.start_time
+        session_end = session.end_time or now
+        candidates = [25.0]
+        for ts in student_hrs:
+            if ts is not None and session_start <= ts <= session_end:
+                candidates.append(40.0)
+                break
+        for rnd in student_rounds:
+            in_session = False
+            if rnd.class_session_id == session.id:
+                in_session = True
+            elif rnd.class_session_id is None and rnd.created_at:
+                if session_start <= rnd.created_at <= session_end:
+                    in_session = True
+            if not in_session:
+                continue
+            inst_score = instr_by_round.get(rnd.id)
+            if inst_score is None:
+                continue
+            peer_val = peer_avg_by_round.get(rnd.id, 0.0)
+            candidates.append(
+                blended_participation_grade(inst_score, peer_val, inst_share)
+            )
+        return max(candidates)
+
+    rows = []
+    for stu in students:
+        student_hrs = hr_by_student.get(stu.id, [])
+        student_rounds = rounds_by_subject.get(stu.id, [])
+        exempts = exempt_map.get(stu.id, set())
+
+        count = 0
+        denom = 0
+        scores = []
+        for s in graded_sessions:
+            if s.id in exempts:
+                pass
+            else:
+                denom += 1
+                if _attended(stu.id, s):
+                    count += 1
+            sc = _session_score(stu.id, s, student_hrs, student_rounds)
+            if sc is not None:
+                scores.append(sc)
+        attendance_grade = (count / denom) * 100 if denom > 0 else 100.0
+        participation_grade = sum(scores) / len(scores) if scores else 0.0
+
+        parts = parts_by_student.get(stu.id, [])
+        if parts:
+            avg_peer = sum(p.peer_grade for p in parts) / len(parts)
+            avg_inst = sum(p.instructor_grade for p in parts) / len(parts)
+        else:
+            avg_peer = 0
+            avg_inst = 0
+
+        prs = poll_map.get(stu.id, [])
+        if prs:
+            poll_grade = (sum(1 for pr in prs if pr.is_correct) / len(prs)) * 100
+        else:
+            poll_grade = 0
+
+        overall_grade = (
+            (attendance_grade * eff_att_w / 100)
+            + (participation_grade * part_weight / 100)
+            + (poll_grade * eff_poll_w / 100)
+        )
+
+        rows.append({
+            'student': stu,
+            'attendance_grade': attendance_grade,
+            'participation_grade': participation_grade,
+            'avg_peer_grade': avg_peer,
+            'avg_instructor_grade': avg_inst,
+            'poll_grade': poll_grade,
+            'overall_grade': overall_grade,
+        })
+
+    return rows
 
 
 @login_manager.user_loader
@@ -1286,11 +1566,9 @@ def get_gradebook(class_id):
     class_obj = Class.query.get_or_404(class_id)
     if class_obj.professor_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403
-    
-    # Get or create grading weights
+
     grading_weights = GradingWeights.query.filter_by(class_id=class_id).first()
     if not grading_weights:
-        # Create default weights (25% each)
         grading_weights = GradingWeights(
             class_id=class_id,
             attendance_weight=25.0,
@@ -1300,57 +1578,23 @@ def get_gradebook(class_id):
         )
         db.session.add(grading_weights)
         db.session.commit()
-    
-    students = db.session.query(Student).join(Enrollment).filter(
-        Enrollment.class_id == class_id,
-        Enrollment.is_active == True
-    ).all()
-    
-    gradebook_data = []
-    poll_map = gradebook_poll_responses_by_student(class_id)
-    eff_att_w, eff_poll_w = effective_attendance_and_poll_weights(class_id, grading_weights)
-    for student in students:
-        attendance_count, total_graded_classes = count_graded_attendance_for_student(class_id, student.id)
-        if total_graded_classes > 0:
-            attendance_grade = (attendance_count / total_graded_classes) * 100
-        else:
-            attendance_grade = 100.0
 
-        participations = Participation.query.filter_by(
-            class_id=class_id,
-            student_id=student.id
-        ).all()
+    rows = _compute_gradebook_rows(class_id, grading_weights)
+    gradebook_data = [
+        {
+            'student_id': r['student'].id,
+            'student_number': r['student'].student_number,
+            'name': f"{r['student'].first_name} {r['student'].last_name}",
+            'attendance_grade': round(r['attendance_grade'], 2),
+            'participation_grade': round(r['participation_grade'], 2),
+            'peer_participation': round(r['avg_peer_grade'], 2),
+            'instructor_participation': round(r['avg_instructor_grade'], 2),
+            'poll_grade': round(r['poll_grade'], 2),
+            'overall_grade': round(r['overall_grade'], 2),
+        }
+        for r in rows
+    ]
 
-        poll_responses = poll_map.get(student.id, [])
-        avg_peer_grade = sum(p.peer_grade for p in participations) / len(participations) if participations else 0
-        avg_instructor_grade = sum(p.instructor_grade for p in participations) / len(participations) if participations else 0
-
-        poll_grade = 0
-        if poll_responses:
-            correct_count = sum(1 for pr in poll_responses if pr.is_correct)
-            poll_grade = (correct_count / len(poll_responses)) * 100
-
-        participation_grade = course_mean_session_participation(
-            class_id, student.id, grading_weights.participation_instructor_share
-        )
-        overall_grade = (
-            (attendance_grade * eff_att_w / 100)
-            + (participation_grade * grading_weights.participation_weight / 100)
-            + (poll_grade * eff_poll_w / 100)
-        )
-        
-        gradebook_data.append({
-            'student_id': student.id,
-            'student_number': student.student_number,
-            'name': f"{student.first_name} {student.last_name}",
-            'attendance_grade': round(attendance_grade, 2),
-            'participation_grade': round(participation_grade, 2),
-            'peer_participation': round(avg_peer_grade, 2),
-            'instructor_participation': round(avg_instructor_grade, 2),
-            'poll_grade': round(poll_grade, 2),
-            'overall_grade': round(overall_grade, 2)
-        })
-    
     return jsonify(gradebook_data)
 
 @app.route('/api/export_gradebook/<int:class_id>')
@@ -1359,8 +1603,7 @@ def export_gradebook(class_id):
     class_obj = Class.query.get_or_404(class_id)
     if class_obj.professor_id != current_user.id:
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-    
-    # Get grading weights
+
     grading_weights = GradingWeights.query.filter_by(class_id=class_id).first()
     if not grading_weights:
         grading_weights = GradingWeights(
@@ -1370,74 +1613,33 @@ def export_gradebook(class_id):
             participation_instructor_share=50.0,
             poll_weight=25.0
         )
-    
-    # Get all students (same logic as get_gradebook)
-    students = db.session.query(Student).join(Enrollment).filter(
-        Enrollment.class_id == class_id,
-        Enrollment.is_active == True
-    ).all()
-    
-    # Create a new workbook
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Gradebook"
-    
-    # Define the header row
+
     headers = ['Student Name', 'Student Number', 'Email', 'Attendance Grade (%)',
                'Participation (%)', 'Instructor Participation', 'Peer Participation', 'Poll Grade (%)', 'Overall Grade (%)']
     ws.append(headers)
-    
-    # Style the header row
+
     header_fill = PatternFill(start_color="2A1A40", end_color="2A1A40", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
-    
     for cell in ws[1]:
         cell.fill = header_fill
         cell.font = header_font
-    
-    # Calculate grades for each student (same logic as get_gradebook)
-    poll_map = gradebook_poll_responses_by_student(class_id)
-    eff_att_w, eff_poll_w = effective_attendance_and_poll_weights(class_id, grading_weights)
-    for student in students:
-        attendance_count, total_graded_classes = count_graded_attendance_for_student(class_id, student.id)
-        if total_graded_classes > 0:
-            attendance_grade = (attendance_count / total_graded_classes) * 100
-        else:
-            attendance_grade = 100.0
 
-        participations = Participation.query.filter_by(
-            class_id=class_id,
-            student_id=student.id
-        ).all()
-
-        poll_responses = poll_map.get(student.id, [])
-        avg_peer_grade = sum(p.peer_grade for p in participations) / len(participations) if participations else 0
-        avg_instructor_grade = sum(p.instructor_grade for p in participations) / len(participations) if participations else 0
-
-        poll_grade = 0
-        if poll_responses:
-            correct_count = sum(1 for pr in poll_responses if pr.is_correct)
-            poll_grade = (correct_count / len(poll_responses)) * 100
-
-        participation_grade = course_mean_session_participation(
-            class_id, student.id, grading_weights.participation_instructor_share
-        )
-        overall_grade = (
-            (attendance_grade * eff_att_w / 100)
-            + (participation_grade * grading_weights.participation_weight / 100)
-            + (poll_grade * eff_poll_w / 100)
-        )
-        
+    for r in _compute_gradebook_rows(class_id, grading_weights):
+        student = r['student']
         row = [
             f"{student.first_name} {student.last_name}",
             student.student_number,
             student.email if hasattr(student, 'email') else '',
-            round(attendance_grade, 2),
-            round(participation_grade, 2),
-            round(avg_instructor_grade, 2),
-            round(avg_peer_grade, 2),
-            round(poll_grade, 2),
-            round(overall_grade, 2)
+            round(r['attendance_grade'], 2),
+            round(r['participation_grade'], 2),
+            round(r['avg_instructor_grade'], 2),
+            round(r['avg_peer_grade'], 2),
+            round(r['poll_grade'], 2),
+            round(r['overall_grade'], 2),
         ]
         ws.append(row)
     
@@ -1470,36 +1672,94 @@ def get_class_metrics(class_id):
     class_obj = Class.query.get_or_404(class_id)
     if class_obj.professor_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403
-    
+
     sessions = ClassSession.query.filter_by(class_id=class_id).order_by(ClassSession.start_time.desc()).all()
-    
-    # Get all enrolled students for this class
+
     enrolled_students = db.session.query(Student).join(Enrollment).filter(
         Enrollment.class_id == class_id,
         Enrollment.is_active == True
     ).all()
-    enrolled_student_ids = {s.id for s in enrolled_students}
-    
+
+    # Hoist per-class data out of the per-session loop. All of these queries
+    # previously ran once per session, multiplying with the number of rounds.
+    settings_for_class = ClassSettings.query.filter_by(class_id=class_id).first()
+    show_first_only = bool(settings_for_class and settings_for_class.show_first_name_only)
+    fn_labels = _first_name_only_labels_for_students(enrolled_students) if show_first_only else {}
+
+    def _subject_label(student):
+        if show_first_only:
+            return fn_labels.get(
+                student.id,
+                (student.preferred_name or student.first_name or '').strip() or '?',
+            )
+        return f'{student.preferred_name or student.first_name} {student.last_name}'.strip()
+
+    attendance_by_session = {}
+    attendance_legacy_by_date = {}
+    for a in Attendance.query.filter_by(class_id=class_id).all():
+        if a.class_session_id is not None:
+            attendance_by_session.setdefault(a.class_session_id, []).append(a)
+        else:
+            attendance_legacy_by_date.setdefault(a.date, []).append(a)
+
+    all_hrs = HandRaise.query.filter_by(class_id=class_id).all()
+    all_polls = Poll.query.filter_by(class_id=class_id).all()
+
+    responses_by_poll = {}
+    poll_ids = [p.id for p in all_polls]
+    if poll_ids:
+        for pr in PollResponse.query.filter(PollResponse.poll_id.in_(poll_ids)).all():
+            responses_by_poll.setdefault(pr.poll_id, []).append(pr)
+
+    exempt_by_session = {}
+    for row in AbsenceExemption.query.filter_by(class_id=class_id).all():
+        exempt_by_session.setdefault(row.class_session_id, set()).add(row.student_id)
+
+    all_rounds = (
+        ParticipationGradeRound.query.filter_by(class_id=class_id)
+        .order_by(ParticipationGradeRound.created_at.desc())
+        .all()
+    )
+    round_ids = [r.id for r in all_rounds]
+    instructor_score_by_round = {}
+    peer_scores_by_round = {}
+    if round_ids:
+        for ig in InstructorParticipationGrade.query.filter(
+            InstructorParticipationGrade.round_id.in_(round_ids)
+        ).all():
+            instructor_score_by_round[ig.round_id] = ig.score
+        for pg in PeerParticipationGrade.query.filter(
+            PeerParticipationGrade.round_id.in_(round_ids)
+        ).all():
+            peer_scores_by_round.setdefault(pg.round_id, []).append(pg.score_percent)
+
+    # Some round subjects may no longer be actively enrolled; fetch them in one IN query.
+    enrolled_by_id = {s.id: s for s in enrolled_students}
+    missing_subject_ids = {
+        r.subject_student_id for r in all_rounds if r.subject_student_id is not None
+    } - set(enrolled_by_id)
+    subjects_by_id = dict(enrolled_by_id)
+    if missing_subject_ids:
+        for s in Student.query.filter(Student.id.in_(missing_subject_ids)).all():
+            subjects_by_id[s.id] = s
+
+    same_day_count = {}
+    for s in sessions:
+        d = s.start_time.date()
+        same_day_count[d] = same_day_count.get(d, 0) + 1
+
+    total_enrolled = len(enrolled_students)
     sessions_data = []
-    session_number = len(sessions)  # Start from highest number (most recent first)
-    
+    session_number = len(sessions)
+
     for session in sessions:
         session_date = session.start_time.date()
         session_start = session.start_time
         session_end = session.end_time if session.end_time else datetime.utcnow()
 
-        session_att_records = Attendance.query.filter_by(
-            class_id=class_id,
-            class_session_id=session.id
-        ).all()
-        attendance_map = {att.student_id: att for att in session_att_records}
-        same_day_sessions = [s for s in sessions if s.start_time.date() == session_date]
-        if len(same_day_sessions) == 1:
-            for att in Attendance.query.filter_by(
-                class_id=class_id,
-                date=session_date,
-                class_session_id=None
-            ).all():
+        attendance_map = {att.student_id: att for att in attendance_by_session.get(session.id, [])}
+        if same_day_count.get(session_date, 0) == 1:
+            for att in attendance_legacy_by_date.get(session_date, []):
                 if att.student_id not in attendance_map:
                     attendance_map[att.student_id] = att
 
@@ -1507,40 +1767,29 @@ def get_class_metrics(class_id):
             1 for st in enrolled_students
             if attendance_map.get(st.id) and attendance_map[st.id].join_time is not None
         )
-        
-        # Calculate attendance percentage based on total enrolled students
-        total_enrolled = len(enrolled_students)
         attendance_percentage = (attendance_count / total_enrolled * 100) if total_enrolled > 0 else 0
-        
-        # Get unique hands raised (count distinct students who raised hands during this session)
-        # Count hand raises that occurred during this session
-        hand_raises_during_session = HandRaise.query.filter(
-            HandRaise.class_id == class_id,
-            HandRaise.timestamp >= session_start,
-            HandRaise.timestamp <= session_end
-        ).all()
-        unique_hands_raised = len(set(hr.student_id for hr in hand_raises_during_session))
-        
-        polls = Poll.query.filter(
-            Poll.class_id == class_id,
-            Poll.created_at >= session_start,
-            Poll.created_at <= session_end,
-        ).all()
-        
+
+        unique_hands_raised = len({
+            hr.student_id for hr in all_hrs
+            if hr.timestamp is not None and session_start <= hr.timestamp <= session_end
+        })
+
+        polls = [
+            p for p in all_polls
+            if p.created_at is not None and session_start <= p.created_at <= session_end
+        ]
+
         poll_results = []
-        # Calculate poll vote percentage: unique students who voted / attendance count
-        unique_poll_voters = set()
+        total_poll_responses = 0
         for poll in polls:
-            responses = PollResponse.query.filter_by(poll_id=poll.id).all()
-            # Track unique students who voted
-            for response in responses:
-                unique_poll_voters.add(response.student_id)
-            
-            option_counts = {}
+            responses = responses_by_poll.get(poll.id, [])
+            total_poll_responses += len(responses)
+
             options = json.loads(poll.options)
+            option_counts = {}
             for i in range(len(options)):
                 option_counts[i] = sum(1 for r in responses if r.answer == i)
-            
+
             poll_results.append({
                 'poll_id': poll.id,
                 'question': poll.question,
@@ -1549,16 +1798,20 @@ def get_class_metrics(class_id):
                 'total_responses': len(responses),
                 'is_graded': poll.is_graded
             })
-        
-        # Calculate overall poll vote percentage for the session
-        poll_vote_percentage = (len(unique_poll_voters) / attendance_count * 100) if attendance_count > 0 else 0
-        
-        exempt_student_ids = {
-            row.student_id
-            for row in AbsenceExemption.query.filter_by(class_session_id=session.id).all()
-        }
 
-        # Build attendance list with ALL enrolled students (attendance_map built above)
+        # Calculate overall poll vote percentage for the session as:
+        # total submitted responses / total possible responses across all polls.
+        # If no polls were conducted, return None so UI can render "N/A".
+        poll_vote_percentage = None
+        if polls:
+            total_possible_poll_responses = attendance_count * len(polls)
+            if total_possible_poll_responses > 0:
+                poll_vote_percentage = min(100.0, (total_poll_responses / total_possible_poll_responses) * 100)
+            else:
+                poll_vote_percentage = 0.0
+
+        exempt_student_ids = exempt_by_session.get(session.id, set())
+
         attendance_list = []
         for student in enrolled_students:
             att = attendance_map.get(student.id)
@@ -1587,32 +1840,27 @@ def get_class_metrics(class_id):
                 'absence_exempt': student.id in exempt_student_ids,
             })
 
-        participation_rounds = []
         grade_rounds = []
-        for rnd in (
-            ParticipationGradeRound.query.filter_by(class_id=class_id)
-            .order_by(ParticipationGradeRound.created_at.desc())
-            .all()
-        ):
+        for rnd in all_rounds:
             if rnd.class_session_id == session.id:
                 grade_rounds.append(rnd)
             elif rnd.class_session_id is None and rnd.date == session_date:
                 if rnd.created_at and session_start <= rnd.created_at <= session_end:
                     grade_rounds.append(rnd)
+
+        participation_rounds = []
         for rnd in grade_rounds:
-            subject = Student.query.get(rnd.subject_student_id)
+            subject = subjects_by_id.get(rnd.subject_student_id)
             if not subject:
                 continue
-            inst = InstructorParticipationGrade.query.filter_by(round_id=rnd.id).first()
-            peer_rows = PeerParticipationGrade.query.filter_by(round_id=rnd.id).all()
-            peer_avg = None
-            if peer_rows:
-                peer_avg = sum(p.score_percent for p in peer_rows) / len(peer_rows)
+            inst_score = instructor_score_by_round.get(rnd.id)
+            peers = peer_scores_by_round.get(rnd.id, [])
+            peer_avg = (sum(peers) / len(peers)) if peers else None
             participation_rounds.append({
                 'round_id': rnd.id,
                 'subject_student_id': rnd.subject_student_id,
-                'subject_name': _subject_display_name_for_participation_grade(class_id, subject),
-                'instructor_score': int(inst.score) if inst else None,
+                'subject_name': _subject_label(subject),
+                'instructor_score': int(inst_score) if inst_score is not None else None,
                 'peer_score_percent': round(peer_avg, 2) if peer_avg is not None else None,
                 'exclude_from_grading': bool(rnd.exclude_from_grading),
                 'created_at': rnd.created_at.isoformat() if rnd.created_at else None,
@@ -1627,7 +1875,7 @@ def get_class_metrics(class_id):
             'engagement_metrics': {
                 'attendance': round(attendance_percentage, 1),
                 'unique_hands_raised': unique_hands_raised,
-                'poll_vote_percentage': round(poll_vote_percentage, 1)
+                'poll_vote_percentage': (round(poll_vote_percentage, 1) if poll_vote_percentage is not None else None)
             },
             'poll_results': poll_results,
             'participation_rounds': participation_rounds,
@@ -2860,12 +3108,6 @@ def student_interface():
     resp.headers['Expires'] = '0'
     return resp
 
-def check_student_enrollment(student_id):
-    """Check if student is enrolled in at least one class"""
-    enrollment = Enrollment.query.filter_by(student_id=student_id).first()
-    return enrollment is not None
-
-
 def student_on_active_roster(student_id):
     """Student must appear on at least one class roster with active enrollment."""
     return Enrollment.query.filter_by(student_id=student_id, is_active=True).first() is not None
@@ -3226,10 +3468,21 @@ def student_interaction():
         
         if not class_id:
             return jsonify({'success': False, 'error': 'Class ID required'})
-        
+        try:
+            class_id = int(class_id)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Invalid class id'}), 400
+
         if not interaction_type:
             return jsonify({'success': False, 'error': 'Interaction type required'})
-        
+
+        if Enrollment.query.filter_by(
+            class_id=class_id,
+            student_id=student_id,
+            is_active=True,
+        ).first() is None:
+            return jsonify({'success': False, 'error': 'Not enrolled in this class'}), 403
+
         # Check if quiet mode is enabled
         settings = ClassSettings.query.filter_by(class_id=class_id).first()
         allow_quiet = (
@@ -3373,7 +3626,14 @@ def student_poll_response():
     poll = Poll.query.get_or_404(poll_id)
     if not poll.is_active:
         return jsonify({'success': False, 'error': 'Poll is not active'})
-    
+
+    if Enrollment.query.filter_by(
+        class_id=poll.class_id,
+        student_id=student_id,
+        is_active=True,
+    ).first() is None:
+        return jsonify({'success': False, 'error': 'Not enrolled in this class'}), 403
+
     # Check if already responded
     existing = PollResponse.query.filter_by(
         poll_id=poll_id,
@@ -3502,28 +3762,20 @@ def live_dashboard(class_id):
     poll_data = None
     poll_results_data = None
     if active_poll:
+        options, option_counts, total = poll_option_counts(active_poll)
         poll_data = {
             'poll_id': active_poll.id,
             'question': active_poll.question,
-            'options': json.loads(active_poll.options),
+            'options': options,
             'is_anonymous': active_poll.is_anonymous,
             'is_graded': active_poll.is_graded
         }
-        
-        # Include poll results in the same response to avoid dual refresh
-        responses = PollResponse.query.filter_by(poll_id=active_poll.id).all()
-        options = json.loads(active_poll.options)
-        
-        option_counts = {}
-        for i in range(len(options)):
-            option_counts[i] = sum(1 for r in responses if r.answer == i)
-        
         poll_results_data = {
             'success': True,
             'question': active_poll.question,
             'options': options,
             'option_counts': option_counts,
-            'total_responses': len(responses)
+            'total_responses': total
         }
     
     return jsonify({
@@ -4034,20 +4286,14 @@ def poll_results(poll_id):
     class_obj = Class.query.get_or_404(poll.class_id)
     if class_obj.professor_id != current_user.id:
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-    
-    responses = PollResponse.query.filter_by(poll_id=poll_id).all()
-    options = json.loads(poll.options)
-    
-    option_counts = {}
-    for i in range(len(options)):
-        option_counts[i] = sum(1 for r in responses if r.answer == i)
-    
+
+    options, option_counts, total = poll_option_counts(poll)
     return jsonify({
         'success': True,
         'question': poll.question,
         'options': options,
         'option_counts': option_counts,
-        'total_responses': len(responses)
+        'total_responses': total
     })
 
 # SocketIO Events
@@ -4070,9 +4316,49 @@ def on_join_student_enrollments(data=None):
     emit('enrolled_feed_ready', {'class_ids': [e.class_id for e in enrollments]})
 
 
+def _socket_authorize_class_access(data):
+    """Return (class_id, kind) if caller may receive events for this class, else (None, None).
+
+    kind is 'prof' when the caller owns the class (Flask-Login session), 'student' when the
+    caller is actively enrolled via a valid bearer token in the socket payload.
+    """
+    if not isinstance(data, dict):
+        return None, None
+    raw_cid = data.get('class_id')
+    try:
+        class_id = int(raw_cid)
+    except (TypeError, ValueError):
+        return None, None
+
+    class_obj = Class.query.get(class_id)
+    if class_obj is None:
+        return None, None
+
+    try:
+        if current_user.is_authenticated and getattr(current_user, 'id', None) == class_obj.professor_id:
+            return class_id, 'prof'
+    except Exception:
+        pass
+
+    sid = _student_id_from_socket_token(data)
+    if sid is not None:
+        enrolled = Enrollment.query.filter_by(
+            class_id=class_id,
+            student_id=sid,
+            is_active=True,
+        ).first()
+        if enrolled is not None:
+            return class_id, 'student'
+
+    return None, None
+
+
 @socketio.on('join_class')
 def on_join_class(data):
-    class_id = data.get('class_id')
+    class_id, _kind = _socket_authorize_class_access(data)
+    if class_id is None:
+        emit('join_class_denied', {'class_id': (data or {}).get('class_id')})
+        return
     join_room(f'class_{class_id}')
     emit('joined_class', {'class_id': class_id})
 
@@ -4084,52 +4370,50 @@ def on_leave_class(data):
 
 @socketio.on('get_live_stats')
 def on_get_live_stats(data):
-    class_id = data.get('class_id')
-    
-    students = db.session.query(Student).join(Enrollment).filter(
+    class_id, kind = _socket_authorize_class_access(data)
+    if class_id is None or kind != 'prof':
+        return
+
+    total_students = db.session.query(Enrollment).filter(
         Enrollment.class_id == class_id,
         Enrollment.is_active == True
-    ).all()
-    
-    today = datetime.utcnow().date()
+    ).count()
+
     active_session = get_active_class_session(class_id)
     if active_session:
-        present_students = db.session.query(Student).join(Attendance).filter(
+        present_students = db.session.query(Attendance).filter(
             Attendance.class_id == class_id,
             Attendance.class_session_id == active_session.id,
             Attendance.leave_time == None,
-        ).all()
+        ).count()
     else:
-        present_students = []
+        present_students = 0
 
+    today = datetime.utcnow().date()
     participations = Participation.query.filter_by(
         class_id=class_id,
         date=today
     ).all()
-    
     total_hand_raises = sum(p.hand_raises for p in participations)
     total_thumbs_up = sum(p.thumbs_up for p in participations)
     total_thumbs_down = sum(p.thumbs_down for p in participations)
-    
+
     active_poll = Poll.query.filter_by(class_id=class_id, is_active=True).first()
     poll_stats = None
     if active_poll:
-        responses = PollResponse.query.filter_by(poll_id=active_poll.id).all()
-        option_counts = {}
-        for i in range(len(json.loads(active_poll.options))):
-            option_counts[i] = sum(1 for r in responses if r.answer == i)
+        options, option_counts, total = poll_option_counts(active_poll)
         poll_stats = {
             'poll_id': active_poll.id,
             'question': active_poll.question,
-            'options': json.loads(active_poll.options),
+            'options': options,
             'option_counts': option_counts,
-            'total_responses': len(responses),
+            'total_responses': total,
             'is_anonymous': active_poll.is_anonymous
         }
-    
+
     emit('live_stats', {
-        'total_students': len(students),
-        'present_students': len(present_students),
+        'total_students': total_students,
+        'present_students': present_students,
         'total_hand_raises': total_hand_raises,
         'total_thumbs_up': total_thumbs_up,
         'total_thumbs_down': total_thumbs_down,
@@ -4433,10 +4717,13 @@ if __name__ == '__main__':
             db.session.add(default_prof)
             db.session.commit()
     
-    _debug = os.environ.get('TESTING') != '1'
+    # `python app.py` runs the Werkzeug dev server via Flask-SocketIO. That server
+    # refuses to bind unless allow_unsafe_werkzeug=True is passed, so we always set it
+    # here. Real deploys should set PRODUCTION=1 and run under gunicorn/eventlet
+    # behind a reverse proxy instead of invoking this entrypoint.
     socketio.run(
         app,
-        debug=_debug,
+        debug=_IS_DEBUG,
         host='0.0.0.0',
         port=int(os.environ.get('PORT', '5000')),
         allow_unsafe_werkzeug=True,

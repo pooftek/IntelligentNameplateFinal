@@ -613,6 +613,7 @@
             gap: 1rem;
             background: #fff;
             border-top: 2px solid #e5e7eb;
+            position: relative;
         }
         .session-bottom-left, .session-bottom-right {
             display: flex;
@@ -622,6 +623,21 @@
         }
         .session-bottom-right {
             margin-left: auto;
+        }
+        .session-bottom-logo {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .session-bottom-logo img {
+            height: clamp(20px, 4.5vw, 32px);
+            width: auto;
+            opacity: 0.85;
         }
         .btn-circle {
             width: 56px;
@@ -780,6 +796,9 @@
                         <button type="button" class="btn btn-circle hand" id="btnHand" title="Raise hand" aria-label="Raise hand">{% include 'partials/hand_raised_icon.html' %}</button>
                         <button type="button" class="btn btn-circle thumb-up" id="btnThumbUp" title="Thumbs up" aria-label="Thumbs up"><i class="bi bi-hand-thumbs-up"></i></button>
                         <button type="button" class="btn btn-circle thumb-down" id="btnThumbDown" title="Thumbs down" aria-label="Thumbs down"><i class="bi bi-hand-thumbs-down"></i></button>
+                    </div>
+                    <div class="session-bottom-logo" aria-hidden="true">
+                        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="">
                     </div>
                     <div class="session-bottom-right">
                         <button type="button" class="btn btn-circle home-btn" id="btnSessionHome" title="Home" aria-label="Home"><i class="bi bi-house-fill"></i></button>
@@ -1461,7 +1480,12 @@
         }
         stopStudentLiveUpdates();
         await ensureStudentSocketReady();
-        socket.emit('join_class', { class_id: c.id });
+        try {
+            var tok = getStudentToken();
+            socket.emit('join_class', tok ? { class_id: c.id, token: tok } : { class_id: c.id });
+        } catch (e) {
+            socket.emit('join_class', { class_id: c.id });
+        }
         setState('session');
         document.getElementById('backHome').classList.add('panel-hidden');
         document.getElementById('backSession').classList.remove('panel-hidden');
