@@ -531,10 +531,13 @@
     /* ── Settings Tab ── */
     /* ── Settings Tab Card ── */
     .fac-settings-card {
-        background-color: #0B1E33;
+        background-color: #FFFFFF;
+        border: 1px solid #e5e7eb;
         border-radius: var(--card-border-radius);
-        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
-        padding: 0 3rem;
+        box-shadow: 0 8px 24px rgba(11,30,51,0.08);
+        padding: 0 1.5rem;
+        max-width: 520px;
+        width: 100%;
         flex: 1;
         min-height: 0;
         overflow-y: auto;
@@ -545,9 +548,10 @@
     .fac-settings-title {
         text-align: center;
         font-weight: 700;
-        font-size: 2.2rem;
-        color: #FFFFFF;
+        font-size: 2.5rem;
+        color: #0B1E33;
         margin: 0;
+        font-family: 'Inter', sans-serif;
     }
 
     .fac-settings-form {
@@ -565,7 +569,7 @@
     }
 
     .fac-settings-section-bordered {
-        border-top: 3px solid rgba(255, 255, 255, 0.15);
+        border-top: 2px solid #e5e7eb;
     }
 
     .fac-settings-save-section {
@@ -574,9 +578,10 @@
 
     .fac-settings-section-title {
         font-weight: 700;
-        font-size: 1.25rem;
-        color: #FFFFFF;
+        font-size: 0.95rem;
+        color: #0B1E33;
         margin: 0 0 1rem;
+        font-family: 'Inter', sans-serif;
     }
 
     .fac-settings-card .form-check {
@@ -588,14 +593,14 @@
     }
 
     .fac-settings-card .form-check-label {
-        color: #FFFFFF;
+        color: #0B1E33;
         font-weight: 400;
         font-size: 1.15rem;
     }
 
     .fac-settings-card .form-check-input {
-        background-color: rgba(255, 255, 255, 0.25);
-        border-color: rgba(255, 255, 255, 0.35);
+        background-color: #e5e7eb;
+        border-color: #d1d5db;
         cursor: pointer;
         width: 2.5em;
         height: 1.35em;
@@ -615,11 +620,14 @@
         color: #FFFFFF;
         border: none;
         font-weight: 600;
-        font-size: 1.15rem;
-        padding: 0.65rem 2.75rem;
+        font-size: 1rem;
+        min-width: 130px;
+        height: 40px;
+        padding: 0 1.5rem;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
     }
 
     .btn-live-settings-save:hover { background-color: #3BA8C8; }
@@ -849,14 +857,14 @@
     </div>
 
     <div class="fac-branding">
-        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
     </div>
 
 </div>
 
 <!-- Create Poll Modal -->
 <div class="modal fade" id="createPollModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-std settings-modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create Poll/Quiz</h5>
@@ -864,13 +872,16 @@
             </div>
             <div class="modal-body">
                 <form id="createPollForm">
+                    <p class="settings-section-title">Question</p>
                     <div class="mb-3">
-                        <label for="pollQuestion" class="form-label">Question</label>
+                        <label for="pollQuestion" class="form-label">Question Text</label>
                         <input type="text" class="form-control" id="pollQuestion" required>
                     </div>
+                    <hr class="settings-divider">
+                    <p class="settings-section-title">Options</p>
                     <div class="mb-3">
                         <label class="form-label">Number of Options</label>
-                        <select class="form-control mb-2" id="numOptions" onchange="updatePollOptions()">
+                        <select class="form-select mb-2" id="numOptions" onchange="updatePollOptions()">
                             <option value="2">2 Options</option>
                             <option value="3">3 Options</option>
                             <option value="4" selected>4 Options</option>
@@ -878,7 +889,6 @@
                         </select>
                     </div>
                     <div class="mb-3" id="pollOptionsContainer">
-                        <label class="form-label">Options</label>
                         <input type="text" class="form-control mb-2" id="option1" placeholder="Option A" required oninput="updateCorrectAnswerDropdown()">
                         <input type="text" class="form-control mb-2" id="option2" placeholder="Option B" required oninput="updateCorrectAnswerDropdown()">
                         <input type="text" class="form-control mb-2" id="option3" placeholder="Option C" required oninput="updateCorrectAnswerDropdown()">
@@ -886,7 +896,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="correctAnswer" class="form-label">Correct Answer (optional, for quiz)</label>
-                        <select class="form-control" id="correctAnswer">
+                        <select class="form-select" id="correctAnswer">
                             <option value="">No correct answer</option>
                             <option value="0">Option A</option>
                             <option value="1">Option B</option>
@@ -894,6 +904,8 @@
                             <option value="3">Option D</option>
                         </select>
                     </div>
+                    <hr class="settings-divider">
+                    <p class="settings-section-title">Settings</p>
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="isGraded">
                         <label class="form-check-label" for="isGraded">Graded (Counts toward student grades)</label>

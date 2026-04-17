@@ -142,14 +142,17 @@
     .btn-tron-pill {
         border-radius: 9999px;
         background-color: #57C5E4;
-        color: #FFFFFF;
-        border: none;
-        padding: 0.55rem 1.25rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 400;
-        font-size: 0.95rem;
+        color: #FFFFFF !important;
+        min-width: 130px;
+        height: 40px;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
+        border: none;
+        padding: 0 1.25rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
         gap: 0.4rem;
         cursor: pointer;
         transition: background 0.15s;
@@ -345,6 +348,29 @@
         align-items: center;
         gap: 0.6rem;
     }
+    .grading-actions-btns {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+    .btn-grading-cancel {
+        border-radius: 9999px;
+        background-color: #e5e7eb;
+        color: #374151;
+        min-width: 130px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        padding: 0 1.25rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-grading-cancel:hover { background-color: #d1d5db; }
     #gradingMessage { width: 100%; text-align: center; }
     #gradingMessage .alert { margin: 0; border-radius: 9999px; padding: 0.5rem 1.25rem; font-size: 0.9rem; }
 
@@ -801,7 +827,7 @@
 
     <!-- Footer -->
     <div class="class-data-branding">
-        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
     </div>
 
 </div><!-- /.class-data-container -->
@@ -1029,9 +1055,12 @@ async function loadGradingWeights() {
                     </div>
                     <div class="grading-actions-bar">
                         <div id="gradingMessage"></div>
-                        <button type="submit" id="saveGradingWeightsBtn" class="btn-tron-pill" disabled style="font-weight:600;">
-                            Save Grading Weights
-                        </button>
+                        <div class="grading-actions-btns">
+                            <button type="button" class="btn-grading-cancel" onclick="resetGradingWeights(${data.attendance_weight}, ${data.participation_weight}, ${data.participation_instructor_share}, ${data.poll_weight})">Cancel</button>
+                            <button type="submit" id="saveGradingWeightsBtn" class="btn-tron-pill" disabled>
+                                Save Grading Weights
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>`;
@@ -1095,6 +1124,18 @@ function updateSaveButtonState() {
     saveButton.disabled = !isValid;
     saveButton.style.opacity = isValid ? '1' : '0.5';
     saveButton.style.cursor = isValid ? 'pointer' : 'not-allowed';
+}
+
+function resetGradingWeights(attendance, participation, instrShare, poll) {
+    document.getElementById('attendance_weight').value = attendance;
+    document.getElementById('participation_weight').value = participation;
+    document.getElementById('participation_instructor_share').value = instrShare;
+    document.getElementById('poll_weight').value = poll;
+    document.getElementById('saveGradingWeightsBtn').disabled = true;
+    const msg = document.getElementById('gradingMessage');
+    if (msg) msg.innerHTML = '';
+    if (typeof updateWeightTotal === 'function') updateWeightTotal();
+    if (typeof updateParticipationPeerNote === 'function') updateParticipationPeerNote();
 }
 
 async function saveGradingWeights(event) {

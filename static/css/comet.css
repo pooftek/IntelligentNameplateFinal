@@ -66,15 +66,15 @@ body {
 .settings-form-actions .btn {
   min-width: 130px;
   padding: 0.5rem 1.25rem;
-  border-radius: 10px;
+  border-radius: 9999px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .settings-form-actions .btn-secondary {
-  border-radius: 10px !important;
-  color: var(--comet-navy) !important;
+  border-radius: 9999px !important;
+  color: #374151 !important;
   background-color: #e5e7eb !important;
   border-color: #e5e7eb !important;
 }
@@ -82,7 +82,7 @@ body {
 .settings-form-actions .btn-secondary:focus {
   background-color: #d1d5db !important;
   border-color: #d1d5db !important;
-  color: var(--comet-navy) !important;
+  color: #374151 !important;
 }
 
 /* ---- Cards ---- */
@@ -132,6 +132,101 @@ body {
 
 /* ---- Link color ---- */
 a.text-white:hover { color: var(--comet-blue) !important; }
+
+/* ---- Standard form modal (max-width) ---- */
+.settings-modal-dialog { max-width: 520px; }
+
+/* ---- Standard form modal chrome (.modal-std on the .modal-dialog element) ---- */
+.modal-std .modal-content {
+  border: none;
+  border-radius: var(--card-border-radius);
+}
+.modal-std .modal-header {
+  justify-content: center;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+}
+.modal-std .modal-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  color: #0B1E33;
+  font-family: 'Inter', sans-serif;
+}
+.modal-std .btn-close {
+  position: absolute;
+  right: 1rem;
+}
+.modal-std .modal-footer {
+  justify-content: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  padding-bottom: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+.modal-std .modal-footer .btn {
+  min-width: 130px;
+  height: 40px;
+  border-radius: 9999px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-std .btn-primary {
+  background-color: #57C5E4 !important;
+  border-color: #57C5E4 !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+}
+.modal-std .btn-primary:hover {
+  background-color: #3BA8C8 !important;
+  border-color: #3BA8C8 !important;
+}
+.modal-std .btn-light {
+  background-color: #e5e7eb !important;
+  color: #374151 !important;
+  border-color: #e5e7eb !important;
+}
+.modal-std .form-label {
+  color: #0B1E33;
+  font-size: 0.875rem;
+  margin-bottom: 0.3rem;
+}
+.modal-std .form-control {
+  background-color: #FFFFFF;
+  border: 1px solid #d1d5db;
+  color: #0B1E33;
+  border-radius: 8px;
+}
+.modal-std .form-control:focus {
+  background-color: #FFFFFF;
+  border-color: #57C5E4;
+  color: #0B1E33;
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+}
+.modal-std .form-select {
+  border: 1px solid #d1d5db;
+  color: #0B1E33;
+  border-radius: 8px;
+}
+.modal-std .form-select:focus {
+  border-color: #57C5E4;
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+}
+.modal-std .form-check-label {
+  color: #0B1E33;
+  font-weight: 400;
+  font-family: 'Inter', sans-serif;
+}
+.modal-std .form-check-input {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+  cursor: pointer;
+}
+.modal-std .form-check-input:checked {
+  background-color: #57C5E4 !important;
+  border-color: #57C5E4 !important;
+}
 
 /* ---- Professor UI dark mode: white menu/surfaces → very dark blue ---- */
 body.theme-dark {
@@ -221,6 +316,7 @@ body.theme-dark .btn-outline-light:hover {
   color: var(--comet-menu-text) !important;
 }
 body.theme-dark .settings-form-actions .btn-secondary {
+  border-radius: 9999px !important;
   background-color: #172f46 !important;
   border-color: #243e5a !important;
   color: var(--comet-menu-text) !important;

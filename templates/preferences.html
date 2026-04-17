@@ -3,6 +3,7 @@
 {% block title %}Comet — Preferences{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     .responsive-title {
         font-size: clamp(2rem, 6vw, 4rem);
@@ -29,7 +30,7 @@
     <div class="card settings-card mb-4">
         <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
             <div>
-                <h5 class="card-title mb-1 fw-bold">Account</h5>
+                <p class="settings-section-title mb-1">Account</p>
                 <p class="text-muted small mb-0">Change your Username, email, or password.</p>
             </div>
             <a href="{{ url_for('account_settings') }}" class="btn btn-primary">Open account settings</a>
@@ -38,7 +39,7 @@
 
     <div class="card settings-card">
         <div class="card-body p-4">
-            <h5 class="card-title mb-1 fw-bold">Display Preferences</h5>
+            <p class="settings-section-title mb-1">Display Preferences</p>
             <p class="text-muted small mb-4">These are your default settings applied to new classes.</p>
 
             <form id="preferencesForm">
