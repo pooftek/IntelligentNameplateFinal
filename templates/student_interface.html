@@ -46,6 +46,7 @@
             min-height: 100%;
             position: relative;
             isolation: isolate;
+            font-family: 'Inter', sans-serif;
         }
         /* Peer rating: only on student-facing (back) screen — not full dual-monitor viewport */
         #npBack .peer-participation-backdrop {
@@ -68,8 +69,8 @@
             overflow-y: auto;
         }
         #backGlobalStatus.session-top {
-            background-color: #0B1E33;
-            color: #FFFFFF;
+            background-color: #FFFFFF;
+            color: #0B1E33;
             border-bottom: none;
         }
         .sleep-layer {
@@ -182,6 +183,7 @@
             overflow: visible;
         }
         .front-name-display .name-text {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-weight: bold;
             color: #000;
             line-height: 1.05;
@@ -202,16 +204,20 @@
             overflow: hidden;
             background: #FFFFFF;
             font-family: 'Inter', 'Nunito', sans-serif;
+            position: relative;
         }
         .dashboard-header {
             flex-shrink: 0;
-            background-color: #0B1E33;
-            padding: 2rem 1.5rem 1.25rem;
+            background-color: #FFFFFF;
+            border-bottom: none;
+            padding: 1.2rem 1.5rem 0.9rem;
         }
         .dashboard-header .container { max-width: 1200px; margin: 0 auto; }
         .responsive-title {
-            font-size: clamp(2rem, 6vw, 4rem);
-            font-weight: bold;
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.75rem, 4.1vw, 2.55rem);
+            font-weight: 600;
+            color: #0B1E33;
             white-space: nowrap;
             line-height: 1.2;
             margin: 0;
@@ -219,14 +225,24 @@
         .header-buttons { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
         .header-buttons .btn { height: 38px; display: inline-flex; align-items: center; padding: 0.375rem 0.75rem; }
         .btn-logout-home {
+            position: absolute;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            width: 56px;
+            height: 56px;
             background-color: #57C5E4;
             color: #FFFFFF;
-            border-radius: 9999px;
+            border-radius: 50%;
             border: none;
-            padding: 0.5rem 1.2rem;
+            padding: 0;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 1.35rem;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(11, 30, 51, 0.22);
+            z-index: 3;
         }
         .btn-logout-home:hover { background-color: #3BA8C8; color: #FFFFFF; }
         .dashboard-content {
@@ -240,6 +256,7 @@
         .dashboard-content::-webkit-scrollbar-thumb { background: #2A1A40; border-radius: 6px; }
         .row > [class*='col-'] { display: flex; padding-left: 20px; padding-right: 20px; }
         .class-card {
+            background-color: #0B1E33 !important;
             transition: transform 0.2s, box-shadow 0.2s;
             cursor: pointer;
             margin-bottom: clamp(30px, 5vw, 40px);
@@ -249,7 +266,7 @@
             flex-direction: column;
             width: 100%;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 24px rgba(11,30,51,0.22);
             border: none;
         }
         .class-card:active { transform: scale(0.98); }
@@ -260,10 +277,31 @@
             justify-content: space-between;
             overflow: hidden;
             min-height: 0;
+            padding: 1.25rem;
+        }
+        .card-header-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            overflow: hidden;
+        }
+        .card-photo-placeholder {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 1rem;
         }
         .class-card .card-title {
-            font-size: clamp(1.25rem, 2.8vw, 1.75rem);
-            font-weight: bold;
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.2rem, 2.6vw, 1.65rem);
+            font-weight: 600;
+            color: #FFFFFF;
             margin-bottom: 0;
             overflow: hidden;
             display: -webkit-box;
@@ -272,7 +310,10 @@
             line-height: 1.4;
         }
         .class-card .class-code {
-            font-size: clamp(0.875rem, 1.9vw, 1.125rem);
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+            font-weight: 400;
+            color: #7A99B5;
             margin-bottom: 0.5rem;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -281,8 +322,21 @@
         .class-card .status-badge {
             margin-top: auto;
             align-self: flex-start;
-            font-size: clamp(0.7rem, 1.4vw, 0.8rem);
-            padding: clamp(0.2rem, 0.45vw, 0.35rem) clamp(0.45rem, 0.9vw, 0.7rem);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 400;
+            line-height: 1.5;
+            padding: 0.22rem 0.85rem;
+            border-radius: 9999px;
+        }
+        .class-card .status-badge.active {
+            background-color: #57C5E4;
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+        .class-card .status-badge.inactive {
+            background-color: rgba(255, 255, 255, 0.12);
+            color: #7A99B5;
         }
         .class-card:hover {
             transform: translateY(-5px);
@@ -421,10 +475,10 @@
             align-items: center;
             gap: 0.75rem;
             padding: 1rem 1.25rem;
-            font-size: 1.15rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            color: #FFFFFF;
-            background-color: #0B1E33;
+            color: #0B1E33;
+            background-color: #FFFFFF;
             border-bottom: none;
         }
         #sessionTime {
@@ -439,9 +493,9 @@
             gap: 0.15rem;
         }
         .session-battery-charging {
-            font-size: 1.15rem;
+            font-size: 0.95rem;
             line-height: 1;
-            color: #FFFFFF;
+            color: #57C5E4;
             flex-shrink: 0;
         }
         /* Custom battery — faculty inactive-symbol grey (#6c757d), compact */
@@ -450,26 +504,26 @@
             align-items: center;
             gap: 0;
             flex-shrink: 0;
-            font-size: 1.15rem;
+            font-size: 0.95rem;
             font-weight: 600;
             line-height: 1;
         }
         .session-battery-shell {
             position: relative;
-            width: clamp(2.5rem, 9vw, 2.85rem);
-            height: clamp(1.32rem, 4.2vw, 1.48rem);
-            border: 1.5px solid #5a6268;
+            width: clamp(2.1rem, 7.8vw, 2.45rem);
+            height: clamp(1.1rem, 3.6vw, 1.25rem);
+            border: 2.5px solid #0B1E33;
             border-radius: 4px;
-            background: #6c757d;
+            background: #E2EEF5;
             overflow: hidden;
             box-sizing: border-box;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
         }
         .session-battery.session-battery-low .session-battery-shell {
-            border-color: #b02a37;
+            border-color: #0D1628;
         }
         .session-battery.session-battery-low .session-battery-fill {
-            background: #adb5bd;
+            background: #0B1E33;
         }
         .session-battery-fill {
             position: absolute;
@@ -478,7 +532,7 @@
             bottom: 0;
             width: 100%;
             max-width: 100%;
-            background: #adb5bd;
+            background: #57C5E4;
             transition: width 0.35s ease;
             pointer-events: none;
         }
@@ -497,18 +551,21 @@
             box-sizing: border-box;
             font-weight: 600;
             font-variant-numeric: tabular-nums;
-            font-size: 1.15rem;
+            font-size: 0.95rem;
             line-height: 1;
             letter-spacing: -0.03em;
-            color: #fff;
-            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+            color: #0B1E33;
+            text-shadow: none;
+        }
+        .session-battery.session-battery-low .session-battery-pct {
+            color: #FFFFFF;
         }
         .session-battery-nub {
             width: 3px;
-            height: 0.55rem;
+            height: 0.5rem;
             margin-left: 1px;
-            background: #6c757d;
-            border: 1.5px solid #5a6268;
+            background: #0B1E33;
+            border: 2.5px solid #0B1E33;
             border-left: none;
             border-radius: 0 3px 3px 0;
             box-sizing: border-box;
@@ -516,8 +573,8 @@
             align-self: center;
         }
         .session-battery.session-battery-low .session-battery-nub {
-            background: #6c757d;
-            border-color: #b02a37;
+            background: #0D1628;
+            border-color: #0D1628;
         }
         .session-center {
             flex: 1;
@@ -535,13 +592,13 @@
         .session-class-name {
             font-size: clamp(2.75rem, 9vw, 5rem);
             font-weight: bold;
-            color: #0B1E33;
+            color: #0D1628;
             margin: 0;
             line-height: 1.15;
         }
         .session-class-code {
             font-size: clamp(1.75rem, 5vw, 3rem);
-            color: #0B1E33;
+            color: #57C5E4;
             font-weight: 700;
             margin-top: 1.25rem;
             margin-bottom: 0;
@@ -580,11 +637,11 @@
         }
         .btn-circle:active { transform: scale(0.92); }
         .btn-circle.hand {
-            border: 2px solid #0B1E33;
+            border: 2px solid #0D1628;
             background: #fff;
-            color: #0B1E33;
+            color: #0D1628;
         }
-        .btn-circle.hand.active { background: #0B1E33; color: #fff; }
+        .btn-circle.hand.active { background: #0D1628; color: #fff; }
         .btn-circle.hand .hand-raised-icon {
             width: 1.35em;
             height: 1.35em;
@@ -603,7 +660,7 @@
         }
         .btn-circle.thumb-down.active { background: #dc3545; color: #fff; }
         .btn-circle.home-btn {
-            background: #0B1E33;
+            background: #0D1628;
             color: #fff;
             border: none;
         }
@@ -612,7 +669,7 @@
             color: #fff;
             border: none;
         }
-        .empty-classes { color: rgba(255,255,255,0.85); text-align: center; padding: 2rem; }
+        .empty-classes { color: #6C757D; text-align: center; padding: 2rem; }
 
         #peerParticipationModal .modal-content { border-radius: 15px; }
         #peerParticipationModal .modal-footer {
@@ -693,11 +750,8 @@
         <div class="back-inner-home panel-hidden" id="backHome">
             <div class="dashboard-header">
                 <div class="container">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h1 class="text-white responsive-title">My Classes</h1>
-                        <div class="header-buttons">
-                            <button type="button" class="btn-logout-home" id="btnLogoutHome">Logout</button>
-                        </div>
+                    <div class="d-flex align-items-center">
+                        <h1 class="responsive-title">My Classes</h1>
                     </div>
                 </div>
             </div>
@@ -707,6 +761,9 @@
                     <p class="empty-classes panel-hidden" id="emptyClassesMsg">No active classes available.</p>
                 </div>
             </div>
+            <button type="button" class="btn-logout-home" id="btnLogoutHome" title="Logout" aria-label="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
         </div>
 
         <!-- IN-CLASS SESSION -->
@@ -931,6 +988,7 @@
         var fr = document.getElementById('npFront');
         var nameWrap = document.getElementById('frontNameWrap');
         var nameEl = document.getElementById('frontStudentName');
+        var topBar = document.getElementById('backGlobalStatus');
         if (fr) {
             fr.style.removeProperty('background');
             fr.style.removeProperty('background-color');
@@ -956,6 +1014,11 @@
             pq.style.removeProperty('border-bottom-color');
         }
         if (pd) pd.style.removeProperty('color');
+        if (topBar) {
+            topBar.style.removeProperty('background');
+            topBar.style.removeProperty('background-color');
+            topBar.style.removeProperty('border-bottom-color');
+        }
         scheduleFitFrontName();
     }
 
@@ -969,9 +1032,14 @@
         var fr = document.getElementById('npFront');
         var nameWrap = document.getElementById('frontNameWrap');
         var nameEl = document.getElementById('frontStudentName');
+        var topBar = document.getElementById('backGlobalStatus');
         if (fr) fr.style.setProperty('background', bg, 'important');
         if (nameWrap) nameWrap.style.setProperty('background', bg, 'important');
         if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+        if (topBar) {
+            topBar.style.setProperty('background', bg, 'important');
+            topBar.style.setProperty('border-bottom-color', 'transparent', 'important');
+        }
         var pollFs = document.getElementById('backPollFullscreen');
         if (pollFs) pollFs.style.setProperty('background', bg, 'important');
         var pq = document.getElementById('backPollQuestion');
@@ -1325,15 +1393,20 @@
             col.className = 'col-md-4';
             const live = !!c.is_active;
             const badge = live
-                ? '<span class="badge bg-success status-badge">Active</span>'
-                : '<span class="badge bg-secondary status-badge">Inactive</span>';
+                ? '<span class="status-badge active">Active</span>'
+                : '<span class="status-badge inactive">Inactive</span>';
             const cardCls = 'card class-card' + (live ? '' : ' class-card-inactive');
             col.innerHTML = `
                 <div class="${cardCls}" data-class-id="${c.id}">
                     <div class="card-body">
-                        <div style="flex:1;"><h5 class="card-title">${escapeHtml(c.name)}</h5></div>
+                        <div class="card-header-row" style="flex:1;">
+                            <div class="card-photo-placeholder">
+                                <i class="bi bi-globe2"></i>
+                            </div>
+                            <h5 class="card-title">${escapeHtml(c.name)}</h5>
+                        </div>
                         <div style="margin-top:auto;">
-                            <p class="class-code text-muted" style="margin-bottom:0.5rem;">${escapeHtml(c.class_code)}</p>
+                            <p class="class-code">${escapeHtml(c.class_code)}</p>
                             ${badge}
                         </div>
                     </div>
@@ -1396,6 +1469,15 @@
         document.getElementById('sessionClassCode').textContent = c.class_code;
         applyQuietParticipationUI();
         updateFrontName();
+        if (data.active_poll && Array.isArray(data.active_poll.options) && data.active_poll.options.length) {
+            currentPoll = data.active_poll;
+            resetDefaultFrontPlate();
+            showBackPollFullscreen(data.active_poll);
+        } else {
+            currentPoll = null;
+            hideBackPollUI();
+            resetDefaultFrontPlate();
+        }
         refreshInteractionState();
         syncBackStatusBarVisibility();
     }

@@ -3140,6 +3140,7 @@ def student_join_class():
     class_settings = ClassSettings.query.filter_by(class_id=class_id).first()
     show_fn = bool(class_settings and class_settings.show_first_name_only)
     fn_labels = _first_name_only_labels_for_class(class_id) if show_fn else {}
+    active_poll = Poll.query.filter_by(class_id=class_id, is_active=True).first()
     payload = {
         'success': True,
         'class_id': class_id,
@@ -3147,6 +3148,14 @@ def student_join_class():
     }
     if show_fn:
         payload['first_name_only_display'] = fn_labels.get(student_id, '')
+    if active_poll:
+        payload['active_poll'] = {
+            'poll_id': active_poll.id,
+            'question': active_poll.question,
+            'options': json.loads(active_poll.options or '[]'),
+            'is_anonymous': bool(active_poll.is_anonymous),
+            'is_graded': bool(active_poll.is_graded),
+        }
     return jsonify(payload)
 
 
