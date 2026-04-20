@@ -119,18 +119,23 @@
     .tab-panel { display: none; flex-direction: column; flex: 1; min-height: 0; gap: 1rem; overflow: hidden; }
     .tab-panel.active { display: flex; }
 
-    /* Gradebook and metrics scroll internally */
+    /* Tab panels that scroll as one unit (gradebook table, grading form, metrics) */
     #panelGradebook,
-    #panelMetrics {
+    #panelMetrics,
+    #panelGrading {
         overflow-y: auto;
-        padding-bottom: 1rem;
+        overflow-x: hidden;
+        padding-bottom: 1.5rem;
     }
     #panelGradebook::-webkit-scrollbar,
-    #panelMetrics::-webkit-scrollbar { width: 8px; }
+    #panelMetrics::-webkit-scrollbar,
+    #panelGrading::-webkit-scrollbar { width: 8px; }
     #panelGradebook::-webkit-scrollbar-track,
-    #panelMetrics::-webkit-scrollbar-track { background: transparent; }
+    #panelMetrics::-webkit-scrollbar-track,
+    #panelGrading::-webkit-scrollbar-track { background: transparent; }
     #panelGradebook::-webkit-scrollbar-thumb,
-    #panelMetrics::-webkit-scrollbar-thumb {
+    #panelMetrics::-webkit-scrollbar-thumb,
+    #panelGrading::-webkit-scrollbar-thumb {
         background: rgba(11,30,51,0.2);
         border-radius: 4px;
     }
@@ -212,9 +217,7 @@
 
     /* ── Grading tab ── */
     #panelGrading {
-        align-items: center;
-        overflow: hidden;
-        padding-bottom: 1.25rem;
+        align-items: stretch;
         gap: 0;
     }
     #gradingContent {
@@ -223,6 +226,9 @@
         min-height: 0;
         width: 100%;
         justify-content: center;
+        align-items: flex-start;
+        overflow: visible;
+        padding-bottom: 0.5rem;
     }
     .participation-split-nested {
         margin-top: 0.35rem;
@@ -239,19 +245,30 @@
         margin-bottom: 0.5rem;
         font-family: 'Inter', sans-serif;
     }
+    .grading-quiz-section {
+        margin-top: 0.25rem;
+        padding: 0.85rem 1rem;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+    .grading-quiz-section .form-group { margin-bottom: 0; }
     .grading-form-card {
         background: #FFFFFF;
         border: 1px solid #e5e7eb;
         border-radius: var(--card-border-radius);
-        padding: 1.5rem 3rem;
-        max-width: 640px;
+        padding: 1.5rem clamp(1rem, 4vw, 2.75rem);
+        max-width: min(640px, 100%);
         width: 100%;
         display: flex;
         flex-direction: column;
-        flex: 1;
-        min-height: 0;
+        flex: 0 1 auto;
+        min-height: auto;
         box-sizing: border-box;
-        overflow: hidden;
+        overflow: visible;
     }
     .grading-form-title {
         text-align: center;
@@ -275,10 +292,9 @@
     .grading-fields-grid {
         display: flex;
         flex-direction: column;
-        gap: 0;
-        flex: 1;
-        min-height: 0;
-        justify-content: space-around;
+        gap: 1rem;
+        flex: none;
+        min-height: auto;
     }
     .grading-form-card .form-group {
         display: flex;
@@ -290,7 +306,9 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
+        gap: 0.75rem 1rem;
+        flex-wrap: wrap;
+        min-width: 0;
     }
     .grading-form-card label {
         font-family: 'Inter', sans-serif;
@@ -298,16 +316,20 @@
         color: #0B1E33;
         font-size: 0.9rem;
         margin: 0;
-        flex: 1;
-        white-space: nowrap;
+        flex: 1 1 12rem;
+        min-width: 0;
+        white-space: normal;
+        line-height: 1.35;
     }
     .grading-form-card .form-control {
         border: 1.5px solid #d1d5db;
         border-radius: 8px;
-        padding: 0.4rem 0.65rem;
+        padding: 0.45rem 0.65rem;
         font-family: 'Inter', sans-serif;
         color: #0B1E33;
-        width: 90px;
+        width: 5.5rem;
+        min-width: 5.5rem;
+        max-width: 100%;
         flex-shrink: 0;
         text-align: center;
     }
@@ -326,9 +348,11 @@
         background: #f8fafc;
         border: 2px solid #d1d5db;
         border-radius: 10px;
-        padding: 0.5rem 1rem;
+        padding: 0.65rem 1rem;
         text-align: center;
-        margin-top: 0.75rem;
+        margin-top: 1.25rem;
+        flex-shrink: 0;
+        clear: both;
     }
     .weight-total.valid   { border-color: #28a745; background: #f0fdf4; }
     .weight-total.invalid { border-color: #dc3545; background: #fff5f5; }
@@ -337,16 +361,17 @@
     .grading-form-card form {
         display: flex;
         flex-direction: column;
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
+        flex: none;
+        min-height: auto;
+        overflow: visible;
     }
     .grading-actions-bar {
-        margin-top: 1rem;
+        margin-top: 1.25rem;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 0.6rem;
+        flex-shrink: 0;
     }
     .grading-actions-btns {
         display: flex;
@@ -735,6 +760,56 @@
         text-align: center;
         font-variant-numeric: tabular-nums;
     }
+    .quiz-metrics-student-name-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        color: #57C5E4;
+        text-decoration: underline;
+        cursor: pointer;
+        text-align: inherit;
+    }
+    .quiz-metrics-student-name-btn:hover {
+        color: #3BA8C8;
+    }
+    #quizMetricsStudentDetailModal .modal-content {
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+    }
+    #quizMetricsStudentDetailModal .table thead th {
+        background: #f1f5f9;
+        color: #0B1E33;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    #quizMetricsStudentDetailModal .table thead th:nth-child(1),
+    #quizMetricsStudentDetailModal .table tbody td:nth-child(1) {
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+    #quizMetricsStudentDetailModal .table thead th:nth-child(5),
+    #quizMetricsStudentDetailModal .table tbody td:nth-child(5) {
+        text-align: center;
+        vertical-align: middle;
+    }
+    #quizMetricsStudentDetailModal .table tbody td:nth-child(5) .badge {
+        display: inline-block;
+    }
+    .quiz-results-metrics-table th:first-child,
+    .quiz-results-metrics-table td:first-child {
+        text-align: left !important;
+    }
+    .quiz-results-metrics-table th:nth-child(2),
+    .quiz-results-metrics-table th:nth-child(3),
+    .quiz-results-metrics-table th:nth-child(4),
+    .quiz-results-metrics-table td:nth-child(2),
+    .quiz-results-metrics-table td:nth-child(3),
+    .quiz-results-metrics-table td:nth-child(4) {
+        text-align: center !important;
+        font-variant-numeric: tabular-nums;
+    }
 </style>
 {% endblock %}
 
@@ -815,6 +890,38 @@
                                 </tr>
                             </thead>
                             <tbody id="gradebookParticipationModalBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal" style="border-radius:9999px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Results: per-question breakdown (opened from student name in Class Metrics) -->
+    <div class="modal fade" id="quizMetricsStudentDetailModal" tabindex="-1" aria-labelledby="quizMetricsStudentDetailTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content" style="border-radius:12px; border:1px solid #e5e7eb;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title" id="quizMetricsStudentDetailTitle">Quiz</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="text-muted small mb-2 mb-0" id="quizMetricsStudentDetailMeta"></p>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" style="width:3rem;">#</th>
+                                    <th>Question</th>
+                                    <th>Student answer</th>
+                                    <th>Correct answer</th>
+                                    <th class="text-center" style="width:7rem;">Result</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quizMetricsStudentDetailBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -938,6 +1045,7 @@ async function loadGradebook() {
                                 </div>
                             </th>
                             <th class="sortable" data-sort="poll_grade" data-type="number">Poll</th>
+                            <th class="sortable" data-sort="quiz_grade" data-type="number">Quiz</th>
                             <th class="sortable" data-sort="overall_grade" data-type="number">Overall</th>
                         </tr>
                     </thead>
@@ -950,12 +1058,14 @@ async function loadGradebook() {
                     data-instructor-participation="${student.instructor_participation}"
                     data-peer-participation="${student.peer_participation}"
                     data-poll-grade="${student.poll_grade}"
+                    data-quiz-grade="${student.quiz_grade}"
                     data-overall-grade="${student.overall_grade}">
                     <td>${student.name}</td>
                     <td>${student.student_number}</td>
                     <td>${student.attendance_grade.toFixed(2)}%</td>
                     <td>${student.participation_grade.toFixed(2)}%</td>
                     <td>${student.poll_grade.toFixed(2)}%</td>
+                    <td>${Number(student.quiz_grade || 0).toFixed(2)}%</td>
                     <td><strong>${student.overall_grade.toFixed(2)}%</strong></td>
                 </tr>`;
         });
@@ -992,6 +1102,27 @@ function escapeHtml(text) {
     return d.innerHTML;
 }
 
+function openQuizMetricsStudentDetail(cacheKey) {
+    const payload = window.__quizMetricsStudentCache && window.__quizMetricsStudentCache[cacheKey];
+    if (!payload || !payload.breakdown || !payload.breakdown.length) return;
+    const titleEl = document.getElementById('quizMetricsStudentDetailTitle');
+    const metaEl = document.getElementById('quizMetricsStudentDetailMeta');
+    const tbody = document.getElementById('quizMetricsStudentDetailBody');
+    if (titleEl) titleEl.textContent = payload.quizTitle || 'Quiz';
+    if (metaEl) metaEl.textContent = 'Question-by-question results for ' + (payload.studentName || 'student') + '.';
+    if (tbody) {
+        tbody.innerHTML = payload.breakdown.map(function (q, i) {
+            const ok = q.is_correct;
+            const badge = ok ? '<span class="badge bg-success">Correct</span>' : '<span class="badge bg-danger">Incorrect</span>';
+            return '<tr><td class="text-center">' + (i + 1) + '</td><td>' + escapeHtml(String(q.prompt)) + '</td><td>' + escapeHtml(String(q.selected_text)) + '</td><td>' + escapeHtml(String(q.correct_text)) + '</td><td class="text-center">' + badge + '</td></tr>';
+        }).join('');
+    }
+    const modalEl = document.getElementById('quizMetricsStudentDetailModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+}
+
 function bindGradebookParticipationHeading() {
     const btn = document.querySelector('#gradebookContent .gradebook-participation-detail-btn');
     if (!btn) return;
@@ -1011,7 +1142,7 @@ async function loadGradingWeights() {
         let html = `
             <div class="grading-form-card">
                 <h4 class="grading-form-title">Grading Weights Configuration</h4>
-                <p class="grading-form-subtitle">Attendance, participation, and poll must sum to 100%. Participation combines instructor and peer scores; set how that participation portion is split below.</p>
+                <p class="grading-form-subtitle">Attendance, participation, poll, and Quiz must sum to 100%. The Quiz percentage is split evenly across the number of Quizzes you set. Participation combines instructor and peer scores; set how that participation portion is split below.</p>
                 <hr class="grading-divider">
                 <form id="gradingWeightsForm">
                     <div class="grading-fields-grid">
@@ -1048,6 +1179,25 @@ async function loadGradingWeights() {
                             </div>
                             <div class="help-text">Share of overall grade from poll performance</div>
                         </div>
+                        <div class="grading-quiz-section" aria-labelledby="gradingQuizSectionTitle">
+                            <div class="participation-split-nested-title" id="gradingQuizSectionTitle">Quizzes (share of overall grade)</div>
+                            <div class="form-group">
+                                <div class="form-group-row">
+                                    <label for="quiz_weight">Quiz Weight (%)</label>
+                                    <input type="number" class="form-control" id="quiz_weight" name="quiz_weight"
+                                           value="${data.quiz_weight != null ? data.quiz_weight : 0}" min="0" max="100" step="0.1" required>
+                                </div>
+                                <div class="help-text">Must sum with attendance, participation, and poll to 100%. Grade is the mean across the number of slots below.</div>
+                            </div>
+                            <div class="form-group">
+                                <div class="form-group-row">
+                                    <label for="quiz_count_target">Number of Quizzes</label>
+                                    <input type="number" class="form-control" id="quiz_count_target" name="quiz_count_target"
+                                           value="${data.quiz_count_target != null ? data.quiz_count_target : 0}" min="0" max="99" step="1" required>
+                                </div>
+                                <div class="help-text">Each slot can hold one uploaded Quiz; empty slots count as 0 until a Quiz is run there.</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="weight-total" id="weightTotal">
                         <div class="weight-total-label">Total Weight</div>
@@ -1056,7 +1206,7 @@ async function loadGradingWeights() {
                     <div class="grading-actions-bar">
                         <div id="gradingMessage"></div>
                         <div class="grading-actions-btns">
-                            <button type="button" class="btn-grading-cancel" onclick="resetGradingWeights(${data.attendance_weight}, ${data.participation_weight}, ${data.participation_instructor_share}, ${data.poll_weight})">Cancel</button>
+                            <button type="button" class="btn-grading-cancel" onclick="resetGradingWeights(${data.attendance_weight}, ${data.participation_weight}, ${data.participation_instructor_share}, ${data.poll_weight}, ${data.quiz_weight != null ? data.quiz_weight : 0}, ${data.quiz_count_target != null ? data.quiz_count_target : 0})">Cancel</button>
                             <button type="submit" id="saveGradingWeightsBtn" class="btn-tron-pill" disabled>
                                 Save Grading Weights
                             </button>
@@ -1073,7 +1223,7 @@ async function loadGradingWeights() {
             const peerPct = (100 - v).toFixed(1);
             noteEl.textContent = 'Peer grades will account for ' + peerPct + '% of the participation grade.';
         }
-        const inputs = ['attendance_weight', 'participation_weight', 'poll_weight'];
+        const inputs = ['attendance_weight', 'participation_weight', 'poll_weight', 'quiz_weight', 'quiz_count_target'];
         inputs.forEach(id => {
             document.getElementById(id).addEventListener('input', function() {
                 calculateTotalWeight();
@@ -1098,7 +1248,8 @@ function calculateTotalWeight() {
     const attendance = parseFloat(document.getElementById('attendance_weight').value) || 0;
     const participation = parseFloat(document.getElementById('participation_weight').value) || 0;
     const poll = parseFloat(document.getElementById('poll_weight').value) || 0;
-    const total = attendance + participation + poll;
+    const quiz = parseFloat(document.getElementById('quiz_weight').value) || 0;
+    const total = attendance + participation + poll + quiz;
     const totalElement = document.getElementById('weightTotal');
     const totalValueElement = document.getElementById('totalWeightValue');
     totalValueElement.textContent = total.toFixed(1) + '%';
@@ -1117,24 +1268,29 @@ function updateSaveButtonState() {
     const attendance = parseFloat(document.getElementById('attendance_weight').value) || 0;
     const participation = parseFloat(document.getElementById('participation_weight').value) || 0;
     const poll = parseFloat(document.getElementById('poll_weight').value) || 0;
+    const quiz = parseFloat(document.getElementById('quiz_weight').value) || 0;
+    const quizCount = parseInt(document.getElementById('quiz_count_target').value, 10);
     const instShare = parseFloat(document.getElementById('participation_instructor_share').value);
-    const total = attendance + participation + poll;
+    const total = attendance + participation + poll + quiz;
     const splitOk = Number.isFinite(instShare) && instShare >= 0 && instShare <= 100;
-    const isValid = Math.abs(total - 100) < 0.01 && splitOk;
+    const quizOk = !(quiz > 0.0001) || (Number.isFinite(quizCount) && quizCount >= 1);
+    const isValid = Math.abs(total - 100) < 0.01 && splitOk && quizOk;
     saveButton.disabled = !isValid;
     saveButton.style.opacity = isValid ? '1' : '0.5';
     saveButton.style.cursor = isValid ? 'pointer' : 'not-allowed';
 }
 
-function resetGradingWeights(attendance, participation, instrShare, poll) {
+function resetGradingWeights(attendance, participation, instrShare, poll, quiz, quizCount) {
     document.getElementById('attendance_weight').value = attendance;
     document.getElementById('participation_weight').value = participation;
     document.getElementById('participation_instructor_share').value = instrShare;
     document.getElementById('poll_weight').value = poll;
+    document.getElementById('quiz_weight').value = quiz != null ? quiz : 0;
+    document.getElementById('quiz_count_target').value = quizCount != null ? quizCount : 0;
     document.getElementById('saveGradingWeightsBtn').disabled = true;
     const msg = document.getElementById('gradingMessage');
     if (msg) msg.innerHTML = '';
-    if (typeof updateWeightTotal === 'function') updateWeightTotal();
+    if (typeof calculateTotalWeight === 'function') calculateTotalWeight();
     if (typeof updateParticipationPeerNote === 'function') updateParticipationPeerNote();
 }
 
@@ -1143,15 +1299,21 @@ async function saveGradingWeights(event) {
     const attendance = parseFloat(document.getElementById('attendance_weight').value);
     const participation = parseFloat(document.getElementById('participation_weight').value);
     const poll = parseFloat(document.getElementById('poll_weight').value);
+    const quiz = parseFloat(document.getElementById('quiz_weight').value);
+    const quiz_count_target = parseInt(document.getElementById('quiz_count_target').value, 10);
     const participation_instructor_share = parseFloat(document.getElementById('participation_instructor_share').value);
-    const total = attendance + participation + poll;
+    const total = attendance + participation + poll + quiz;
     const messageDiv = document.getElementById('gradingMessage');
     if (Math.abs(total - 100) > 0.01) {
-        messageDiv.innerHTML = '<div class="alert alert-danger">Attendance, participation, and poll must sum to exactly 100%. Current total: ' + total.toFixed(1) + '%</div>';
+        messageDiv.innerHTML = '<div class="alert alert-danger">Attendance, participation, poll, and Quiz must sum to exactly 100%. Current total: ' + total.toFixed(1) + '%</div>';
         return;
     }
-    if (attendance < 0 || participation < 0 || poll < 0) {
+    if (attendance < 0 || participation < 0 || poll < 0 || quiz < 0) {
         messageDiv.innerHTML = '<div class="alert alert-danger">All weights must be non-negative.</div>';
+        return;
+    }
+    if (quiz > 0.0001 && (!Number.isFinite(quiz_count_target) || quiz_count_target < 1)) {
+        messageDiv.innerHTML = '<div class="alert alert-danger">When Quiz Weight is greater than 0, set number of Quizzes to at least 1.</div>';
         return;
     }
     if (!Number.isFinite(participation_instructor_share) || participation_instructor_share < 0 || participation_instructor_share > 100) {
@@ -1166,7 +1328,9 @@ async function saveGradingWeights(event) {
                 attendance_weight: attendance,
                 participation_weight: participation,
                 participation_instructor_share: participation_instructor_share,
-                poll_weight: poll
+                poll_weight: poll,
+                quiz_weight: quiz,
+                quiz_count_target: Number.isFinite(quiz_count_target) ? quiz_count_target : 0
             })
         });
         const data = await response.json();
@@ -1195,6 +1359,7 @@ async function loadMetrics() {
         }
         const className = {{ class_obj.name|tojson }};
         let html = '';
+        window.__quizMetricsStudentCache = {};
         data.forEach(session => {
             const startTime = new Date(session.start_time);
             const endTime = session.end_time ? new Date(session.end_time) : null;
@@ -1202,6 +1367,7 @@ async function loadMetrics() {
             const sessionNumber = session.session_number || 1;
             const sessionId = `session-${session.session_id}`;
             const pollSectionId = `polls-${session.session_id}`;
+            const quizSectionId = `quiz-${session.session_id}`;
             const participationSectionId = `participation-${session.session_id}`;
             const attendanceSectionId = `attendance-${session.session_id}`;
 
@@ -1289,12 +1455,81 @@ async function loadMetrics() {
                 html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;margin-bottom:0.75rem;">No polls conducted during this session.</div>';
             }
 
+            // Quiz results (per-student scores for each run in this session window)
+            if (session.quiz_results && session.quiz_results.length > 0) {
+                html += `
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="togglePoll('${quizSectionId}')">
+                            <div class="collapsible-header-left">
+                                <span class="collapsible-title">Quiz Results</span>
+                            </div>
+                            <div class="collapsible-header-right">
+                                <span class="grey-banner-toggle" id="toggle-poll-${quizSectionId}">
+                                    <svg viewBox="0 0 24 24"><path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/></svg>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="${quizSectionId}">`;
+                session.quiz_results.forEach((qr) => {
+                    const title = escapeHtml(String(qr.quiz_title || 'Quiz'));
+                    const started = qr.started_at ? formatEasternDateTime(qr.started_at) : '—';
+                    html += `
+                        <div style="margin-bottom: 1rem;">
+                            <div class="poll-item-title" style="margin-bottom:0.25rem;">${title}</div>
+                            <div style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;font-family:'Inter',sans-serif;">Started: ${started}</div>
+                            <div class="participation-rounds-table-wrap">
+                                <table class="data-table participation-rounds-table quiz-results-metrics-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th class="text-center">Correct</th>
+                                            <th class="text-center">Total</th>
+                                            <th class="text-center">%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                    (qr.student_scores || []).forEach((row) => {
+                        const scoreDisp = row.correct_count != null ? String(row.correct_count) : '—';
+                        const totDisp = row.total_questions != null ? String(row.total_questions) : '—';
+                        const pctDisp = row.percent != null ? String(row.percent) + '%' : '—';
+                        const qb = row.question_breakdown;
+                        const hasDetail = Array.isArray(qb) && qb.length > 0;
+                        const cacheKey = 'qmet-' + session.session_id + '-' + qr.quiz_run_id + '-' + row.student_id;
+                        if (hasDetail) {
+                            window.__quizMetricsStudentCache[cacheKey] = {
+                                studentName: row.student_name,
+                                quizTitle: qr.quiz_title || 'Quiz',
+                                breakdown: qb
+                            };
+                        }
+                        const nameCell = hasDetail
+                            ? '<button type="button" class="quiz-metrics-student-name-btn" onclick="event.stopPropagation(); openQuizMetricsStudentDetail(\'' + cacheKey + '\')">' + escapeHtml(String(row.student_name)) + '</button>'
+                            : escapeHtml(String(row.student_name));
+                        html += `
+                                        <tr>
+                                            <td>${nameCell}</td>
+                                            <td class="text-center">${scoreDisp}</td>
+                                            <td class="text-center">${totDisp}</td>
+                                            <td class="text-center">${pctDisp}</td>
+                                        </tr>`;
+                    });
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                });
+                html += `</div></div>`;
+            } else {
+                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;margin-bottom:0.75rem;">No in-class quizzes during this session.</div>';
+            }
+
             // Participation grades (individual grading rounds for this session date)
             html += `
                 <div class="collapsible-section">
                     <div class="collapsible-header" onclick="togglePoll('${participationSectionId}')">
                         <div class="collapsible-header-left">
-                            <span class="collapsible-title">Participation grades</span>
+                            <span class="collapsible-title">Participation Grades</span>
                         </div>
                         <div class="collapsible-header-right">
                             <span class="grey-banner-toggle" id="toggle-poll-${participationSectionId}">

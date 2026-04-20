@@ -4,7 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import re
@@ -13,6 +13,7 @@ from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from sqlalchemy.schema import UniqueConstraint
 import smtplib
 import ssl
@@ -383,9 +384,67 @@ class GradingWeights(db.Model):
     participation_weight = db.Column(db.Float, default=50.0, nullable=False)
     participation_instructor_share = db.Column(db.Float, default=50.0, nullable=False)
     poll_weight = db.Column(db.Float, default=25.0, nullable=False)
+    quiz_weight = db.Column(db.Float, default=0.0, nullable=False)
+    quiz_count_target = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     class_obj = db.relationship('Class', backref=db.backref('grading_weights', uselist=False))
+
+
+class Quiz(db.Model):
+    """In-class quiz definition (content); `quiz_index` maps to grading slot 1..N."""
+    __tablename__ = 'quiz'
+    __table_args__ = (UniqueConstraint('class_id', 'quiz_index', name='uq_quiz_class_index'),)
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False, default='Quiz')
+    time_limit_seconds = db.Column(db.Integer, nullable=False, default=300)
+    quiz_index = db.Column(db.Integer, nullable=False)
+    source_filename = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    class_obj = db.relationship('Class', backref=db.backref('quizzes', lazy=True))
+
+
+class QuizQuestion(db.Model):
+    __tablename__ = 'quiz_question'
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    order = db.Column(db.Integer, nullable=False)
+    prompt = db.Column(db.String(1000), nullable=False)
+    options = db.Column(db.Text, nullable=False)  # JSON list of strings
+    correct_index = db.Column(db.Integer, nullable=False)
+    quiz = db.relationship('Quiz', backref=db.backref('questions', lazy=True, order_by='QuizQuestion.order'))
+
+
+class QuizRun(db.Model):
+    __tablename__ = 'quiz_run'
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    started_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    deadline_at = db.Column(db.DateTime, nullable=False)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=False, nullable=False)
+    quiz = db.relationship('Quiz', backref=db.backref('runs', lazy=True))
+    class_obj = db.relationship('Class', backref=db.backref('quiz_runs', lazy=True))
+
+
+class QuizAnswer(db.Model):
+    __tablename__ = 'quiz_answer'
+    __table_args__ = (
+        UniqueConstraint('quiz_run_id', 'student_id', 'question_id', name='uq_quiz_answer_run_student_q'),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_run_id = db.Column(db.Integer, db.ForeignKey('quiz_run.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('quiz_question.id'), nullable=False)
+    selected_index = db.Column(db.Integer, nullable=False)
+    is_correct = db.Column(db.Boolean, default=False, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    quiz_run = db.relationship('QuizRun', backref=db.backref('answers', lazy=True))
+    student = db.relationship('Student', backref=db.backref('quiz_answers', lazy=True))
+    question = db.relationship('QuizQuestion', backref=db.backref('answers', lazy=True))
+
 
 class HandRaise(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -472,6 +531,9 @@ db.Index('ix_absence_class_student', AbsenceExemption.class_id, AbsenceExemption
 db.Index('ix_pgr_class_subject', ParticipationGradeRound.class_id, ParticipationGradeRound.subject_student_id)
 db.Index('ix_pgr_class_date', ParticipationGradeRound.class_id, ParticipationGradeRound.date)
 db.Index('ix_pgr_session', ParticipationGradeRound.class_session_id)
+db.Index('ix_quiz_class_index', Quiz.class_id, Quiz.quiz_index)
+db.Index('ix_quizrun_class_active', QuizRun.class_id, QuizRun.is_active)
+db.Index('ix_quizrun_quiz_started', QuizRun.quiz_id, QuizRun.started_at)
 
 
 def _peer_rating_to_percent(rating):
@@ -676,6 +738,26 @@ def deactivate_active_polls_for_class(class_id):
     return ids
 
 
+def deactivate_active_quiz_runs_for_class(class_id):
+    """End all active quiz runs for this class. Caller must commit. Returns list of run ids that were active."""
+    active = QuizRun.query.filter_by(class_id=class_id, is_active=True).all()
+    ids = [r.id for r in active]
+    now = datetime.utcnow()
+    for r in active:
+        r.is_active = False
+        if r.ended_at is None:
+            r.ended_at = now
+    return ids
+
+
+def _quiz_run_completed(run, now):
+    if run.ended_at is not None:
+        return True
+    if run.deadline_at and now >= run.deadline_at:
+        return True
+    return False
+
+
 def poll_option_counts(poll, responses=None):
     """Parse a Poll's option list and count responses per option.
 
@@ -732,6 +814,284 @@ def emit_poll_stopped_events(class_id, poll_ids):
             },
             room=f'class_{class_id}',
         )
+
+
+def _delete_quiz_and_related(quiz_obj):
+    """Remove quiz runs, answers, questions, and the quiz row."""
+    runs = QuizRun.query.filter_by(quiz_id=quiz_obj.id).all()
+    for run in runs:
+        QuizAnswer.query.filter_by(quiz_run_id=run.id).delete()
+    QuizRun.query.filter_by(quiz_id=quiz_obj.id).delete()
+    QuizQuestion.query.filter_by(quiz_id=quiz_obj.id).delete()
+    db.session.delete(quiz_obj)
+
+
+def _quiz_questions_public_list(quiz):
+    """Questions for students (no correct answer)."""
+    out = []
+    for q in sorted(quiz.questions, key=lambda x: x.order):
+        try:
+            opts = json.loads(q.options or '[]')
+        except (json.JSONDecodeError, TypeError):
+            opts = []
+        out.append({'id': q.id, 'prompt': q.prompt, 'options': opts})
+    return out
+
+
+QUIZ_TEMPLATE_XLSX = os.path.join(_APP_DIR, 'static', 'quiz_template.xlsx')
+
+
+def _detect_quiz_sheet_format(headers):
+    """Return 'letter' (Option A/B/…) + Question Description layout, else 'legacy' (Option 1…)."""
+    if not headers:
+        return 'legacy'
+    hl = []
+    for h in headers:
+        hl.append(str(h).strip().lower() if h is not None else '')
+    if not any(h and 'question description' in h for h in hl):
+        return 'legacy'
+    for h in hl:
+        if h and re.match(r'^option\s+a\s*$', h.strip()):
+            return 'letter'
+    return 'legacy'
+
+
+def _parse_quiz_rows_letter_headers(ws, headers):
+    """Parse workbook with columns: Question Description, # of Options, Option A…, Correct Answer."""
+    questions_to_add = []
+    errors = []
+
+    def col_question_desc():
+        for i, h in enumerate(headers):
+            if h and 'question description' in str(h).strip().lower():
+                return i
+        return None
+
+    def col_num_options():
+        for i, h in enumerate(headers):
+            if not h:
+                continue
+            s = str(h).strip().lower()
+            if '# of options' in s or s.replace(' ', '') in ('numberofoptions', '#ofoptions'):
+                return i
+            if s == 'number of options':
+                return i
+        return None
+
+    def col_correct():
+        for i, h in enumerate(headers):
+            if not h:
+                continue
+            if 'correct' in str(h).strip().lower():
+                return i
+        return None
+
+    idx_desc = col_question_desc()
+    idx_n = col_num_options()
+    idx_correct = col_correct()
+    if idx_desc is None or idx_n is None or idx_correct is None:
+        return [], [
+            'Missing columns: need "Question Description", "# of Options", and "Correct Answer" '
+            '(see the downloadable Quiz Template).',
+        ]
+    option_indices = list(range(idx_n + 1, idx_correct))
+    if len(option_indices) < 2:
+        return [], ['Template needs at least two option columns (Option A, Option B, …) before Correct Answer.']
+
+    max_slots = len(option_indices)
+
+    for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        row = list(row)
+        need = max(idx_desc, idx_n, idx_correct) + 1
+        while len(row) < need:
+            row.append(None)
+        key_cells = (row[idx_desc], row[idx_n])
+        if all(
+            c is None or (isinstance(c, str) and not str(c).strip())
+            for c in key_cells
+        ):
+            continue
+        try:
+            prompt = str(row[idx_desc]).strip() if row[idx_desc] is not None else ''
+            n_opts = int(row[idx_n])
+        except (TypeError, ValueError, IndexError):
+            errors.append(f'Row {row_idx}: Invalid question text or # of options.')
+            continue
+        if not prompt:
+            errors.append(f'Row {row_idx}: Question description is required.')
+            continue
+        if n_opts < 2 or n_opts > 8:
+            errors.append(f'Row {row_idx}: # of options must be between 2 and 8.')
+            continue
+        if n_opts > max_slots:
+            errors.append(
+                f'Row {row_idx}: # of options ({n_opts}) exceeds the number of option columns in the sheet ({max_slots}).'
+            )
+            continue
+        opts = []
+        ok = True
+        for j in range(n_opts):
+            oi = option_indices[j]
+            cell = row[oi] if oi < len(row) else None
+            t = str(cell).strip() if cell is not None else ''
+            if not t:
+                errors.append(f'Row {row_idx}: Option {j + 1} is empty.')
+                ok = False
+                break
+            opts.append(t)
+        if not ok:
+            continue
+        correct_cell = row[idx_correct] if idx_correct < len(row) else None
+        correct_one_based = _parse_quiz_excel_correct_answer(correct_cell, n_opts)
+        if correct_one_based is None:
+            letter_hi = chr(ord('A') + n_opts - 1)
+            errors.append(
+                f'Row {row_idx}: Correct answer must be option number 1–{n_opts} '
+                f'or letter A–{letter_hi} (e.g. 3 or C for the third option).'
+            )
+            continue
+        questions_to_add.append(
+            {
+                'order': len(questions_to_add) + 1,
+                'prompt': prompt,
+                'options': opts,
+                'correct_index': correct_one_based - 1,
+            }
+        )
+
+    return questions_to_add, errors
+
+
+def _parse_quiz_rows_legacy_fixed_columns(ws):
+    """Original template: Question text (col B), Number of options, Option 1…N, then correct (next col)."""
+    questions_to_add = []
+    errors = []
+    for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        if not row or all(
+            (c is None or (isinstance(c, str) and not str(c).strip())) for c in (row[:3] if row else [])
+        ):
+            continue
+        try:
+            prompt = str(row[1]).strip() if row[1] is not None else ''
+            n_opts = int(row[2])
+        except (TypeError, ValueError, IndexError):
+            errors.append(f'Row {row_idx}: Invalid question text or number of options.')
+            continue
+        if not prompt:
+            errors.append(f'Row {row_idx}: Question text is required.')
+            continue
+        if n_opts < 2 or n_opts > 8:
+            errors.append(f'Row {row_idx}: Number of options must be between 2 and 8.')
+            continue
+        need_len = 3 + n_opts + 1
+        if not row or len(row) < need_len:
+            errors.append(f'Row {row_idx}: Row too short for {n_opts} options and correct answer column.')
+            continue
+        opts = []
+        ok = True
+        for j in range(n_opts):
+            cell = row[3 + j]
+            t = str(cell).strip() if cell is not None else ''
+            if not t:
+                errors.append(f'Row {row_idx}: Option {j + 1} is empty.')
+                ok = False
+                break
+            opts.append(t)
+        if not ok:
+            continue
+        correct_cell = row[3 + n_opts]
+        correct_one_based = _parse_quiz_excel_correct_answer(correct_cell, n_opts)
+        if correct_one_based is None:
+            letter_hi = chr(ord('A') + n_opts - 1)
+            errors.append(
+                f'Row {row_idx}: Correct answer must be option number 1–{n_opts} '
+                f'or letter A–{letter_hi} (e.g. 3 or C for the third option).'
+            )
+            continue
+        questions_to_add.append(
+            {
+                'order': len(questions_to_add) + 1,
+                'prompt': prompt,
+                'options': opts,
+                'correct_index': correct_one_based - 1,
+            }
+        )
+    return questions_to_add, errors
+
+
+def _parse_quiz_workbook(ws):
+    first = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), None)
+    if not first:
+        return [], ['The spreadsheet must have a header row in row 1.']
+    headers = list(first)
+    if _detect_quiz_sheet_format(headers) == 'letter':
+        return _parse_quiz_rows_letter_headers(ws, headers)
+    return _parse_quiz_rows_legacy_fixed_columns(ws)
+
+
+def _parse_quiz_excel_correct_answer(cell, n_opts):
+    """
+    Map an Excel cell to a 1-based correct option index, or None if invalid.
+
+    Accepts integers or whole floats (1..n_opts), numeric strings, or a single
+    letter A..Z mapping to 1..26 (only positions 1..n_opts are valid).
+    """
+    if cell is None:
+        return None
+    if isinstance(cell, bool):
+        return None
+    if isinstance(cell, (int, float)):
+        if isinstance(cell, float):
+            if cell != cell or abs(cell - round(cell)) > 1e-9:  # NaN or non-whole
+                return None
+            v = int(round(cell))
+        else:
+            v = int(cell)
+        if 1 <= v <= n_opts:
+            return v
+        return None
+    s = str(cell).strip()
+    if not s:
+        return None
+    s_clean = s.rstrip('.)').strip()
+    if len(s_clean) == 1:
+        ch = s_clean.upper()
+        if 'A' <= ch <= 'Z':
+            pos = ord(ch) - ord('A') + 1
+            if 1 <= pos <= n_opts:
+                return pos
+            return None
+    try:
+        v = int(round(float(s_clean)))
+    except (TypeError, ValueError):
+        return None
+    if 1 <= v <= n_opts:
+        return v
+    return None
+
+
+def _isoformat_utc_for_js(dt):
+    """Emit an instant JavaScript can parse as UTC. Naive datetimes in this app are stored as UTC."""
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+    return dt.isoformat() + 'Z'
+
+
+def quiz_run_public_payload(quiz_run):
+    """Payload for Socket.IO `quiz_started` and student `active_quiz` (no solutions)."""
+    quiz = quiz_run.quiz
+    return {
+        'quiz_run_id': quiz_run.id,
+        'class_id': quiz_run.class_id,
+        'quiz_id': quiz.id,
+        'title': quiz.title,
+        'time_limit_seconds': quiz.time_limit_seconds,
+        'started_at': _isoformat_utc_for_js(quiz_run.started_at),
+        'deadline_at': _isoformat_utc_for_js(quiz_run.deadline_at),
+        'questions': _quiz_questions_public_list(quiz),
+    }
 
 
 def effective_attendance_and_poll_weights(class_id, grading_weights):
@@ -878,12 +1238,15 @@ def _compute_gradebook_rows(class_id, grading_weights):
     a fixed, small number of batched queries.
 
     Returns a list of dicts keyed by `student`, `attendance_grade`, `participation_grade`,
-    `avg_peer_grade`, `avg_instructor_grade`, `poll_grade`, `overall_grade`.
+    `avg_peer_grade`, `avg_instructor_grade`, `poll_grade`, `quiz_grade`, `quiz_scores_by_index`,
+    `overall_grade`.
     """
     inst_share = float(grading_weights.participation_instructor_share)
     part_weight = float(grading_weights.participation_weight)
     aw = float(grading_weights.attendance_weight)
     pw = float(grading_weights.poll_weight)
+    qw = float(getattr(grading_weights, 'quiz_weight', 0.0) or 0.0)
+    quiz_n_target = int(getattr(grading_weights, 'quiz_count_target', 0) or 0)
     now = datetime.utcnow()
 
     students = (
@@ -958,14 +1321,25 @@ def _compute_gradebook_rows(class_id, grading_weights):
                 sessions_with_poll += 1
                 break
 
+    class_quiz_runs = QuizRun.query.filter_by(class_id=class_id).all()
+    sessions_with_quiz = 0
+    for s in graded_sessions:
+        end = s.end_time or now
+        for run in class_quiz_runs:
+            t = run.started_at
+            if t is not None and s.start_time <= t <= end:
+                sessions_with_quiz += 1
+                break
+
     n_graded = len(graded_sessions)
     if n_graded == 0:
-        eff_att_w, eff_poll_w = aw, pw
-    elif sessions_with_poll == 0:
-        eff_att_w, eff_poll_w = aw + pw, 0.0
+        eff_att_w, eff_poll_w, eff_quiz_w = aw, pw, qw
     else:
-        eff_poll_w = pw * (sessions_with_poll / n_graded)
-        eff_att_w = aw + pw * ((n_graded - sessions_with_poll) / n_graded)
+        sp = float(sessions_with_poll)
+        sq = float(sessions_with_quiz)
+        eff_poll_w = pw * (sp / n_graded)
+        eff_quiz_w = qw * (sq / n_graded)
+        eff_att_w = aw + pw * ((n_graded - sp) / n_graded) + qw * ((n_graded - sq) / n_graded)
 
     graded_poll_ids = [p.id for p in polls if p.is_graded]
     poll_in_graded_window = {}
@@ -986,6 +1360,49 @@ def _compute_gradebook_rows(class_id, grading_weights):
         for pr in PollResponse.query.filter(PollResponse.poll_id.in_(graded_poll_ids)).all():
             if poll_in_graded_window.get(pr.poll_id):
                 poll_map.setdefault(pr.student_id, []).append(pr)
+
+    def _run_in_graded_session_window(run):
+        t = run.started_at
+        if t is None:
+            return False
+        for s in graded_sessions:
+            end = s.end_time or now
+            if s.start_time <= t <= end:
+                return True
+        return False
+
+    quizzes_in_class = Quiz.query.filter_by(class_id=class_id).all()
+    quizzes_by_index = {q.quiz_index: q for q in quizzes_in_class}
+    question_counts = {}
+    if quizzes_in_class:
+        qids = [q.id for q in quizzes_in_class]
+        for cnt, qz_id in (
+            db.session.query(func.count(QuizQuestion.id), QuizQuestion.quiz_id)
+            .filter(QuizQuestion.quiz_id.in_(qids))
+            .group_by(QuizQuestion.quiz_id)
+            .all()
+        ):
+            question_counts[qz_id] = int(cnt)
+
+    latest_graded_run_by_quiz_id = {}
+    for qz in quizzes_in_class:
+        runs_desc = (
+            QuizRun.query.filter_by(class_id=class_id, quiz_id=qz.id)
+            .order_by(QuizRun.started_at.desc())
+            .all()
+        )
+        chosen = None
+        for run in runs_desc:
+            if _quiz_run_completed(run, now) and _run_in_graded_session_window(run):
+                chosen = run
+                break
+        latest_graded_run_by_quiz_id[qz.id] = chosen
+
+    run_ids_for_answers = [r.id for r in latest_graded_run_by_quiz_id.values() if r is not None]
+    answers_by_run_student = {}
+    if run_ids_for_answers:
+        for ans in QuizAnswer.query.filter(QuizAnswer.quiz_run_id.in_(run_ids_for_answers)).all():
+            answers_by_run_student.setdefault((ans.quiz_run_id, ans.student_id), []).append(ans)
 
     def _attended(student_id, session):
         a = attend_by_sid.get((student_id, session.id))
@@ -1061,10 +1478,36 @@ def _compute_gradebook_rows(class_id, grading_weights):
         else:
             poll_grade = 0
 
+        quiz_scores_by_index = {}
+        if qw > 0 and quiz_n_target >= 1:
+            slot_scores = []
+            for idx in range(1, quiz_n_target + 1):
+                qdef = quizzes_by_index.get(idx)
+                if not qdef:
+                    quiz_scores_by_index[idx] = 0.0
+                    slot_scores.append(0.0)
+                    continue
+                run = latest_graded_run_by_quiz_id.get(qdef.id)
+                nq = question_counts.get(qdef.id, 0)
+                if not run or nq <= 0:
+                    quiz_scores_by_index[idx] = 0.0
+                    slot_scores.append(0.0)
+                    continue
+                ans_list = answers_by_run_student.get((run.id, stu.id), [])
+                correct = sum(1 for a in ans_list if a.is_correct)
+                sc = (correct / nq) * 100.0
+                quiz_scores_by_index[idx] = sc
+                slot_scores.append(sc)
+            quiz_grade = sum(slot_scores) / len(slot_scores) if slot_scores else 0.0
+        else:
+            quiz_grade = 0.0
+            quiz_scores_by_index = {}
+
         overall_grade = (
             (attendance_grade * eff_att_w / 100)
             + (participation_grade * part_weight / 100)
             + (poll_grade * eff_poll_w / 100)
+            + (quiz_grade * eff_quiz_w / 100)
         )
 
         rows.append({
@@ -1074,6 +1517,8 @@ def _compute_gradebook_rows(class_id, grading_weights):
             'avg_peer_grade': avg_peer,
             'avg_instructor_grade': avg_inst,
             'poll_grade': poll_grade,
+            'quiz_grade': quiz_grade,
+            'quiz_scores_by_index': quiz_scores_by_index,
             'overall_grade': overall_grade,
         })
 
@@ -1213,6 +1658,7 @@ def logout():
     active_classes = Class.query.filter_by(professor_id=current_user.id, is_active=True).all()
     end_time = datetime.utcnow()
     poll_stops_after_commit = []
+    quiz_stops_after_commit = []
     for class_obj in active_classes:
         class_obj.is_active = False
         # Close open session
@@ -1232,6 +1678,8 @@ def logout():
                     att.leave_time = end_time
         for pid in deactivate_active_polls_for_class(class_obj.id):
             poll_stops_after_commit.append((class_obj.id, pid))
+        for qrid in deactivate_active_quiz_runs_for_class(class_obj.id):
+            quiz_stops_after_commit.append((class_obj.id, qrid))
         socketio.emit('class_stopped', {'class_id': class_obj.id})
     if active_classes:
         db.session.commit()
@@ -1243,6 +1691,12 @@ def logout():
                     'class_id': cid,
                     'results': poll_results_payload(pid),
                 },
+                room=f'class_{cid}',
+            )
+        for cid, qrid in quiz_stops_after_commit:
+            socketio.emit(
+                'quiz_stopped',
+                {'quiz_run_id': qrid, 'class_id': cid},
                 room=f'class_{cid}',
             )
     logout_user()
@@ -1501,10 +1955,17 @@ def stop_class(class_id):
                 attendance.leave_time = end_time
 
     poll_ids_stopped = deactivate_active_polls_for_class(class_id)
+    quiz_run_ids_stopped = deactivate_active_quiz_runs_for_class(class_id)
 
     db.session.commit()
 
     emit_poll_stopped_events(class_id, poll_ids_stopped)
+    for qrid in quiz_run_ids_stopped:
+        socketio.emit(
+            'quiz_stopped',
+            {'quiz_run_id': qrid, 'class_id': class_id},
+            room=f'class_{class_id}',
+        )
 
     # Notify students immediately — must run before update_gradebook (can take many seconds)
     stopped_payload = {'class_id': class_id}
@@ -1574,7 +2035,9 @@ def get_gradebook(class_id):
             attendance_weight=25.0,
             participation_weight=50.0,
             participation_instructor_share=50.0,
-            poll_weight=25.0
+            poll_weight=25.0,
+            quiz_weight=0.0,
+            quiz_count_target=0,
         )
         db.session.add(grading_weights)
         db.session.commit()
@@ -1590,6 +2053,8 @@ def get_gradebook(class_id):
             'peer_participation': round(r['avg_peer_grade'], 2),
             'instructor_participation': round(r['avg_instructor_grade'], 2),
             'poll_grade': round(r['poll_grade'], 2),
+            'quiz_grade': round(r['quiz_grade'], 2),
+            'quiz_scores_by_index': {str(k): round(v, 2) for k, v in (r.get('quiz_scores_by_index') or {}).items()},
             'overall_grade': round(r['overall_grade'], 2),
         }
         for r in rows
@@ -1611,7 +2076,9 @@ def export_gradebook(class_id):
             attendance_weight=25.0,
             participation_weight=50.0,
             participation_instructor_share=50.0,
-            poll_weight=25.0
+            poll_weight=25.0,
+            quiz_weight=0.0,
+            quiz_count_target=0,
         )
 
     wb = Workbook()
@@ -1619,7 +2086,8 @@ def export_gradebook(class_id):
     ws.title = "Gradebook"
 
     headers = ['Student Name', 'Student Number', 'Email', 'Attendance Grade (%)',
-               'Participation (%)', 'Instructor Participation', 'Peer Participation', 'Poll Grade (%)', 'Overall Grade (%)']
+               'Participation (%)', 'Instructor Participation', 'Peer Participation', 'Poll Grade (%)',
+               'Quiz Grade (%)', 'Overall Grade (%)']
     ws.append(headers)
 
     header_fill = PatternFill(start_color="2A1A40", end_color="2A1A40", fill_type="solid")
@@ -1639,6 +2107,7 @@ def export_gradebook(class_id):
             round(r['avg_instructor_grade'], 2),
             round(r['avg_peer_grade'], 2),
             round(r['poll_grade'], 2),
+            round(r['quiz_grade'], 2),
             round(r['overall_grade'], 2),
         ]
         ws.append(row)
@@ -1742,6 +2211,26 @@ def get_class_metrics(class_id):
     if missing_subject_ids:
         for s in Student.query.filter(Student.id.in_(missing_subject_ids)).all():
             subjects_by_id[s.id] = s
+
+    all_quiz_runs = (
+        QuizRun.query.filter_by(class_id=class_id)
+        .options(joinedload(QuizRun.quiz).joinedload(Quiz.questions))
+        .all()
+    )
+    quiz_run_ids = [r.id for r in all_quiz_runs]
+    submitted_quiz_pairs = set()
+    correct_quiz_by_pair = {}
+    answers_by_run_student = {}
+    if quiz_run_ids:
+        from collections import defaultdict
+
+        correct_quiz_by_pair = defaultdict(int)
+        answers_by_run_student = defaultdict(dict)
+        for a in QuizAnswer.query.filter(QuizAnswer.quiz_run_id.in_(quiz_run_ids)).all():
+            submitted_quiz_pairs.add((a.quiz_run_id, a.student_id))
+            if a.is_correct:
+                correct_quiz_by_pair[(a.quiz_run_id, a.student_id)] += 1
+            answers_by_run_student[(a.quiz_run_id, a.student_id)][a.question_id] = a
 
     same_day_count = {}
     for s in sessions:
@@ -1865,7 +2354,76 @@ def get_class_metrics(class_id):
                 'exclude_from_grading': bool(rnd.exclude_from_grading),
                 'created_at': rnd.created_at.isoformat() if rnd.created_at else None,
             })
-        
+
+        quiz_runs_in_session = [
+            r for r in all_quiz_runs
+            if r.started_at is not None and session_start <= r.started_at <= session_end
+        ]
+        quiz_runs_in_session.sort(key=lambda r: r.started_at or datetime.min)
+        quiz_results = []
+        for run in quiz_runs_in_session:
+            qz = run.quiz
+            quiz_title = (qz.title if qz else '') or 'Quiz'
+            nq = len(qz.questions) if qz and qz.questions else 0
+            q_rows_ordered = sorted(qz.questions, key=lambda q: q.order) if qz and qz.questions else []
+            student_scores = []
+            for student in enrolled_students:
+                pair = (run.id, student.id)
+                if pair not in submitted_quiz_pairs:
+                    student_scores.append({
+                        'student_id': student.id,
+                        'student_number': student.student_number,
+                        'student_name': _subject_label(student),
+                        'correct_count': None,
+                        'total_questions': nq,
+                        'percent': None,
+                        'question_breakdown': None,
+                    })
+                else:
+                    cc = correct_quiz_by_pair[pair]
+                    pct = round(100.0 * cc / nq, 1) if nq > 0 else None
+                    ans_map = answers_by_run_student.get(pair, {})
+                    question_breakdown = []
+                    for qq in q_rows_ordered:
+                        ans = ans_map.get(qq.id)
+                        if not ans:
+                            continue
+                        try:
+                            opts = json.loads(qq.options or '[]')
+                        except (json.JSONDecodeError, TypeError):
+                            opts = []
+
+                        def _opt_label(idx):
+                            if idx is None or not isinstance(idx, int) or idx < 0 or idx >= len(opts):
+                                return '—'
+                            return str(opts[idx])
+
+                        question_breakdown.append({
+                            'question_id': qq.id,
+                            'prompt': qq.prompt,
+                            'selected_index': ans.selected_index,
+                            'correct_index': qq.correct_index,
+                            'selected_text': _opt_label(ans.selected_index),
+                            'correct_text': _opt_label(qq.correct_index),
+                            'is_correct': bool(ans.is_correct),
+                        })
+                    student_scores.append({
+                        'student_id': student.id,
+                        'student_number': student.student_number,
+                        'student_name': _subject_label(student),
+                        'correct_count': cc,
+                        'total_questions': nq,
+                        'percent': pct,
+                        'question_breakdown': question_breakdown,
+                    })
+            quiz_results.append({
+                'quiz_run_id': run.id,
+                'quiz_title': quiz_title,
+                'started_at': run.started_at.isoformat() if run.started_at else None,
+                'question_count': nq,
+                'student_scores': student_scores,
+            })
+
         sessions_data.append({
             'session_id': session.id,
             'session_number': session_number,
@@ -1878,6 +2436,7 @@ def get_class_metrics(class_id):
                 'poll_vote_percentage': (round(poll_vote_percentage, 1) if poll_vote_percentage is not None else None)
             },
             'poll_results': poll_results,
+            'quiz_results': quiz_results,
             'participation_rounds': participation_rounds,
             'attendance_list': attendance_list
         })
@@ -2086,7 +2645,9 @@ def get_grading_weights(class_id):
             attendance_weight=25.0,
             participation_weight=50.0,
             participation_instructor_share=50.0,
-            poll_weight=25.0
+            poll_weight=25.0,
+            quiz_weight=0.0,
+            quiz_count_target=0,
         )
         db.session.add(grading_weights)
         db.session.commit()
@@ -2097,7 +2658,9 @@ def get_grading_weights(class_id):
         'participation_weight': grading_weights.participation_weight,
         'participation_instructor_share': grading_weights.participation_instructor_share,
         'participation_peer_share': peer_share,
-        'poll_weight': grading_weights.poll_weight
+        'poll_weight': grading_weights.poll_weight,
+        'quiz_weight': float(getattr(grading_weights, 'quiz_weight', 0.0) or 0.0),
+        'quiz_count_target': int(getattr(grading_weights, 'quiz_count_target', 0) or 0),
     })
 
 @app.route('/api/grading_weights/<int:class_id>', methods=['POST'])
@@ -2112,14 +2675,20 @@ def update_grading_weights(class_id):
     attendance_weight = float(data.get('attendance_weight', 25.0))
     participation_weight = float(data.get('participation_weight', 50.0))
     poll_weight = float(data.get('poll_weight', 25.0))
+    quiz_weight = float(data.get('quiz_weight', 0.0))
+    quiz_count_target = int(data.get('quiz_count_target', 0))
     participation_instructor_share = float(data.get('participation_instructor_share', 50.0))
     
-    total_weight = attendance_weight + participation_weight + poll_weight
+    total_weight = attendance_weight + participation_weight + poll_weight + quiz_weight
     if abs(total_weight - 100.0) > 0.01:
         return jsonify({'success': False, 'error': f'Weights must sum to 100%. Current total: {total_weight}%'}), 400
     
-    if any(w < 0 for w in [attendance_weight, participation_weight, poll_weight]):
+    if any(w < 0 for w in [attendance_weight, participation_weight, poll_weight, quiz_weight]):
         return jsonify({'success': False, 'error': 'All weights must be non-negative'}), 400
+    if quiz_count_target < 0:
+        return jsonify({'success': False, 'error': 'Number of quizzes must be non-negative'}), 400
+    if quiz_weight > 0.0001 and quiz_count_target < 1:
+        return jsonify({'success': False, 'error': 'When quiz weight is greater than 0, set number of quizzes to at least 1.'}), 400
     if participation_instructor_share < 0 or participation_instructor_share > 100:
         return jsonify({'success': False, 'error': 'Instructor share of participation must be between 0 and 100%'}), 400
     
@@ -2133,6 +2702,8 @@ def update_grading_weights(class_id):
     grading_weights.participation_weight = participation_weight
     grading_weights.participation_instructor_share = participation_instructor_share
     grading_weights.poll_weight = poll_weight
+    grading_weights.quiz_weight = quiz_weight
+    grading_weights.quiz_count_target = quiz_count_target
     grading_weights.updated_at = datetime.utcnow()
     
     db.session.commit()
@@ -2167,9 +2738,10 @@ def create_poll(class_id):
     if len(options_lower) != len(set(options_lower)):
         return jsonify({'success': False, 'error': 'Duplicate options are not allowed. Each option must be unique.'}), 400
     
-    # Deactivate any existing active polls
+    # Deactivate any existing active polls and quiz runs (single live activity)
     Poll.query.filter_by(class_id=class_id, is_active=True).update({'is_active': False})
-    
+    quiz_run_ids = deactivate_active_quiz_runs_for_class(class_id)
+
     poll = Poll(
         class_id=class_id,
         question=question,
@@ -2182,6 +2754,13 @@ def create_poll(class_id):
     )
     db.session.add(poll)
     db.session.commit()
+
+    for rid in quiz_run_ids:
+        socketio.emit(
+            'quiz_stopped',
+            {'quiz_run_id': rid, 'class_id': class_id},
+            room=f'class_{class_id}',
+        )
     
     socketio.emit('poll_started', {
         'poll_id': poll.id,
@@ -2245,6 +2824,321 @@ def clear_poll_responses(poll_id):
     socketio.emit('poll_responses_cleared', {'poll_id': poll_id}, room=f'class_{poll.class_id}')
     return jsonify({'success': True})
 
+
+@app.route('/api/quiz_template.xlsx', methods=['GET'])
+@login_required
+def download_quiz_template():
+    """Excel layout for bulk quiz questions (Question Description, Option A–F, Correct Answer)."""
+    if os.path.isfile(QUIZ_TEMPLATE_XLSX):
+        return send_file(
+            QUIZ_TEMPLATE_XLSX,
+            as_attachment=True,
+            download_name='Quiz_Template.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Questions'
+    ws.append(
+        [
+            'Question #',
+            'Question Description',
+            '# of Options',
+            'Option A',
+            'Option B',
+            'Option C',
+            'Option D',
+            'Option E',
+            'Option F',
+            'Correct Answer',
+        ]
+    )
+    ws.append([1, 'Sample: What is 2+2?', 4, '2', '3', '4', '5', '', '', 'C'])
+    bio = BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return send_file(
+        bio,
+        as_attachment=True,
+        download_name='Quiz_Template.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@app.route('/api/quizzes/<int:class_id>', methods=['GET'])
+@login_required
+def list_quizzes(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    quizzes = Quiz.query.filter_by(class_id=class_id).order_by(Quiz.quiz_index.asc()).all()
+    out = []
+    for qz in quizzes:
+        nq = QuizQuestion.query.filter_by(quiz_id=qz.id).count()
+        out.append({
+            'id': qz.id,
+            'title': qz.title,
+            'quiz_index': qz.quiz_index,
+            'time_limit_seconds': qz.time_limit_seconds,
+            'question_count': nq,
+            'source_filename': qz.source_filename,
+        })
+    return jsonify({'success': True, 'quizzes': out})
+
+
+@app.route('/api/quiz_upload/<int:class_id>', methods=['POST'])
+@login_required
+def quiz_upload(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+    file = request.files['file']
+    if not file.filename or not file.filename.lower().endswith(('.xlsx', '.xls')):
+        return jsonify({'success': False, 'error': 'Please upload an Excel file (.xlsx)'}), 400
+
+    try:
+        quiz_index = int(request.form.get('quiz_index') or request.args.get('quiz_index') or '0')
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Invalid quiz_index'}), 400
+    if quiz_index < 1:
+        return jsonify({'success': False, 'error': 'quiz_index must be at least 1'}), 400
+
+    gw = GradingWeights.query.filter_by(class_id=class_id).first()
+    n_target = int(getattr(gw, 'quiz_count_target', 0) or 0) if gw else 0
+    if n_target < 1:
+        return jsonify({
+            'success': False,
+            'error': (
+                'Set the number of quizzes in Class Data → Gradebook → Grading (at least 1) '
+                'before uploading a quiz.'
+            ),
+        }), 400
+    if n_target > 0 and quiz_index > n_target:
+        return jsonify({
+            'success': False,
+            'error': f'quiz_index must be between 1 and the configured number of quizzes ({n_target}).',
+        }), 400
+
+    title = (request.form.get('title') or f'Quiz {quiz_index}').strip() or f'Quiz {quiz_index}'
+    raw_min = request.form.get('time_limit_minutes')
+    if raw_min is not None and str(raw_min).strip() != '':
+        try:
+            time_limit_seconds = int(round(float(raw_min) * 60))
+        except (TypeError, ValueError):
+            time_limit_seconds = 300
+        if time_limit_seconds < 60:
+            time_limit_seconds = 60
+    else:
+        try:
+            time_limit_seconds = int(request.form.get('time_limit_seconds') or 300)
+        except (TypeError, ValueError):
+            time_limit_seconds = 300
+        if time_limit_seconds < 30:
+            time_limit_seconds = 30
+    if time_limit_seconds > 24 * 3600:
+        time_limit_seconds = 24 * 3600
+
+    results = {'success': True, 'added': 0, 'errors': []}
+    try:
+        wb = load_workbook(file, read_only=True, data_only=True)
+        ws = wb.active
+        questions_to_add, parse_errors = _parse_quiz_workbook(ws)
+        results['errors'].extend(parse_errors)
+
+        if results['errors'] and not questions_to_add:
+            results['success'] = False
+            return jsonify(results), 400
+        if not questions_to_add:
+            results['success'] = False
+            results['errors'].append('No question rows found in the spreadsheet.')
+            return jsonify(results), 400
+
+        existing = Quiz.query.filter_by(class_id=class_id, quiz_index=quiz_index).first()
+        if existing:
+            _delete_quiz_and_related(existing)
+
+        quiz = Quiz(
+            class_id=class_id,
+            title=title,
+            time_limit_seconds=time_limit_seconds,
+            quiz_index=quiz_index,
+            source_filename=secure_filename(file.filename) if file.filename else None,
+        )
+        db.session.add(quiz)
+        db.session.flush()
+
+        for qd in questions_to_add:
+            db.session.add(
+                QuizQuestion(
+                    quiz_id=quiz.id,
+                    order=qd['order'],
+                    prompt=qd['prompt'],
+                    options=json.dumps(qd['options']),
+                    correct_index=qd['correct_index'],
+                )
+            )
+        db.session.commit()
+        results['quiz_id'] = quiz.id
+        results['added'] = len(questions_to_add)
+        return jsonify(results)
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/quiz/<int:quiz_id>/start', methods=['POST'])
+@login_required
+def start_quiz(quiz_id):
+    quiz = Quiz.query.options(joinedload(Quiz.questions)).get_or_404(quiz_id)
+    class_obj = Class.query.get_or_404(quiz.class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    if not class_obj.is_active:
+        return jsonify({'success': False, 'error': 'Start the class session before launching a quiz.'}), 400
+    if not get_active_class_session(quiz.class_id):
+        return jsonify({'success': False, 'error': 'No active class session.'}), 400
+    if not quiz.questions:
+        return jsonify({'success': False, 'error': 'This quiz has no questions. Upload a spreadsheet first.'}), 400
+
+    gw = GradingWeights.query.filter_by(class_id=quiz.class_id).first()
+    n_target = int(getattr(gw, 'quiz_count_target', 0) or 0) if gw else 0
+    if n_target < 1:
+        return jsonify({
+            'success': False,
+            'error': (
+                'Set the number of quizzes in Class Data → Gradebook → Grading (at least 1) '
+                'before starting a quiz.'
+            ),
+        }), 400
+
+    class_id = quiz.class_id
+    poll_ids = deactivate_active_polls_for_class(class_id)
+    quiz_run_ids = deactivate_active_quiz_runs_for_class(class_id)
+
+    started = datetime.utcnow()
+    deadline = started + timedelta(seconds=int(quiz.time_limit_seconds or 300))
+    run = QuizRun(
+        quiz_id=quiz.id,
+        class_id=class_id,
+        started_at=started,
+        deadline_at=deadline,
+        ended_at=None,
+        is_active=True,
+    )
+    db.session.add(run)
+    db.session.commit()
+
+    emit_poll_stopped_events(class_id, poll_ids)
+    for qrid in quiz_run_ids:
+        socketio.emit(
+            'quiz_stopped',
+            {'quiz_run_id': qrid, 'class_id': class_id},
+            room=f'class_{class_id}',
+        )
+    socketio.emit('quiz_started', quiz_run_public_payload(run), room=f'class_{class_id}')
+    return jsonify({'success': True, 'quiz_run_id': run.id})
+
+
+@app.route('/api/quiz_run/<int:run_id>/stop', methods=['POST'])
+@login_required
+def stop_quiz_run(run_id):
+    run = QuizRun.query.get_or_404(run_id)
+    class_obj = Class.query.get_or_404(run.class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    now = datetime.utcnow()
+    run.is_active = False
+    if run.ended_at is None:
+        run.ended_at = now
+    db.session.commit()
+    socketio.emit(
+        'quiz_stopped',
+        {'quiz_run_id': run.id, 'class_id': run.class_id},
+        room=f'class_{run.class_id}',
+    )
+    return jsonify({'success': True})
+
+
+@app.route('/api/student/quiz_submit', methods=['POST'])
+def student_quiz_submit():
+    student_id = _authenticated_student_id()
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    data = request.get_json() or {}
+    run_id = data.get('quiz_run_id')
+    answers = data.get('answers') or {}
+    if not run_id:
+        return jsonify({'success': False, 'error': 'quiz_run_id required'}), 400
+    try:
+        run_id = int(run_id)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Invalid quiz_run_id'}), 400
+
+    run = QuizRun.query.options(joinedload(QuizRun.quiz).joinedload(Quiz.questions)).get_or_404(run_id)
+    class_id = run.class_id
+    if Enrollment.query.filter_by(
+        class_id=class_id,
+        student_id=student_id,
+        is_active=True,
+    ).first() is None:
+        return jsonify({'success': False, 'error': 'Not enrolled in this class'}), 403
+
+    now = datetime.utcnow()
+    if not run.is_active:
+        return jsonify({'success': False, 'error': 'This quiz is no longer active.'}), 400
+    if now > run.deadline_at:
+        return jsonify({'success': False, 'error': 'The time limit for this quiz has passed.'}), 400
+
+    if QuizAnswer.query.filter_by(quiz_run_id=run.id, student_id=student_id).first():
+        return jsonify({'success': False, 'error': 'You have already submitted this quiz.'}), 400
+
+    quiz = run.quiz
+    q_rows = sorted(quiz.questions, key=lambda q: q.order)
+    if len(answers) != len(q_rows):
+        return jsonify({
+            'success': False,
+            'error': f'Expected an answer for each question ({len(q_rows)} total).',
+        }), 400
+
+    correct_n = 0
+    for q in q_rows:
+        key = str(q.id)
+        if key not in answers:
+            return jsonify({'success': False, 'error': f'Missing answer for question id {q.id}'}), 400
+        try:
+            sel = int(answers[key])
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': f'Invalid answer for question {q.id}'}), 400
+        try:
+            opts = json.loads(q.options or '[]')
+        except (json.JSONDecodeError, TypeError):
+            opts = []
+        if sel < 0 or sel >= len(opts):
+            return jsonify({'success': False, 'error': f'Answer out of range for question {q.id}'}), 400
+        is_ok = sel == q.correct_index
+        if is_ok:
+            correct_n += 1
+        db.session.add(
+            QuizAnswer(
+                quiz_run_id=run.id,
+                student_id=student_id,
+                question_id=q.id,
+                selected_index=sel,
+                is_correct=is_ok,
+                submitted_at=now,
+            )
+        )
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'correct_count': correct_n,
+        'total_questions': len(q_rows),
+    })
+
+
 @app.route('/api/create_class', methods=['POST'])
 @login_required
 def create_class():
@@ -2284,6 +3178,9 @@ def delete_class(class_id):
         
         # Delete polls
         Poll.query.filter_by(class_id=class_id).delete()
+
+        for qz in Quiz.query.filter_by(class_id=class_id).all():
+            _delete_quiz_and_related(qz)
         
         # Delete participations
         Participation.query.filter_by(class_id=class_id).delete()
@@ -2296,6 +3193,8 @@ def delete_class(class_id):
         
         # Delete class settings
         ClassSettings.query.filter_by(class_id=class_id).delete()
+
+        GradingWeights.query.filter_by(class_id=class_id).delete()
         
         # Finally, delete the class
         db.session.delete(class_obj)
@@ -3398,6 +4297,13 @@ def student_join_class():
             'is_anonymous': bool(active_poll.is_anonymous),
             'is_graded': bool(active_poll.is_graded),
         }
+    active_quiz_run = (
+        QuizRun.query.options(joinedload(QuizRun.quiz).joinedload(Quiz.questions))
+        .filter_by(class_id=class_id, is_active=True)
+        .first()
+    )
+    if active_quiz_run:
+        payload['active_quiz'] = quiz_run_public_payload(active_quiz_run)
     return jsonify(payload)
 
 
@@ -3777,6 +4683,15 @@ def live_dashboard(class_id):
             'option_counts': option_counts,
             'total_responses': total
         }
+
+    active_quiz_run = (
+        QuizRun.query.options(joinedload(QuizRun.quiz).joinedload(Quiz.questions))
+        .filter_by(class_id=class_id, is_active=True)
+        .first()
+    )
+    quiz_data = None
+    if active_quiz_run:
+        quiz_data = quiz_run_public_payload(active_quiz_run)
     
     return jsonify({
         'success': True,
@@ -3789,6 +4704,7 @@ def live_dashboard(class_id):
         'total_students': total_students,
         'active_poll': poll_data,
         'poll_results': poll_results_data,
+        'active_quiz': quiz_data,
         'show_first_name_only': settings.show_first_name_only
     })
 
@@ -4619,6 +5535,26 @@ def migrate_database():
                 except Exception as e:
                     db.session.rollback()
                     print(f"[ERROR] Error defaulting grading_weights participation columns: {e}")
+            inspector = inspect(db.engine)
+            gw_columns2 = [col['name'] for col in inspector.get_columns('grading_weights')]
+            if 'quiz_weight' not in gw_columns2:
+                try:
+                    db.session.execute(text('ALTER TABLE grading_weights ADD COLUMN quiz_weight FLOAT DEFAULT 0'))
+                    db.session.commit()
+                    print("[OK] Added quiz_weight column to grading_weights table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding quiz_weight to grading_weights: {e}")
+            inspector = inspect(db.engine)
+            gw_columns3 = [col['name'] for col in inspector.get_columns('grading_weights')]
+            if 'quiz_count_target' not in gw_columns3:
+                try:
+                    db.session.execute(text('ALTER TABLE grading_weights ADD COLUMN quiz_count_target INTEGER DEFAULT 0'))
+                    db.session.commit()
+                    print("[OK] Added quiz_count_target column to grading_weights table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding quiz_count_target to grading_weights: {e}")
         
         # Participation grade rounds: exclude individual rounds from averages
         if 'participation_grade_round' in table_names:

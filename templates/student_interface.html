@@ -428,6 +428,45 @@
             padding: 2rem;
             text-align: center;
         }
+        /* Quiz: compact pill submit (matches Class Data btn-tron-pill — not poll-opt-btn sizing) */
+        #backQuizFullscreen .back-quiz-footer {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.65rem 1rem 1rem;
+            border-top: 1px solid #e5e7eb;
+            background: #fff;
+        }
+        #backQuizFullscreen .back-quiz-submit-btn {
+            border-radius: 9999px;
+            background-color: #57C5E4;
+            color: #FFFFFF !important;
+            min-width: 130px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            padding: 0 1.25rem;
+            font-family: 'Inter', 'Nunito', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.15s ease, filter 0.12s ease;
+            touch-action: manipulation;
+        }
+        #backQuizFullscreen .back-quiz-submit-btn:hover {
+            background-color: #3BA8C8;
+            color: #FFFFFF;
+        }
+        #backQuizFullscreen .back-quiz-submit-btn:active {
+            filter: brightness(0.96);
+        }
+        #backQuizFullscreen .back-quiz-submit-btn:disabled {
+            opacity: 0.85;
+            cursor: default;
+        }
         .poll-result-row {
             flex-shrink: 0;
             padding: 0.65rem clamp(1rem, 3vw, 1.5rem);
@@ -810,6 +849,15 @@
                     <div class="back-poll-opts" id="backPollOptions"></div>
                     <div id="backPollSubmitted" class="back-poll-done panel-hidden"></div>
                 </div>
+                <div id="backQuizFullscreen" class="back-poll-fs panel-hidden" aria-live="polite" style="flex-direction:column;">
+                    <div class="back-poll-q" id="backQuizHeadline"></div>
+                    <div id="backQuizTimer" style="text-align:center;font-weight:600;margin-bottom:0.5rem;"></div>
+                    <div id="backQuizBody" style="overflow-y:auto;flex:1;min-height:0;"></div>
+                    <div class="back-quiz-footer" id="backQuizFooter">
+                        <button type="button" id="backQuizSubmitBtn" class="back-quiz-submit-btn">Submit All Answers</button>
+                    </div>
+                    <div id="backQuizSubmitted" class="back-poll-done panel-hidden"></div>
+                </div>
             </div>
         </div>
 
@@ -879,6 +927,8 @@
     let currentClassMeta = null;
     let socket = null;
     let currentPoll = null;
+    let currentQuizRun = null;
+    let quizCountdownTimer = null;
     var peerParticipationPending = null;
     var selectedPeerRating = null;
     var pollResultsDismissTimer = null;
@@ -927,6 +977,169 @@
         if (opts) { opts.innerHTML = ''; opts.classList.remove('panel-hidden'); }
         var sub = document.getElementById('backPollSubmitted');
         if (sub) { sub.classList.add('panel-hidden'); sub.textContent = ''; }
+    }
+
+    function showBackQuizQuestionChrome() {
+        ['backQuizHeadline', 'backQuizTimer', 'backQuizBody', 'backQuizFooter'].forEach(function (id) {
+            var e = document.getElementById(id);
+            if (e) e.classList.remove('panel-hidden');
+        });
+    }
+
+    function hideBackQuizUI() {
+        if (quizCountdownTimer) {
+            clearInterval(quizCountdownTimer);
+            quizCountdownTimer = null;
+        }
+        currentQuizRun = null;
+        var el = document.getElementById('backQuizFullscreen');
+        if (el) el.classList.add('panel-hidden');
+        var body = document.getElementById('backQuizBody');
+        if (body) body.innerHTML = '';
+        var tim = document.getElementById('backQuizTimer');
+        if (tim) tim.textContent = '';
+        var sub = document.getElementById('backQuizSubmitted');
+        if (sub) { sub.classList.add('panel-hidden'); sub.textContent = ''; }
+        var btn = document.getElementById('backQuizSubmitBtn');
+        if (btn) { btn.disabled = false; }
+        showBackQuizQuestionChrome();
+    }
+
+    function showBackQuizFullscreen(payload) {
+        if (!payload || payload.quiz_run_id == null) return;
+        hideBackPollUI();
+        currentPoll = null;
+        currentQuizRun = payload;
+        var titleEl = document.getElementById('backQuizHeadline');
+        var body = document.getElementById('backQuizBody');
+        var sub = document.getElementById('backQuizSubmitted');
+        var btn = document.getElementById('backQuizSubmitBtn');
+        if (!titleEl || !body || !btn) return;
+        var baseTitle = payload.title || 'Quiz';
+        var secLimit = Number(payload.time_limit_seconds);
+        if (Number.isFinite(secLimit) && secLimit > 0) {
+            var minPart = secLimit / 60;
+            var minLabel = (secLimit % 60 === 0)
+                ? String(Math.round(minPart))
+                : (Math.round(minPart * 10) / 10).toFixed(1).replace(/\.0$/, '');
+            titleEl.textContent = baseTitle + ' (' + minLabel + ' min)';
+        } else {
+            titleEl.textContent = baseTitle;
+        }
+        sub.classList.add('panel-hidden');
+        sub.textContent = '';
+        btn.disabled = false;
+        showBackQuizQuestionChrome();
+        body.innerHTML = '';
+        (payload.questions || []).forEach(function (q) {
+            var wrap = document.createElement('div');
+            wrap.className = 'mb-3';
+            wrap.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
+            wrap.style.paddingBottom = '0.75rem';
+            var lab = document.createElement('div');
+            lab.style.fontWeight = '600';
+            lab.style.marginBottom = '0.35rem';
+            lab.textContent = q.prompt || ('Question ' + q.id);
+            wrap.appendChild(lab);
+            (q.options || []).forEach(function (opt, idx) {
+                var id = 'qq_' + q.id + '_' + idx;
+                var row = document.createElement('div');
+                row.style.marginBottom = '0.25rem';
+                var inp = document.createElement('input');
+                inp.type = 'radio';
+                inp.name = 'quiz_q_' + q.id;
+                inp.value = String(idx);
+                inp.id = id;
+                var l = document.createElement('label');
+                l.setAttribute('for', id);
+                l.style.marginLeft = '0.35rem';
+                var letter = String.fromCharCode(65 + idx);
+                l.textContent = letter + '. ' + opt;
+                row.appendChild(inp);
+                row.appendChild(l);
+                wrap.appendChild(row);
+            });
+            body.appendChild(wrap);
+        });
+        if (quizCountdownTimer) {
+            clearInterval(quizCountdownTimer);
+            quizCountdownTimer = null;
+        }
+        function parseUtcDeadlineMs(iso) {
+            if (!iso) return NaN;
+            var s = String(iso).trim();
+            var hasZone = /[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s);
+            if (!hasZone && /^\d{4}-\d{2}-\d{2}T/.test(s)) {
+                s = s + 'Z';
+            }
+            var ms = Date.parse(s);
+            return Number.isFinite(ms) ? ms : NaN;
+        }
+        var deadlineMs = parseUtcDeadlineMs(payload.deadline_at);
+        function tickQuizTimer() {
+            var tEl = document.getElementById('backQuizTimer');
+            if (!tEl) return;
+            if (!Number.isFinite(deadlineMs)) {
+                tEl.textContent = '';
+                return;
+            }
+            var left = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
+            var m = Math.floor(left / 60);
+            var s = left % 60;
+            tEl.textContent = 'Time left: ' + m + ':' + (s < 10 ? '0' : '') + s;
+            if (left <= 0) tEl.textContent = 'Time is up — submit if you still can.';
+        }
+        tickQuizTimer();
+        quizCountdownTimer = setInterval(tickQuizTimer, 500);
+        btn.onclick = function () { submitStudentQuiz(); };
+        document.getElementById('backQuizFullscreen').classList.remove('panel-hidden');
+        resetDefaultFrontPlate();
+    }
+
+    async function submitStudentQuiz() {
+        if (!currentQuizRun) return;
+        var runId = currentQuizRun.quiz_run_id;
+        var answers = {};
+        var qs = currentQuizRun.questions || [];
+        for (var i = 0; i < qs.length; i++) {
+            var qid = qs[i].id;
+            var picked = document.querySelector('input[name="quiz_q_' + qid + '"]:checked');
+            if (!picked) {
+                alert('Please answer every question before submitting.');
+                return;
+            }
+            answers[String(qid)] = parseInt(picked.value, 10);
+        }
+        var btn = document.getElementById('backQuizSubmitBtn');
+        if (btn) btn.disabled = true;
+        try {
+            var res = await studentFetch('/api/student/quiz_submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quiz_run_id: runId, answers: answers })
+            });
+            var data = await res.json();
+            if (data.success) {
+                if (quizCountdownTimer) {
+                    clearInterval(quizCountdownTimer);
+                    quizCountdownTimer = null;
+                }
+                ['backQuizHeadline', 'backQuizTimer', 'backQuizBody', 'backQuizFooter'].forEach(function (id) {
+                    var e = document.getElementById(id);
+                    if (e) e.classList.add('panel-hidden');
+                });
+                var sub = document.getElementById('backQuizSubmitted');
+                sub.textContent = 'Your score: ' + data.correct_count + ' / ' + data.total_questions + ' correct.';
+                sub.classList.remove('panel-hidden');
+            } else {
+                if (btn) btn.disabled = false;
+                alert(data.error || 'Could not submit');
+            }
+        } catch (e) {
+            console.error(e);
+            if (btn) btn.disabled = false;
+            alert('Could not submit Quiz.');
+        }
     }
 
     /** Brief aggregate results after professor ends the poll (same room as poll_started). */
@@ -1109,6 +1322,8 @@
     }
 
     function showBackPollFullscreen(data) {
+        hideBackQuizUI();
+        currentQuizRun = null;
         document.getElementById('backPollQuestion').textContent = data.question || 'Poll';
         var optsEl = document.getElementById('backPollOptions');
         var sub = document.getElementById('backPollSubmitted');
@@ -1493,13 +1708,18 @@
         document.getElementById('sessionClassCode').textContent = c.class_code;
         applyQuietParticipationUI();
         updateFrontName();
-        if (data.active_poll && Array.isArray(data.active_poll.options) && data.active_poll.options.length) {
+        if (data.active_quiz && Array.isArray(data.active_quiz.questions) && data.active_quiz.questions.length) {
+            currentPoll = null;
+            hideBackPollUI();
+            showBackQuizFullscreen(data.active_quiz);
+        } else if (data.active_poll && Array.isArray(data.active_poll.options) && data.active_poll.options.length) {
             currentPoll = data.active_poll;
             resetDefaultFrontPlate();
             showBackPollFullscreen(data.active_poll);
         } else {
             currentPoll = null;
             hideBackPollUI();
+            hideBackQuizUI();
             resetDefaultFrontPlate();
         }
         refreshInteractionState();
@@ -1563,9 +1783,21 @@
         });
         socket.on('poll_started', function (data) {
             if (!data || !currentClassId) return;
+            hideBackQuizUI();
+            currentQuizRun = null;
             currentPoll = data;
             resetDefaultFrontPlate();
             showBackPollFullscreen(data);
+        });
+        socket.on('quiz_started', function (data) {
+            if (!data || !currentClassId || String(data.class_id) !== String(currentClassId)) return;
+            showBackQuizFullscreen(data);
+        });
+        socket.on('quiz_stopped', function (data) {
+            if (!data || !currentClassId || String(data.class_id) !== String(currentClassId)) return;
+            hideBackQuizUI();
+            resetDefaultFrontPlate();
+            refreshInteractionState();
         });
         socket.on('poll_stopped', function (data) {
             clearPollResultsDismissTimer();
@@ -1645,6 +1877,7 @@
                 currentClassMeta = null;
                 currentPoll = null;
                 hideBackPollUI();
+                hideBackQuizUI();
                 resetDefaultFrontPlate();
                 setState('home');
                 document.getElementById('backSession').classList.add('panel-hidden');
