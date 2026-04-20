@@ -369,6 +369,11 @@ body.theme-dark .form-select {
   border-color: #243e5a !important;
   color: var(--comet-menu-text) !important;
 }
+body.theme-dark .form-control::placeholder,
+body.theme-dark .form-select::placeholder {
+  color: var(--comet-menu-muted) !important;
+  opacity: 1;
+}
 body.theme-dark .form-label,
 body.theme-dark .form-check-label {
   color: #c5d4e3 !important;
@@ -649,4 +654,192 @@ body.theme-dark .modal-footer .btn-secondary {
 body.theme-dark .modal-footer .btn-secondary:hover {
   background-color: #223f56 !important;
   color: var(--comet-menu-text) !important;
+}
+
+/* ---- Faculty live: tab nav (Quiz / Settings / …) on dark canvas ---- */
+body.theme-dark .fac-tabs .tab-pill:not(.active) {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .fac-tabs .tab-pill:not(.active):hover {
+  color: var(--comet-menu-text) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+body.theme-dark .fac-tabs .tab-pill.active {
+  background-color: rgba(87, 197, 228, 0.16) !important;
+  color: var(--comet-menu-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(87, 197, 228, 0.35) !important;
+}
+
+/* ---- Faculty Quiz tab + Settings cards (faculty_dashboard.html #quizCard) ---- */
+body.theme-dark .fac-settings-card {
+  background-color: var(--comet-menu-dark-mid) !important;
+  border-color: #122638 !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45) !important;
+}
+body.theme-dark .fac-settings-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-section-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-section-bordered {
+  border-top-color: #122638 !important;
+}
+body.theme-dark .fac-settings-card .form-label,
+body.theme-dark .fac-settings-card .form-check-label {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .form-control,
+body.theme-dark .fac-settings-card .form-control:focus {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark .fac-settings-card .form-control:focus {
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25) !important;
+}
+body.theme-dark .fac-settings-card .text-muted {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .fac-settings-card .text-danger {
+  color: #f87171 !important;
+}
+body.theme-dark .fac-settings-card .table {
+  --bs-table-color: var(--comet-menu-text);
+  --bs-table-bg: transparent;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .fac-settings-card .table > :not(caption) > * > * {
+  border-bottom-color: #122638 !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .table thead th {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .fac-settings-card .table tbody td {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .table-responsive {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #122638;
+}
+body.theme-dark .fac-settings-card .btn-outline-secondary {
+  color: var(--comet-menu-text) !important;
+  border-color: #3d5f78 !important;
+  background: transparent !important;
+}
+body.theme-dark .fac-settings-card .btn-outline-secondary:hover {
+  background-color: rgba(87, 197, 228, 0.12) !important;
+  border-color: #57c5e4 !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .btn-outline-danger {
+  color: #fca5a5 !important;
+  border-color: rgba(248, 113, 113, 0.45) !important;
+  background: transparent !important;
+}
+body.theme-dark .fac-settings-card .btn-outline-danger:hover {
+  background-color: rgba(220, 53, 69, 0.2) !important;
+  color: #fecaca !important;
+}
+body.theme-dark .fac-settings-card .btn-primary:disabled {
+  opacity: 0.45 !important;
+}
+body.theme-dark .fac-settings-card .alert-secondary {
+  background-color: rgba(18, 38, 56, 0.85) !important;
+  border-color: #243e5a !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .alert-secondary a {
+  color: #7dd3fc !important;
+}
+body.theme-dark .fac-settings-card .alert-secondary a:hover {
+  color: #bae6fd !important;
+}
+body.theme-dark .fac-settings-card .alert-success {
+  background-color: rgba(40, 167, 69, 0.18) !important;
+  border-color: rgba(74, 222, 128, 0.35) !important;
+  color: #bbf7d0 !important;
+}
+body.theme-dark .fac-settings-card .alert-danger {
+  background-color: rgba(220, 53, 69, 0.15) !important;
+  border-color: rgba(248, 113, 113, 0.4) !important;
+  color: #fecaca !important;
+}
+body.theme-dark .fac-settings-card .alert-warning {
+  background-color: rgba(234, 179, 8, 0.12) !important;
+  border-color: rgba(250, 204, 21, 0.35) !important;
+  color: #fde68a !important;
+}
+body.theme-dark .fac-settings-card .fac-empty-state {
+  color: var(--comet-menu-muted) !important;
+}
+
+/* ---- Class Data: Grading tab quiz weight / count (grading-quiz-section) ---- */
+body.theme-dark .grading-quiz-section {
+  background: var(--comet-menu-dark-mid) !important;
+  border-color: #122638 !important;
+}
+
+/* ---- Class Data: Quiz metrics per-question modal ---- */
+body.theme-dark #quizMetricsStudentDetailModal .modal-content {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .modal-header {
+  border-bottom-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .modal-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .text-muted {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .table thead th {
+  background: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .table tbody td {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .table tbody tr:nth-of-type(even) > td {
+  background-color: var(--comet-menu-dark) !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .btn-close {
+  filter: invert(1);
+  opacity: 0.75;
+}
+body.theme-dark #quizMetricsStudentDetailModal .badge.bg-success {
+  background-color: rgba(34, 197, 94, 0.35) !important;
+  color: #ecfdf5 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .badge.bg-danger {
+  background-color: rgba(239, 68, 68, 0.35) !important;
+  color: #fef2f2 !important;
+}
+
+/* ---- Class Data: tabs (Grading / Class Metrics — quiz tables live here) ---- */
+body.theme-dark .class-data-tabs-nav .tab-pill:not(.active) {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .class-data-tabs-nav .tab-pill:not(.active):hover {
+  color: var(--comet-menu-text) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+body.theme-dark .class-data-tabs-nav .tab-pill.active {
+  background-color: rgba(87, 197, 228, 0.16) !important;
+  color: var(--comet-menu-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(87, 197, 228, 0.35) !important;
+}
+body.theme-dark #metricsContent .loading {
+  color: var(--comet-menu-muted) !important;
 }

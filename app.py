@@ -1807,15 +1807,18 @@ def get_preferences():
 @app.route('/api/preferences', methods=['POST'])
 @login_required
 def save_preferences():
-    """Save global professor preferences."""
-    data = request.get_json()
+    """Save global professor preferences. Only keys present in JSON are updated."""
+    data = request.get_json() or {}
     prefs = ProfessorPreferences.query.filter_by(professor_id=current_user.id).first()
     if not prefs:
         prefs = ProfessorPreferences(professor_id=current_user.id)
         db.session.add(prefs)
-    prefs.default_show_first_name_only = bool(data.get('show_first_name_only', False))
-    prefs.default_quiet_mode = bool(data.get('quiet_mode', False))
-    prefs.dark_mode = bool(data.get('dark_mode', False))
+    if 'show_first_name_only' in data:
+        prefs.default_show_first_name_only = bool(data['show_first_name_only'])
+    if 'quiet_mode' in data:
+        prefs.default_quiet_mode = bool(data['quiet_mode'])
+    if 'dark_mode' in data:
+        prefs.dark_mode = bool(data['dark_mode'])
     db.session.commit()
     return jsonify({
         'success': True,

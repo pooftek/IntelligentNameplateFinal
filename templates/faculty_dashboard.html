@@ -871,6 +871,11 @@
                                 <input class="form-check-input" type="checkbox" id="liveQuietMode">
                                 <label class="form-check-label" for="liveQuietMode">Quiet Mode</label>
                             </div>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="liveDarkMode">
+                                <label class="form-check-label" for="liveDarkMode">Dark Mode</label>
+                            </div>
+                            <p class="text-muted small mb-0 mt-1">Dark Mode uses a dark navy theme for professor menus and panels (saved to your account).</p>
                         </div>
 
                         <div class="fac-settings-section fac-settings-section-bordered">
@@ -1573,6 +1578,13 @@ async function loadLiveSettings() {
         document.getElementById('liveQuietMode').checked         = data.quiet_mode || false;
         document.getElementById('liveExcludeFromGrading').checked = data.exclude_from_grading || false;
 
+        const prefResp = await fetch('/api/preferences');
+        const prefData = await prefResp.json();
+        const dm = document.getElementById('liveDarkMode');
+        if (dm && prefData.success) {
+            dm.checked = !!prefData.dark_mode;
+        }
+
     } catch (error) {
         console.error('Error loading live settings:', error);
     }
@@ -1595,6 +1607,18 @@ async function saveLiveSettings() {
 
         const result = await response.json();
         if (result.success) {
+            const darkEl = document.getElementById('liveDarkMode');
+            if (darkEl) {
+                const prefRes = await fetch('/api/preferences', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dark_mode: darkEl.checked }),
+                });
+                const prefResult = await prefRes.json();
+                if (prefResult.success && typeof prefResult.dark_mode === 'boolean') {
+                    document.body.classList.toggle('theme-dark', prefResult.dark_mode);
+                }
+            }
             showToast('Settings saved successfully.');
             loadDashboard();
         } else {
