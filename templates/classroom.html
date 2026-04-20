@@ -73,6 +73,7 @@
         white-space: nowrap;
         flex-shrink: 0;
         text-decoration: none;
+        cursor: pointer;
     }
 
     .btn-return-home:hover {
@@ -85,6 +86,7 @@
         min-height: 0;
         padding: 0.75rem 8rem;
         display: flex;
+        position: relative;
     }
 
     .cards-grid {
@@ -102,13 +104,12 @@
         cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
         box-shadow: 0 8px 24px rgba(11,30,51,0.22);
-        text-align: center;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
         border: none;
-        padding: 1rem;
+        padding: 1.1rem 1.2rem;
+        position: relative;
+        overflow: hidden;
     }
 
     .option-card:hover {
@@ -116,23 +117,300 @@
         box-shadow: 0 12px 30px rgba(11, 30, 51, 0.25);
     }
 
-    .option-icon i {
-        font-size: clamp(4.5rem, 10vw, 9rem);
-        color: #7A99B5;
-        display: block;
-        margin-bottom: clamp(0.125rem, 0.375vh, 0.25rem);
+    .option-card.static-card {
+        cursor: default;
     }
 
-    #startClassCard.live-class .option-icon i {
-        color: #57C5E4 !important;
+    .option-card.static-card:hover {
+        transform: none;
     }
 
-    .option-card h5 {
+    .option-card-title {
         font-family: 'Inter', sans-serif;
         color: #FFFFFF;
-        font-size: clamp(1.4rem, 3vw, 2.4rem);
+        font-size: clamp(1.35rem, 2.9vw, 2.15rem);
         font-weight: 600;
         margin: 0;
+        line-height: 1.2;
+        z-index: 1;
+    }
+
+    .option-card-header {
+        display: flex;
+        align-items: center;
+        gap: 1.15rem;
+        z-index: 1;
+        margin-bottom: 0.2rem;
+    }
+
+    .card-title-icon {
+        color: #FFFFFF;
+        font-size: clamp(1.6rem, 3vw, 2.3rem);
+        line-height: 1;
+        flex-shrink: 0;
+    }
+
+    .card-top-right-metric {
+        position: absolute;
+        top: 36%;
+        left: 79%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 2;
+    }
+
+    .card-top-right-value {
+        color: #FFFFFF;
+        font-size: clamp(2.8rem, 5.6vw, 4.2rem);
+        font-weight: 500;
+        line-height: 1;
+        font-family: 'Inter', sans-serif;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .card-top-right-subtext {
+        color: #7A99B5;
+        font-size: clamp(0.66rem, 0.95vw, 0.8rem);
+        margin-top: 0.2rem;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .card-body-layout {
+        flex: 1;
+        min-height: 0;
+        margin-top: 0.55rem;
+        position: relative;
+        display: flex;
+    }
+
+    .card-body-layout.bottom-left {
+        align-items: flex-end;
+        justify-content: flex-start;
+        padding: 0 0.7rem 0.5rem 0.7rem;
+    }
+
+    .grade-bars-wrap {
+        width: min(85%, 540px);
+        height: min(82%, 180px);
+        display: flex;
+        align-items: flex-end;
+        gap: clamp(6px, 1.2vw, 13px);
+        padding: 0.2rem 0.15rem 0;
+        z-index: 1;
+    }
+
+    .grade-range-bar {
+        flex: 1;
+        min-width: 0;
+        background: #D6D8DB;
+        border-radius: 6px 6px 4px 4px;
+        transition: height 1.4s ease-out;
+        height: 0;
+    }
+
+    .grade-range-bar.highlight {
+        background: #57C5E4;
+    }
+
+    .attendance-donut {
+        width: clamp(190px, 32vw, 255px);
+        height: clamp(190px, 32vw, 255px);
+        border-radius: 50%;
+        position: absolute;
+        top: 50%;
+        left: 33.33%;
+        transform: translate(-50%, -50%);
+        flex-shrink: 0;
+    }
+
+    .start-play-circle {
+        width: clamp(135px, 22vw, 172px);
+        height: clamp(135px, 22vw, 172px);
+        border-radius: 50%;
+        background: #4A6580;
+        color: #0B1E33;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        pointer-events: none;
+        position: absolute;
+        top: 50%;
+        left: 25%;
+        transform: translate(-50%, -50%);
+    }
+
+    .start-play-circle i {
+        font-size: clamp(2.3rem, 5vw, 3.5rem);
+        line-height: 1;
+        margin-left: 0.2rem;
+    }
+
+    #startClassCard.live-class .start-play-circle {
+        background: #57C5E4;
+    }
+
+    .start-session-meta {
+        position: absolute;
+        top: 50%;
+        left: 66.67%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: #FFFFFF;
+        min-width: 0;
+        z-index: 1;
+    }
+
+    .start-session-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: clamp(1.7rem, 3.35vw, 2.5rem);
+        line-height: 1.2;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .start-session-date {
+        margin-top: 0.25rem;
+        color: #7A99B5;
+        font-size: clamp(1rem, 1.7vw, 1.35rem);
+        font-family: 'Inter', sans-serif;
+        white-space: nowrap;
+    }
+
+    .settings-inline-sheet {
+        margin-top: 0.6rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        gap: 0.75rem;
+        padding-bottom: 0;
+        color: #FFFFFF;
+        z-index: 1;
+    }
+
+    .settings-inline-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .settings-section-divider {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        margin: 0.2rem 0;
+    }
+
+    .settings-inline-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+    }
+
+    .settings-inline-row label {
+        color: #FFFFFF;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .settings-inline-input {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #FFFFFF;
+        border-radius: 8px;
+        padding: 0.35rem 0.55rem;
+        font-family: 'Inter', sans-serif;
+        width: 58%;
+    }
+
+    .settings-inline-input:focus {
+        outline: none;
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.12rem rgba(87, 197, 228, 0.25);
+    }
+
+    .settings-toggle-wrap {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .settings-toggle-input {
+        background-color: #e5e7eb;
+        border-color: #d1d5db;
+        cursor: pointer;
+        width: 3em !important;
+        height: 1.6em !important;
+        margin: 0;
+        background-size: 1.3em 1.3em !important;
+        border-radius: 9999px !important;
+        flex-shrink: 0;
+    }
+
+    .settings-toggle-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+    }
+
+    .settings-inline-status {
+        flex: 1;
+        font-size: 0.8rem;
+        color: #7A99B5;
+        font-family: 'Inter', sans-serif;
+        text-align: center;
+    }
+
+    .settings-inline-status.error {
+        color: #f87171;
+    }
+
+    .settings-inline-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-top: auto;
+        flex: 1;
+    }
+
+    .settings-delete-btn {
+        border: 1px solid rgba(220, 53, 69, 0.4);
+        background: rgba(220, 53, 69, 0.15);
+        color: #fca5a5;
+        border-radius: 9999px;
+        padding: 0.45rem 1.1rem;
+        font-size: clamp(0.8rem, 0.95vw, 0.95rem);
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+        line-height: 1.1;
+        transition: background 0.15s;
+    }
+
+    .settings-delete-btn:hover {
+        background: rgba(220, 53, 69, 0.28);
+    }
+
+    .settings-save-btn {
+        border: none;
+        background: #57C5E4;
+        color: #FFFFFF;
+        border-radius: 9999px;
+        padding: 0.45rem 1.25rem;
+        font-size: clamp(0.82rem, 1vw, 0.97rem);
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+        line-height: 1.1;
+        transition: background 0.15s;
+    }
+
+    .settings-save-btn:hover {
+        background: #3BA8C8;
     }
 
     .classroom-branding {
@@ -161,7 +439,7 @@
 
     .classroom-live-badge {
         font-family: 'Inter', sans-serif;
-        font-size: 1.6rem;
+        font-size: clamp(1rem, 2.5vw, 1.6rem);
         font-weight: 500;
         color: #57C5E4;
         letter-spacing: 0.08em;
@@ -172,144 +450,139 @@
     }
 
     .classroom-live-dot {
-        width: 13px;
-        height: 13px;
+        width: clamp(8px, 1.1vw, 13px);
+        height: clamp(8px, 1.1vw, 13px);
         background-color: #57C5E4;
         border-radius: 50%;
         display: inline-block;
     }
 
-    /* ── Settings Modal ── */
-    .settings-modal-dialog {
-        max-width: 520px;
+    @media (max-width: 1200px) {
+        .classroom-header {
+            padding: 1.7rem 4rem 1.1rem;
+        }
+
+        .classroom-content {
+            padding: 0.65rem 4rem;
+        }
+
+        .classroom-live-badge {
+            margin-right: 1.2rem;
+        }
     }
-    #settingsModal .modal-content {
-        border: none;
-        border-radius: var(--card-border-radius);
+
+    @media (max-width: 992px) {
+        body {
+            height: auto;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+
+        .classroom-container {
+            min-height: 100vh;
+            height: auto;
+        }
+
+        .classroom-header {
+            padding: 1.3rem 2rem 1rem;
+        }
+
+        .classroom-content {
+            padding: 0.55rem 2rem 1.25rem;
+        }
+
+        .cards-grid {
+            gap: 14px;
+        }
+
+        .option-card {
+            min-height: 230px;
+        }
+
+        .start-session-title,
+        .start-session-date {
+            white-space: normal;
+        }
     }
-    #settingsModal .modal-header {
-        justify-content: center;
-        border-bottom: 1px solid #e5e7eb;
-        position: relative;
+
+    @media (max-width: 768px) {
+        .classroom-header {
+            padding: 1rem 1rem 0.8rem;
+        }
+
+        .classroom-header-inner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .classroom-header-title-group {
+            width: 100%;
+        }
+
+        .responsive-title {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: initial;
+            line-height: 1.15;
+        }
+
+        .classroom-header-actions {
+            width: 100%;
+            justify-content: space-between;
+            gap: 0.8rem;
+        }
+
+        .classroom-live-badge {
+            margin-right: 0;
+        }
+
+        .classroom-content {
+            padding: 0.4rem 1rem 1rem;
+        }
+
+        .cards-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: none;
+            height: auto;
+        }
+
+        .option-card {
+            min-height: 200px;
+            padding: 1rem;
+        }
+
+        .settings-inline-row {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .settings-inline-input {
+            width: 100%;
+        }
     }
-    #settingsModal .modal-title {
-        flex: 1;
-        text-align: center;
-        font-weight: 700;
-        color: #0B1E33;
-        font-family: 'Inter', sans-serif;
+
+    @media (max-width: 480px) {
+        .classroom-header {
+            padding: 0.85rem 0.75rem 0.7rem;
+        }
+
+        .classroom-content {
+            padding: 0.3rem 0.75rem 0.85rem;
+        }
+
+        .classroom-header-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-return-home {
+            width: 100%;
+            justify-content: center;
+        }
+
     }
-    #settingsModal .btn-close {
-        position: absolute;
-        right: 1rem;
-    }
-    #settingsModal .modal-footer {
-        justify-content: center;
-        gap: 0.75rem;
-        padding-top: 1rem;
-        padding-bottom: 1.25rem;
-        border-top: 1px solid #e5e7eb;
-    }
-    #settingsModal .modal-footer .btn {
-        min-width: 130px;
-        height: 40px;
-        border-radius: 9999px !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    #settingsModal .btn-primary {
-        background-color: #57C5E4 !important;
-        border-color: #57C5E4 !important;
-        color: #FFFFFF !important;
-        font-weight: 600;
-    }
-    #settingsModal .btn-primary:hover {
-        background-color: #3BA8C8 !important;
-        border-color: #3BA8C8 !important;
-    }
-    #settingsModal .btn-light {
-        background-color: #e5e7eb !important;
-        color: #374151 !important;
-        border-color: #e5e7eb !important;
-    }
-    #settingsModal .form-label {
-        color: #0B1E33;
-        font-size: 0.875rem;
-        margin-bottom: 0.3rem;
-    }
-    #settingsModal .form-control {
-        background-color: #FFFFFF;
-        border: 1px solid #d1d5db;
-        color: #0B1E33;
-        border-radius: 8px;
-    }
-    #settingsModal .form-control:focus {
-        background-color: #FFFFFF;
-        border-color: #57C5E4;
-        color: #0B1E33;
-        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
-    }
-    #settingsModal .form-check-label {
-        color: #0B1E33;
-        font-weight: 400;
-    }
-    #settingsModal .form-check-input {
-        background-color: #e5e7eb;
-        border-color: #d1d5db;
-        cursor: pointer;
-    }
-    #settingsModal .form-check-input:checked {
-        background-color: #57C5E4 !important;
-        border-color: #57C5E4 !important;
-    }
-    .settings-divider {
-        border: none;
-        border-top: 2px solid #e5e7eb;
-        margin: 1rem 0;
-    }
-    .settings-section-title {
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #0B1E33;
-        margin: 0 0 0.75rem;
-        font-family: 'Inter', sans-serif;
-    }
-    .btn-delete-class {
-        background-color: rgba(220, 53, 69, 0.15);
-        color: #f87171;
-        border: 1px solid rgba(220, 53, 69, 0.35);
-        border-radius: 9999px;
-        padding: 0.4rem 1.25rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-    .btn-delete-class:hover {
-        background-color: rgba(220, 53, 69, 0.28);
-    }
-    #settingsModal .delete-class-action-pair button {
-        min-height: 2.5rem;
-        padding: 0.4rem 1.25rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border-radius: 9999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        box-sizing: border-box;
-        line-height: 1.2;
-    }
-    .settings-delete-warning {
-        color: #374151;
-        font-size: 0.875rem;
-        margin: 0 0 0.75rem;
-        line-height: 1.4;
-    }
+
 </style>
 {% endblock %}
 
@@ -328,9 +601,9 @@
                     LIVE <span class="classroom-live-dot"></span>
                 </div>
                 {% endif %}
-                <a href="/dashboard" class="btn-return-home">
+                <button type="button" class="btn-return-home" onclick="window.location.href='/dashboard'">
                     <i class="bi bi-house-fill"></i> Return Home
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -339,23 +612,85 @@
         <div class="cards-grid">
 
             <div class="option-card" onclick="window.location.href='/classroom/{{ class_obj.id }}/class_data'">
-                <div class="option-icon"><i class="bi bi-list-ul"></i></div>
-                <h5>Class Data</h5>
+                <div class="option-card-header">
+                    <i class="bi bi-list-ul card-title-icon"></i>
+                    <h5 class="option-card-title">Class Data</h5>
+                </div>
+                <div class="card-top-right-metric">
+                    <div class="card-top-right-value" id="classAverageValue">0%</div>
+                    <div class="card-top-right-subtext">Class average</div>
+                </div>
+                <div class="card-body-layout bottom-left">
+                    <div class="grade-bars-wrap" id="classAverageBars"></div>
+                </div>
             </div>
 
             <div class="option-card {% if class_obj.is_active %}live-class{% endif %}" onclick="handleStartClass()" id="startClassCard">
-                <div class="option-icon"><i class="bi bi-play-circle-fill"></i></div>
-                <h5 id="startClassText">{% if class_obj.is_active %}Return to Class{% else %}Start Class{% endif %}</h5>
+                <div class="option-card-header">
+                    <i class="bi bi-play-circle-fill card-title-icon"></i>
+                    <h5 class="option-card-title" id="startClassText">{% if class_obj.is_active %}Return to Class{% else %}Start Class{% endif %}</h5>
+                </div>
+                <div class="card-body-layout">
+                    <div class="start-play-circle">
+                        <i class="bi bi-play-fill"></i>
+                    </div>
+                    <div class="start-session-meta">
+                        <p class="start-session-title" id="startSessionLabel">Session #--</p>
+                        <p class="start-session-date" id="startSessionDate">--</p>
+                    </div>
+                </div>
             </div>
 
             <div class="option-card" onclick="window.location.href='/classroom/{{ class_obj.id }}/students'">
-                <div class="option-icon"><i class="bi bi-people-fill"></i></div>
-                <h5>Students</h5>
+                <div class="option-card-header">
+                    <i class="bi bi-people-fill card-title-icon"></i>
+                    <h5 class="option-card-title">Students</h5>
+                </div>
+                <div class="card-top-right-metric">
+                    <div class="card-top-right-value" id="attendanceAverageValue">0%</div>
+                    <div class="card-top-right-subtext">Average attendance</div>
+                </div>
+                <div class="card-body-layout">
+                    <div class="attendance-donut" id="attendanceDonut"></div>
+                </div>
             </div>
 
-            <div class="option-card" onclick="showSettings()">
-                <div class="option-icon"><i class="bi bi-gear-fill"></i></div>
-                <h5>Settings</h5>
+            <div class="option-card static-card" id="settingsCard">
+                <div class="option-card-header">
+                    <i class="bi bi-gear-fill card-title-icon"></i>
+                    <h5 class="option-card-title">Settings</h5>
+                </div>
+                <div class="settings-inline-sheet" onclick="event.stopPropagation();">
+                    <div class="settings-inline-fields">
+                        <div class="settings-inline-row">
+                            <label for="inlineClassName">Class Title</label>
+                            <input class="settings-inline-input" id="inlineClassName" value="{{ class_obj.name }}" type="text">
+                        </div>
+                        <div class="settings-inline-row">
+                            <label for="inlineClassCode">Class Code</label>
+                            <input class="settings-inline-input" id="inlineClassCode" value="{{ class_obj.class_code }}" type="text">
+                        </div>
+                        <hr class="settings-section-divider">
+                        <div class="settings-inline-row">
+                            <label for="inlineShowFirstNameOnly">Show First Name Only</label>
+                            <div class="form-check form-switch settings-toggle-wrap">
+                                <input class="form-check-input settings-toggle-input" id="inlineShowFirstNameOnly" type="checkbox" {{ 'checked' if settings.show_first_name_only else '' }}>
+                            </div>
+                        </div>
+                        <div class="settings-inline-row">
+                            <label for="inlineQuietMode">Quiet Mode</label>
+                            <div class="form-check form-switch settings-toggle-wrap">
+                                <input class="form-check-input settings-toggle-input" id="inlineQuietMode" type="checkbox" {{ 'checked' if settings.quiet_mode else '' }}>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="settings-section-divider">
+                    <div class="settings-inline-actions">
+                        <button type="button" class="settings-delete-btn" onclick="confirmDeleteClass()">Delete Class</button>
+                        <div class="settings-inline-status" id="inlineSettingsStatus"></div>
+                        <button type="button" class="settings-save-btn" onclick="saveInlineSettings()">Save Settings</button>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -367,71 +702,12 @@
 
 </div>
 
-<!-- Settings Modal -->
-<div class="modal fade" id="settingsModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered settings-modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Class Settings</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Class Information -->
-                <p class="settings-section-title">Class Information</p>
-                <form id="settingsForm">
-                    <div class="mb-3">
-                        <label for="className" class="form-label">Class Title</label>
-                        <input type="text" class="form-control" id="className" value="{{ class_obj.name }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="classCode" class="form-label">Class Code</label>
-                        <input type="text" class="form-control" id="classCode" value="{{ class_obj.class_code }}" required>
-                    </div>
-                </form>
-                <hr class="settings-divider">
-
-                <!-- Display Preferences -->
-                <p class="settings-section-title">Display Preferences</p>
-                <form id="preferencesForm">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="showFirstNameOnly"
-                               {{ 'checked' if settings.show_first_name_only else '' }}>
-                        <label class="form-check-label" for="showFirstNameOnly">Show First Name Only</label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="quietMode"
-                               {{ 'checked' if settings.quiet_mode else '' }}>
-                        <label class="form-check-label" for="quietMode">Quiet Mode</label>
-                    </div>
-                </form>
-                <hr class="settings-divider">
-
-                <div id="deleteClassSection">
-                    <div id="deleteClassInitial">
-                        <button type="button" class="btn-delete-class" onclick="showDeleteClassConfirm()">
-                            <i class="bi bi-trash"></i> Delete Class
-                        </button>
-                    </div>
-                    <div id="deleteClassConfirm" class="d-none">
-                        <p class="settings-delete-warning">This action cannot be undone. All class data will be permanently deleted.</p>
-                        <div class="d-flex flex-wrap gap-2 align-items-center delete-class-action-pair">
-                            <button type="button" class="btn btn-light" onclick="hideDeleteClassConfirm()">Cancel</button>
-                            <button type="button" class="btn-delete-class" onclick="confirmDeleteClass()">
-                                <i class="bi bi-trash"></i> Delete Class
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
+const classId = {{ class_obj.id }};
+const classIsActive = {{ 'true' if class_obj.is_active else 'false' }};
+const EST_TZ = 'America/New_York';
+let settingsSaveTimer = null;
+
 function adjustClassTitleFontSize() {
     const title = document.getElementById('classTitle');
     if (!title) return;
@@ -499,15 +775,21 @@ async function handleStartClass() {
 }
 
 async function startClass() {
-    const response = await fetch(`/api/start_class/{{ class_obj.id }}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ exclude_from_grading: false })
-    });
-    const data = await response.json();
-    if (data.success) {
-        window.location.href = data.redirect;
+    try {
+        const response = await fetch(`/api/start_class/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ exclude_from_grading: false })
+        });
+        const data = await response.json();
+        if (data.success) {
+            window.location.href = data.redirect;
+            return;
+        }
+    } catch (error) {
+        console.error('Error starting class:', error);
     }
+    alert('Could not start class. Please try again.');
 }
 
 async function stopClass() {
@@ -518,51 +800,213 @@ async function stopClass() {
     }
 }
 
-function showSettings() {
-    const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
-    modal.show();
+function computeAverageClassGrade(gradebookRows) {
+    if (!Array.isArray(gradebookRows) || gradebookRows.length === 0) return 0;
+    const total = gradebookRows.reduce((sum, row) => sum + (Number(row.overall_grade) || 0), 0);
+    return total / gradebookRows.length;
 }
 
-async function saveSettings() {
-    const data = {
-        class_name: document.getElementById('className').value.trim(),
-        class_code: document.getElementById('classCode').value.trim(),
-        show_first_name_only: document.getElementById('showFirstNameOnly').checked,
-        quiet_mode: document.getElementById('quietMode').checked
-    };
+function computeAverageAttendance(sessionRows) {
+    if (!Array.isArray(sessionRows) || sessionRows.length === 0) return 0;
+    const total = sessionRows.reduce((sum, row) => sum + (Number(row?.engagement_metrics?.attendance) || 0), 0);
+    return total / sessionRows.length;
+}
 
-    if (!data.class_name || !data.class_code) {
-        alert('Class title and class code are required');
+function animateCounter(el, targetVal, duration, formatter) {
+    if (!el) return;
+    const fmt = formatter || (v => `${Math.round(v)}%`);
+    const start = performance.now();
+    function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const ease = t < 1 ? 1 - Math.pow(1 - t, 2) : 1;
+        el.textContent = fmt(ease * targetVal);
+        if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
+function renderClassAverageBars(classAverage, animate) {
+    const wrap = document.getElementById('classAverageBars');
+    if (!wrap) return;
+    const avg = Math.max(0, Math.min(100, Number(classAverage) || 0));
+    const activeBin = Math.min(9, Math.floor(avg / 10));
+    let barsHtml = '';
+    for (let i = 0; i < 10; i += 1) {
+        const distance = Math.abs(i - activeBin);
+        const height = Math.max(16, 98 - distance * 14);
+        const isHighlight = i === activeBin;
+        barsHtml += `<div class="grade-range-bar ${isHighlight ? 'highlight' : ''}" data-h="${height}%"></div>`;
+    }
+    wrap.innerHTML = barsHtml;
+    if (animate) {
+        requestAnimationFrame(() => {
+            wrap.querySelectorAll('.grade-range-bar').forEach(bar => {
+                bar.style.height = bar.dataset.h;
+            });
+        });
+    } else {
+        wrap.querySelectorAll('.grade-range-bar').forEach(bar => {
+            bar.style.height = bar.dataset.h;
+        });
+    }
+}
+
+function renderAttendanceDonut(attendanceAverage, animate) {
+    const donut = document.getElementById('attendanceDonut');
+    if (!donut) return;
+    const pct = Math.max(0, Math.min(100, Number(attendanceAverage) || 0));
+
+    const cx = 60, cy = 60, rc = 33.5, sw = 27;
+    const C = 2 * Math.PI * rc;
+
+    function toRad(deg) { return (deg - 90) * Math.PI / 180; }
+    function pt(deg) {
+        const a = toRad(deg);
+        return [cx + rc * Math.cos(a), cy + rc * Math.sin(a)];
+    }
+
+    const presentDeg = pct * 3.6;
+    const presentLen = (presentDeg / 360) * C;
+    const [sx, sy] = pt(0);
+    const [ex, ey] = pt(-presentDeg);
+    const large = presentDeg > 180 ? 1 : 0;
+
+    let svg = `<circle cx="${cx}" cy="${cy}" r="${rc}" fill="none" stroke="#D6D8DB" stroke-width="${sw}"/>`;
+
+    if (pct >= 99.5) {
+        svg += `<circle cx="${cx}" cy="${cy}" r="${rc}" fill="none" stroke="#57C5E4" stroke-width="${sw}" stroke-linecap="butt"/>`;
+    } else if (pct > 0.5) {
+        const dashInit = animate ? `stroke-dasharray="0 ${C.toFixed(1)}"` : `stroke-dasharray="${presentLen.toFixed(1)} ${C.toFixed(1)}"`;
+        svg += `<path id="donutArc" d="M${sx.toFixed(3)} ${sy.toFixed(3)} A${rc} ${rc} 0 ${large} 0 ${ex.toFixed(3)} ${ey.toFixed(3)}" fill="none" stroke="#57C5E4" stroke-width="${sw}" stroke-linecap="butt" ${dashInit} style="transition:stroke-dasharray 1.5s ease-out"/>`;
+    }
+
+    donut.innerHTML = `<svg viewBox="0 0 120 120" style="overflow:visible" role="img" aria-label="Attendance donut chart">${svg}</svg>`;
+
+    if (animate && pct > 0.5 && pct < 99.5) {
+        requestAnimationFrame(() => {
+            const arc = donut.querySelector('#donutArc');
+            if (arc) arc.setAttribute('stroke-dasharray', `${presentLen.toFixed(1)} ${C.toFixed(1)}`);
+        });
+    }
+}
+
+function formatSessionDate(dateValue) {
+    const parsed = dateValue ? new Date(dateValue) : new Date();
+    if (Number.isNaN(parsed.getTime())) return '--';
+    return parsed.toLocaleDateString('en-US', {
+        timeZone: EST_TZ,
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+function renderStartClassSessionMeta(sessions) {
+    const labelEl = document.getElementById('startSessionLabel');
+    const dateEl = document.getElementById('startSessionDate');
+    if (!labelEl || !dateEl) return;
+    const rows = Array.isArray(sessions) ? sessions : [];
+    const activeSession = rows.find((s) => s.end_time === null);
+
+    let sessionNumber;
+    let sessionDate;
+    if (classIsActive && activeSession) {
+        sessionNumber = Number(activeSession.session_number) || rows.length || 1;
+        sessionDate = activeSession.start_time;
+    } else {
+        sessionNumber = rows.length + 1;
+        sessionDate = new Date().toISOString();
+    }
+
+    labelEl.textContent = `Session #${sessionNumber}`;
+    dateEl.textContent = formatSessionDate(sessionDate);
+}
+
+async function loadClassroomCardMetrics() {
+    try {
+        const [gradebookRes, metricsRes] = await Promise.all([
+            fetch(`/api/gradebook/${classId}`),
+            fetch(`/api/class_metrics/${classId}`)
+        ]);
+
+        if (!gradebookRes.ok || !metricsRes.ok) return;
+        const [gradebookRows, metricsRows] = await Promise.all([gradebookRes.json(), metricsRes.json()]);
+
+        const classAverage = computeAverageClassGrade(gradebookRows);
+        const attendanceAverage = computeAverageAttendance(metricsRows);
+
+        const classAverageEl = document.getElementById('classAverageValue');
+        const attendanceAverageEl = document.getElementById('attendanceAverageValue');
+        animateCounter(classAverageEl, Math.max(0, Math.min(100, Number(classAverage) || 0)), 2000);
+        animateCounter(attendanceAverageEl, Math.max(0, Math.min(100, Number(attendanceAverage) || 0)), 2000);
+
+        renderClassAverageBars(classAverage, true);
+        renderAttendanceDonut(attendanceAverage, true);
+        renderStartClassSessionMeta(metricsRows);
+    } catch (error) {
+        console.error('Error loading classroom card metrics:', error);
+    }
+}
+
+function inlineStatus(text, isError = false) {
+    const statusEl = document.getElementById('inlineSettingsStatus');
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.classList.toggle('error', !!isError);
+}
+
+function readInlineSettingsPayload() {
+    return {
+        class_name: (document.getElementById('inlineClassName')?.value || '').trim(),
+        class_code: (document.getElementById('inlineClassCode')?.value || '').trim(),
+        show_first_name_only: !!document.getElementById('inlineShowFirstNameOnly')?.checked,
+        quiet_mode: !!document.getElementById('inlineQuietMode')?.checked
+    };
+}
+
+async function saveInlineSettings() {
+    const payload = readInlineSettingsPayload();
+    if (!payload.class_name || !payload.class_code) {
+        inlineStatus('Class title and class code are required.', true);
         return;
     }
-
-    const response = await fetch(`/api/update_settings/{{ class_obj.id }}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-
-    const result = await response.json();
-    if (result.success) {
-        bootstrap.Modal.getInstance(document.getElementById('settingsModal')).hide();
-        alert('Settings saved!');
-        location.reload();
-    } else {
-        alert(result.error || 'Failed to save settings');
+    inlineStatus('Saving...');
+    try {
+        const response = await fetch(`/api/update_settings/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!result.success) {
+            inlineStatus(result.error || 'Failed to save settings.', true);
+            return;
+        }
+        const titleEl = document.getElementById('classTitle');
+        if (titleEl) titleEl.textContent = payload.class_name;
+        adjustClassTitleFontSize();
+        inlineStatus('Saved');
+        window.setTimeout(() => inlineStatus(''), 1400);
+    } catch (error) {
+        console.error('Error saving inline settings:', error);
+        inlineStatus('Error saving settings.', true);
     }
 }
 
-function showDeleteClassConfirm() {
-    document.getElementById('deleteClassInitial').classList.add('d-none');
-    document.getElementById('deleteClassConfirm').classList.remove('d-none');
+function queueInlineSettingsSave() {
+    if (settingsSaveTimer) window.clearTimeout(settingsSaveTimer);
+    settingsSaveTimer = window.setTimeout(saveInlineSettings, 500);
 }
 
-function hideDeleteClassConfirm() {
-    document.getElementById('deleteClassConfirm').classList.add('d-none');
-    document.getElementById('deleteClassInitial').classList.remove('d-none');
+function setupInlineSettingsAutosave() {
+    const fieldIds = ['inlineClassName', 'inlineClassCode', 'inlineShowFirstNameOnly', 'inlineQuietMode'];
+    fieldIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const eventName = el.tagName === 'INPUT' && el.type === 'checkbox' ? 'change' : 'input';
+        el.addEventListener(eventName, queueInlineSettingsSave);
+    });
 }
-
-document.getElementById('settingsModal').addEventListener('hidden.bs.modal', hideDeleteClassConfirm);
 
 async function confirmDeleteClass() {
     const response = await fetch(`/api/delete_class/{{ class_obj.id }}`, { method: 'DELETE' });
@@ -574,5 +1018,10 @@ async function confirmDeleteClass() {
         alert('Error deleting class: ' + (data.error || 'Unknown error'));
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadClassroomCardMetrics();
+    setupInlineSettingsAutosave();
+});
 </script>
 {% endblock %}

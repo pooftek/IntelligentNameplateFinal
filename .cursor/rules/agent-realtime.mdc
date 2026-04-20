@@ -1,0 +1,25 @@
+---
+description: Apply when modifying SocketIO events, live dashboard, polls, hand raises, or student interactions.
+alwaysApply: false
+---
+
+## SocketIO Rooms
+
+- `class_{class_id}` — professor's faculty dashboard
+- `enrolled_{class_id}` — student devices
+
+## Event Rules
+
+- Emit to BOTH rooms when state affects prof AND students (`settings_updated`, `class_started/stopped`)
+- Student interactions → `class_{id}` only (prof dashboard)
+- Poll start/stop → `class_{id}` (dashboard) + `enrolled_{id}` (student devices)
+- Always verify student enrollment before emitting to student rooms
+- Never block the SocketIO thread — keep handlers fast
+
+## Event Catalog
+
+**Server → Client:** `class_started/stopped`, `student_joined`, `student_interaction`, `poll_started/stopped/responses_cleared`, `poll_response`, `settings_updated`, `all_hands_cleared`, `thumbs_reactions_cleared`, `participation_grade_*`
+
+**Client → Server:** `join_class`, `leave_class`, `join_student_enrollments`, `get_live_stats`
+
+`get_live_stats` must return complete snapshot — `/api/live_dashboard` is REST equivalent for initial load.

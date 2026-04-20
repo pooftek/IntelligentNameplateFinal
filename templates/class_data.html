@@ -109,7 +109,7 @@
     .class-data-content {
         flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
         padding: 0 8rem;
         display: flex;
         flex-direction: column;
@@ -735,6 +735,133 @@
         text-align: center;
         font-variant-numeric: tabular-nums;
     }
+
+    @media (max-width: 1200px) {
+        .class-data-header {
+            padding: 1.7rem 4rem 1.1rem;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 4rem;
+            padding-right: 4rem;
+        }
+        .tab-pill {
+            font-size: 1.2rem;
+            padding: 0.48rem 1.15rem;
+        }
+        .metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 992px) {
+        body {
+            height: auto;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        .class-data-container {
+            min-height: 100vh;
+            height: auto;
+        }
+        .class-data-header {
+            padding: 1.3rem 2rem 1rem;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+        .tab-pill {
+            font-size: 1.02rem;
+            padding: 0.45rem 1rem;
+        }
+        .session-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .collapsible-header-right,
+        .poll-item-right {
+            flex-wrap: wrap;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .class-data-header {
+            padding: 1rem 1rem 0.8rem;
+        }
+        .class-data-header-inner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .class-data-header-title-group {
+            width: 100%;
+        }
+        .responsive-title {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: initial;
+            line-height: 1.15;
+        }
+        .class-data-header-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .class-data-tabs-nav {
+            flex-wrap: wrap;
+        }
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+        }
+        .session-banner-header {
+            padding: 0.85rem 1rem;
+        }
+        .session-banner-content {
+            padding: 1rem;
+        }
+        .collapsible-header,
+        .poll-item-header {
+            align-items: flex-start;
+        }
+        .collapsible-header-right,
+        .poll-item-right {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .attendance-table-container {
+            overflow-x: auto;
+        }
+        .attendance-table-container .data-table {
+            min-width: 680px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .class-data-header {
+            padding: 0.85rem 0.75rem 0.7rem;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        .tab-pill {
+            font-size: 0.95rem;
+            padding: 0.42rem 0.85rem;
+        }
+        .btn-return-home {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -1184,6 +1311,54 @@ async function saveGradingWeights(event) {
 }
 
 // ── Metrics ──
+function animatePercentMetric(el, duration = 900) {
+    if (!el) return;
+    const target = Math.max(0, Math.min(100, Number(el.dataset.targetPercent) || 0));
+    const rawDecimals = Number(el.dataset.targetDecimals);
+    const decimals = Number.isFinite(rawDecimals) && rawDecimals >= 0 ? Math.min(2, Math.floor(rawDecimals)) : 1;
+    const start = performance.now();
+    function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = t < 1 ? 1 - Math.pow(1 - t, 2) : 1;
+        const current = eased * target;
+        el.textContent = `${current.toFixed(decimals)}%`;
+        if (t < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            el.textContent = `${target.toFixed(decimals)}%`;
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+function animateCountMetric(el, duration = 900) {
+    if (!el) return;
+    const target = Math.max(0, Math.round(Number(el.dataset.targetCount) || 0));
+    const start = performance.now();
+    function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = t < 1 ? 1 - Math.pow(1 - t, 2) : 1;
+        const current = Math.round(eased * target);
+        el.textContent = `${current}`;
+        if (t < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            el.textContent = `${target}`;
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+function animateSessionMetricPercents(sessionElement) {
+    if (!sessionElement) return;
+    sessionElement.querySelectorAll('[data-animate-percent="true"]').forEach((el) => {
+        animatePercentMetric(el);
+    });
+    sessionElement.querySelectorAll('[data-animate-count="true"]').forEach((el) => {
+        animateCountMetric(el);
+    });
+}
+
 async function loadMetrics() {
     try {
         const response = await fetch(`/api/class_metrics/${classId}`);
@@ -1204,6 +1379,12 @@ async function loadMetrics() {
             const pollSectionId = `polls-${session.session_id}`;
             const participationSectionId = `participation-${session.session_id}`;
             const attendanceSectionId = `attendance-${session.session_id}`;
+
+            const attendancePct = Number(session?.engagement_metrics?.attendance) || 0;
+            const uniqueHandsRaised = Math.max(0, Math.round(Number(session?.engagement_metrics?.unique_hands_raised) || 0));
+            const pollVotePctRaw = session?.engagement_metrics?.poll_vote_percentage;
+            const hasPollVotePct = pollVotePctRaw !== null && pollVotePctRaw !== undefined;
+            const pollVotePct = hasPollVotePct ? (Number(pollVotePctRaw) || 0) : null;
 
             html += `
                 <div class="session-banner">
@@ -1227,15 +1408,15 @@ async function loadMetrics() {
                         <div class="metrics-section-title">Engagement Metrics</div>
                         <div class="metrics-grid">
                             <div class="metric-card">
-                                <div class="metric-value">${session.engagement_metrics.attendance}%</div>
+                                <div class="metric-value" data-animate-percent="true" data-target-percent="${attendancePct}" data-target-decimals="0">0%</div>
                                 <div class="metric-label">Attendance</div>
                             </div>
                             <div class="metric-card">
-                                <div class="metric-value">${session.engagement_metrics.unique_hands_raised}</div>
+                                <div class="metric-value" data-animate-count="true" data-target-count="${uniqueHandsRaised}">0</div>
                                 <div class="metric-label">Unique Hands Raised</div>
                             </div>
                             <div class="metric-card">
-                                <div class="metric-value">${session.engagement_metrics.poll_vote_percentage}%</div>
+                                <div class="metric-value"${hasPollVotePct ? ` data-animate-percent="true" data-target-percent="${pollVotePct}" data-target-decimals="1"` : ''}>${hasPollVotePct ? '0%' : 'N/A'}</div>
                                 <div class="metric-label">Poll Vote %</div>
                             </div>
                         </div>`;
@@ -1449,6 +1630,7 @@ function toggleSession(sessionId) {
         content.classList.add('expanded');
         if (banner) banner.classList.add('open');
         svg.setAttribute('d', 'M12 7.5 Q12.9 7.5 13.5 8.1 L17.2 13.8 Q17.8 14.4 17.2 15 L16.4 15.8 Q15.8 16.4 15 15.8 L12 15.8 L9 15.8 Q8.2 16.4 7.6 15.8 L6.8 15 Q6.2 14.4 6.8 13.8 L10.5 8.1 Q11.1 7.5 12 7.5 Z');
+        animateSessionMetricPercents(content);
     }
 }
 

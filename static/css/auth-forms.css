@@ -1,0 +1,104 @@
+/* Shared styles for login, register, forgot-password, reset-password pages */
+body {
+    background: linear-gradient(135deg, #0B1E33 0%, #1a3a5c 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.auth-card {
+    background: #FFFFFF;
+    border-radius: 18px;
+    padding: clamp(2rem, 5vw, 3rem) clamp(1.5rem, 4vw, 2.5rem);
+    width: clamp(320px, 90vw, 460px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.auth-logo {
+    display: block;
+    margin: 0 auto 1.5rem;
+    height: 44px;
+    width: auto;
+}
+
+.auth-heading {
+    font-size: clamp(1.6rem, 4vw, 2.1rem);
+    font-weight: 800;
+    color: #0B1E33;
+    text-align: center;
+    margin-bottom: 0.35rem;
+    line-height: 1.2;
+}
+
+.auth-subheading {
+    font-size: clamp(0.85rem, 1.5vw, 0.98rem);
+    color: #64748b;
+    text-align: center;
+    margin-bottom: 1.75rem;
+}
+
+.auth-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 0.3rem;
+}
+
+.auth-input {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.97rem;
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.auth-input:focus {
+    border-color: #57C5E4;
+    box-shadow: 0 0 0 3px rgba(87, 197, 228, 0.18);
+    outline: none;
+}
+
+.auth-btn-primary {
+    background: #57C5E4;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 10px;
+    padding: 0.65rem 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.auth-btn-primary:hover {
+    background: #3BA8C8;
+}
+
+.auth-link {
+    color: #57C5E4;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-link:hover {
+    color: #3BA8C8;
+    text-decoration: underline;
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.auth-alert {
+    border-radius: 9px;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.92rem;
+    margin-bottom: 1rem;
+}

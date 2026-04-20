@@ -23,9 +23,105 @@
   --scrollbar-hover:      var(--comet-blue-dark);
   --card-border-radius:   14px;
   --tooltip-bg:           var(--comet-navy-mid);
+  --btn-shadow-default:   0 8px 24px rgba(11, 30, 51, 0.22);
+  --btn-shadow-hover:     0 12px 30px rgba(11, 30, 51, 0.25);
 
   /* Typography */
   --font-family-base: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ---- Global button shadow (class-card style) ---- */
+button:not(.btn-close),
+.btn:not(.btn-close),
+a[class*="btn-"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  box-shadow: var(--btn-shadow-default);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+button:not(.btn-close):hover,
+.btn:not(.btn-close):hover,
+a[class*="btn-"]:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover {
+  box-shadow: var(--btn-shadow-hover);
+}
+
+/* Form actions stay flat and regular-weight Inter */
+form button,
+form .btn,
+form a[class*="btn-"],
+form input[type="button"],
+form input[type="submit"],
+form input[type="reset"] {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
+}
+
+form button:hover,
+form .btn:hover,
+form a[class*="btn-"]:hover,
+form input[type="button"]:hover,
+form input[type="submit"]:hover,
+form input[type="reset"]:hover,
+form button:focus,
+form .btn:focus,
+form a[class*="btn-"]:focus,
+form input[type="button"]:focus,
+form input[type="submit"]:focus,
+form input[type="reset"]:focus,
+form button:active,
+form .btn:active,
+form a[class*="btn-"]:active,
+form input[type="button"]:active,
+form input[type="submit"]:active,
+form input[type="reset"]:active {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
+}
+
+/* Action buttons that are form-related but may live outside <form> containers */
+.modal-footer .btn,
+.btn-live-settings-save,
+.btn-start-poll,
+.btn-stop-poll,
+.btn-tron-pill,
+.btn-account-save,
+#savePrefsBtn {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
+}
+
+.modal-footer .btn:hover,
+.btn-live-settings-save:hover,
+.btn-start-poll:hover,
+.btn-stop-poll:hover,
+.btn-tron-pill:hover,
+.btn-account-save:hover,
+#savePrefsBtn:hover,
+.modal-footer .btn:focus,
+.btn-live-settings-save:focus,
+.btn-start-poll:focus,
+.btn-stop-poll:focus,
+.btn-tron-pill:focus,
+.btn-account-save:focus,
+#savePrefsBtn:focus,
+.modal-footer .btn:active,
+.btn-live-settings-save:active,
+.btn-start-poll:active,
+.btn-stop-poll:active,
+.btn-tron-pill:active,
+.btn-account-save:active,
+#savePrefsBtn:active {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
 }
 
 /* ---- Global ---- */
