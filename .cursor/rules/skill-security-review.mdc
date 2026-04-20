@@ -1,0 +1,31 @@
+---
+description: Run when asked to do a security review or check auth/input/data-scoping correctness.
+alwaysApply: false
+---
+
+Review changed code against these requirements. Student data is sensitive.
+
+**Auth:**
+- Every professor route has `@login_required`
+- Every student API calls `_authenticated_student_id()` and checks result is not None
+- `class_id` verified to belong to `current_user` before any mutation
+- Enrollment checked before any student-class interaction
+
+**Input validation:**
+- All `request.json` / `request.form` values validated for type and shape
+- File uploads use `secure_filename` and validate extension
+
+**Secrets:**
+- No hardcoded secrets — all via `os.getenv()` or `app.config`
+- No secrets in error messages or API responses
+
+**Data leaks:**
+- All DB queries scoped to authenticated user's classes/students
+- API responses don't expose password hashes, tokens, or internal fields
+- Error handlers return generic messages, not stack traces
+
+**Tokens:**
+- Student tokens validated via `verify_student_token()` — not trusted raw
+- Password reset tokens validated via `verify_professor_password_reset_token()` with expiry
+
+Report: `[SEVERITY] location — problem — fix`. Severity: CRITICAL / HIGH / MEDIUM / LOW.

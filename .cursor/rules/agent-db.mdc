@@ -1,0 +1,33 @@
+---
+description: Apply when adding models, modifying DB relationships, writing queries, or planning schema changes.
+alwaysApply: false
+---
+
+## Query Style
+
+Use legacy `.query.filter_by()` — matches entire codebase. Never use `select()` / `session.scalars()`.
+
+```python
+# Correct
+Student.query.filter_by(id=student_id).first()
+Enrollment.query.filter(Enrollment.class_id == class_id, Enrollment.student_id == student_id).first()
+```
+
+## Schema Changes
+
+SQLite (no Alembic). When adding a column:
+1. Always provide `default=` or `server_default=` for nullable=False
+2. Never drop/rename columns without full table rebuild
+3. Document migration steps for existing Raspberry Pi deployments
+
+## Key Invariants
+
+- `Enrollment` = join table between `Class` and `Student` — check before any student-class op
+- One active `ClassSession` per class — `Class.is_active` must stay consistent with open session
+- `InstructorParticipationGrade.round_id` is unique — one instructor grade per round
+- `AbsenceExemption` reduces attendance denominator — check before grade computation
+
+## Performance
+
+- Avoid N+1 in gradebook queries — load relationships eagerly when iterating students
+- `/api/live_dashboard` called frequently — use `.count()` not `len(list)`

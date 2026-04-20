@@ -750,6 +750,10 @@
         background-color: #57C5E4 !important;
         border-color: #57C5E4 !important;
     }
+    #dashboardContent {
+        opacity: 1;
+        transition: opacity 0.35s ease;
+    }
 </style>
 {% endblock %}
 
@@ -766,9 +770,9 @@
                 <div class="fac-live-badge">
                     LIVE <span class="fac-live-dot"></span>
                 </div>
-                <a href="/classroom/{{ class_obj.id }}" class="btn-return">
+                <button type="button" class="btn-return" onclick="window.location.href='/classroom/{{ class_obj.id }}'">
                     <i class="bi bi-arrow-left-circle-fill"></i> Return
-                </a>
+                </button>
                 <button class="btn-end-class" onclick="stopClass()">
                     <i class="bi bi-stop-circle-fill"></i> End Class
                 </button>
@@ -788,7 +792,7 @@
         <!-- Dashboard Tab -->
         <div id="dashboardTab" class="fac-tab-pane">
             <div id="dashboardContent" class="fac-tab-pane">
-                <div class="fac-empty-state">Loading dashboard...</div>
+                <div class="fac-empty-state">Orbiting...</div>
             </div>
         </div>
 
@@ -1239,7 +1243,9 @@ async function loadDashboard() {
         const data = await response.json();
 
         if (!data.success) {
-            document.getElementById('dashboardContent').innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
+            const dc = document.getElementById('dashboardContent');
+            dc.innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
+            requestAnimationFrame(() => { dc.style.opacity = '1'; });
             return;
         }
 
@@ -1338,7 +1344,9 @@ async function loadDashboard() {
 
         html += '</div>'; // fac-dashboard-grid
 
-        document.getElementById('dashboardContent').innerHTML = html;
+        const dc = document.getElementById('dashboardContent');
+        dc.innerHTML = html;
+        requestAnimationFrame(() => { dc.style.opacity = '1'; });
 
         if (data.active_poll && data.poll_results && !data.active_quiz) {
             updatePollResults(data.poll_results, data.present_students);
@@ -1348,7 +1356,9 @@ async function loadDashboard() {
 
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        document.getElementById('dashboardContent').innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
+        const dc = document.getElementById('dashboardContent');
+        dc.innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
+        requestAnimationFrame(() => { dc.style.opacity = '1'; });
     }
 }
 
@@ -1870,7 +1880,6 @@ function showCreatePollModal() {
     setTimeout(updateCorrectAnswerDropdown, 100);
 }
 
-// Stop class
 async function stopClass() {
     if (!await showConfirm('Are you sure you want to end the class?')) return;
     const response = await fetch(`/api/stop_class/${classId}`, {method: 'POST'});
