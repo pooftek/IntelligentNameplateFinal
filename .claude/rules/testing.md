@@ -1,0 +1,14 @@
+# Testing
+
+Playwright E2E only — no unit tests.
+`conftest.py` spawns real Flask on port `18764` with temp SQLite DB. Never touches `instance/classroom_app.db`.
+Port overridable via `PYTEST_CLASSROOM_PORT`.
+
+```bash
+pytest                                      # all
+pytest tests/test_polls.py -v              # file
+pytest tests/test_polls.py::test_name -v   # single
+```
+
+**NEVER commit without passing tests.**
+When adding features, add or update tests first.
