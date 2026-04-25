@@ -723,6 +723,24 @@
         background-color: #e5e7eb !important;
         color: #374151 !important;
     }
+    #participationGradeScale .peer-rating-btn {
+        min-width: 3rem;
+        padding: 0.45rem 0.3rem;
+        font-weight: 700;
+        border-radius: 10px;
+        line-height: 1.15;
+    }
+    #participationGradeScale .peer-rating-btn small {
+        display: block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        opacity: 0.85;
+    }
+    #participationGradeScale .peer-rating-btn.active {
+        background: #57C5E4;
+        border-color: #3BA8C8 !important;
+        color: #0D1628;
+    }
 
     #createPollModal .btn-light {
         background-color: #e5e7eb !important;
@@ -915,6 +933,18 @@
                 <form id="createPollForm">
                     <p class="settings-section-title">Question</p>
                     <div class="mb-3">
+                        <label for="preUploadedPollSetSelect" class="form-label">Poll Set (optional)</label>
+                        <select class="form-select" id="preUploadedPollSetSelect">
+                            <option value="">All Sets</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="preUploadedPollSelect" class="form-label">Pre-Uploaded Poll Question (optional)</label>
+                        <select class="form-select" id="preUploadedPollSelect">
+                            <option value="">New Poll</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="pollQuestion" class="form-label">Question Text</label>
                         <input type="text" class="form-control" id="pollQuestion" required>
                     </div>
@@ -969,22 +999,27 @@
     </div>
 </div>
 
-<!-- Instructor participation grade (1–100); peers notified via Socket.IO -->
+<!-- Instructor participation grade (0–4 mapped to %); peers notified via Socket.IO -->
 <div class="modal fade" id="participationGradeModal" tabindex="-1" aria-labelledby="participationGradeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="participationGradeModalLabel">Grade participation</h5>
+                <h5 class="modal-title" id="participationGradeModalLabel">Grade Participation</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small mb-3">Enter your instructor score (1–100). Students will be prompted to rate this classmate on a 0–4 scale (mapped to percentages).</p>
-                <label for="participationInstructorScore" class="form-label">Instructor score</label>
-                <input type="number" class="form-control" id="participationInstructorScore" min="1" max="100" step="1" placeholder="1–100">
+                <p class="text-muted small mb-3">Choose 0–4. Each level maps to a percentage: 0 = 0%, 1 = 25%, 2 = 50%, 3 = 75%, 4 = 100%.</p>
+                <div class="d-flex flex-wrap gap-2 justify-content-center mb-2" id="participationGradeScale" role="group" aria-label="Instructor participation rating">
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="0">0<small>0%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="1">1<small>25%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="2">2<small>50%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="3">3<small>75%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="4">4<small>100%</small></button>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-sm" onclick="submitParticipationInstructorGrade()">Submit and Notify Class</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnParticipationGradeSubmit" onclick="submitParticipationInstructorGrade()" disabled>Submit and Notify Class</button>
             </div>
         </div>
     </div>
@@ -998,6 +1033,8 @@ const socket = io();
 const classId = {{ class_obj.id }};
 const classDataGradingUrl = {{ url_for('class_data', class_id=class_obj.id)|tojson }};
 let pollChart = null;
+let preUploadedPollBank = [];
+let preUploadedPollSets = [];
 
 socket.on('connect', () => {
     socket.emit('join_class', {class_id: classId});
@@ -1688,6 +1725,93 @@ function updateCorrectAnswerDropdown() {
     }
 }
 
+function clearPreUploadedPollSelection() {
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (sel) sel.value = '';
+}
+
+function populatePreUploadedPollQuestionSelect() {
+    const setSel = document.getElementById('preUploadedPollSetSelect');
+    const qSel = document.getElementById('preUploadedPollSelect');
+    if (!qSel) return;
+    const setId = setSel ? Number(setSel.value || 0) : 0;
+    qSel.innerHTML = '<option value="">New Poll</option>';
+    preUploadedPollBank
+        .filter((row) => !setId || Number(row.set_id) === setId)
+        .forEach((row) => {
+            const opt = document.createElement('option');
+            opt.value = String(row.id);
+            const setLabel = row.set_name ? '[' + row.set_name + '] ' : '';
+            opt.textContent = setLabel + '#' + row.poll_index + ' - ' + (row.title || 'Poll') + ': ' + (row.question || '');
+            qSel.appendChild(opt);
+        });
+}
+
+function resetPollModalFieldsToDefault() {
+    const q = document.getElementById('pollQuestion');
+    if (q) q.value = '';
+    const n = document.getElementById('numOptions');
+    if (n) n.value = '4';
+    updatePollOptions();
+    updateCorrectAnswerDropdown();
+    const correct = document.getElementById('correctAnswer');
+    if (correct) correct.value = '';
+}
+
+function applySelectedPreUploadedPoll() {
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (!sel) return;
+    const id = Number(sel.value || 0);
+    if (!id) {
+        resetPollModalFieldsToDefault();
+        return;
+    }
+    const row = preUploadedPollBank.find((x) => Number(x.id) === id);
+    if (!row) return;
+    const options = Array.isArray(row.options) ? row.options : [];
+    if (!options.length) return;
+    const question = document.getElementById('pollQuestion');
+    if (question) question.value = row.question || '';
+    const n = document.getElementById('numOptions');
+    if (n) n.value = String(Math.max(2, Math.min(5, options.length)));
+    updatePollOptions();
+    const len = parseInt(document.getElementById('numOptions').value, 10);
+    for (let i = 1; i <= len; i++) {
+        const inp = document.getElementById(`option${i}`);
+        if (inp) inp.value = options[i - 1] || '';
+    }
+    updateCorrectAnswerDropdown();
+    const correct = document.getElementById('correctAnswer');
+    if (correct) {
+        const ca = row.correct_answer;
+        correct.value = (ca === null || ca === undefined || Number(ca) < 0 || Number(ca) >= len) ? '' : String(ca);
+    }
+}
+
+async function loadPreUploadedPollBankForModal() {
+    const setSel = document.getElementById('preUploadedPollSetSelect');
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (!sel || !setSel) return;
+    setSel.innerHTML = '<option value="">All Sets</option>';
+    try {
+        const res = await fetch(`/api/poll_bank/${classId}`);
+        const data = await res.json();
+        if (!data.success) return;
+        preUploadedPollBank = data.poll_bank || [];
+        preUploadedPollSets = data.poll_sets || [];
+        preUploadedPollSets.forEach((s) => {
+            const opt = document.createElement('option');
+            opt.value = String(s.id);
+            opt.textContent = s.name;
+            setSel.appendChild(opt);
+        });
+        setSel.value = '';
+        populatePreUploadedPollQuestionSelect();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
 // Create Poll
 async function createPoll() {
     const question = document.getElementById('pollQuestion').value;
@@ -1759,6 +1883,7 @@ async function clearLiveMetrics(classId) {
 }
 
 let participationGradeRoundId = null;
+let selectedParticipationInstructorRating = null;
 
 (function setupParticipationGradeModalDismiss() {
     const el = document.getElementById('participationGradeModal');
@@ -1795,7 +1920,13 @@ async function beginParticipationGrade(subjectStudentId) {
             return;
         }
         participationGradeRoundId = data.round_id;
-        document.getElementById('participationInstructorScore').value = '';
+        selectedParticipationInstructorRating = null;
+        const scale = document.getElementById('participationGradeScale');
+        if (scale) {
+            scale.querySelectorAll('.peer-rating-btn').forEach(function (b) { b.classList.remove('active'); });
+        }
+        const submitBtn = document.getElementById('btnParticipationGradeSubmit');
+        if (submitBtn) submitBtn.disabled = true;
         const modalEl = document.getElementById('participationGradeModal');
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
@@ -1806,12 +1937,11 @@ async function beginParticipationGrade(subjectStudentId) {
 }
 
 async function submitParticipationInstructorGrade() {
-    const raw = document.getElementById('participationInstructorScore').value;
-    const score = parseInt(raw, 10);
-    if (Number.isNaN(score) || score < 1 || score > 100) {
-        showToast('Enter a whole number from 1 to 100.', 'warning');
+    if (selectedParticipationInstructorRating == null) {
+        showToast('Select a rating from 0 to 4.', 'warning');
         return;
     }
+    const score = selectedParticipationInstructorRating * 25;
     if (participationGradeRoundId == null) {
         showToast('No active grading round. Close and try again.', 'danger');
         return;
@@ -1831,6 +1961,7 @@ async function submitParticipationInstructorGrade() {
         const modalEl = document.getElementById('participationGradeModal');
         const mi = bootstrap.Modal.getInstance(modalEl);
         if (mi) mi.hide();
+        selectedParticipationInstructorRating = null;
         showToast('Peer grading sent to students.', 'success');
         loadDashboard();
     } catch (error) {
@@ -1838,6 +1969,23 @@ async function submitParticipationInstructorGrade() {
         showToast('Could not save instructor grade', 'danger');
     }
 }
+
+(function setupParticipationGradeScale() {
+    const scale = document.getElementById('participationGradeScale');
+    if (!scale) return;
+    scale.addEventListener('click', function (e) {
+        const btn = e.target.closest('.peer-rating-btn');
+        if (!btn) return;
+        const rating = parseInt(btn.getAttribute('data-rating'), 10);
+        if (Number.isNaN(rating) || rating < 0 || rating > 4) return;
+        selectedParticipationInstructorRating = rating;
+        scale.querySelectorAll('.peer-rating-btn').forEach(function (b) {
+            b.classList.toggle('active', b === btn);
+        });
+        const submitBtn = document.getElementById('btnParticipationGradeSubmit');
+        if (submitBtn) submitBtn.disabled = false;
+    });
+})();
 
 // Remove one student from the raised-hands queue (list re-numbers on refresh)
 async function dismissHandRaise(studentId) {
@@ -1900,9 +2048,28 @@ async function clearPollData(pollId) {
 function showCreatePollModal() {
     const modal = new bootstrap.Modal(document.getElementById('createPollModal'));
     modal.show();
-    updatePollOptions();
-    setTimeout(updateCorrectAnswerDropdown, 100);
+    clearPreUploadedPollSelection();
+    resetPollModalFieldsToDefault();
+    setTimeout(function () {
+        loadPreUploadedPollBankForModal();
+        updateCorrectAnswerDropdown();
+    }, 100);
 }
+
+(function initPreUploadedPollSelect() {
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (!sel) return;
+    sel.addEventListener('change', applySelectedPreUploadedPoll);
+})();
+
+(function initPreUploadedPollSetSelect() {
+    const setSel = document.getElementById('preUploadedPollSetSelect');
+    if (!setSel) return;
+    setSel.addEventListener('change', function () {
+        clearPreUploadedPollSelection();
+        populatePreUploadedPollQuestionSelect();
+    });
+})();
 
 async function stopClass() {
     if (!await showConfirm('Are you sure you want to end the class?')) return;

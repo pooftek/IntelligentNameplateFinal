@@ -1289,6 +1289,8 @@
     }
 
     var HAND_RAISE_FRONT_BG = '#ff9800';
+    var THUMBS_UP_FRONT_BG = '#198754';
+    var THUMBS_DOWN_FRONT_BG = '#dc3545';
 
     function applyHandRaiseFrontTint() {
         var fr = document.getElementById('npFront');
@@ -1298,6 +1300,33 @@
         if (nameWrap) nameWrap.style.setProperty('background', HAND_RAISE_FRONT_BG, 'important');
         if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
         scheduleFitFrontName();
+    }
+
+    function applyThumbFrontTint(type) {
+        var bg = (type === 'thumbs_down') ? THUMBS_DOWN_FRONT_BG : THUMBS_UP_FRONT_BG;
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) fr.style.setProperty('background', bg, 'important');
+        if (nameWrap) nameWrap.style.setProperty('background', bg, 'important');
+        if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+        scheduleFitFrontName();
+    }
+
+    function syncFrontInteractionTint(handActive, thumbsUpActive, thumbsDownActive) {
+        if (thumbsDownActive) {
+            applyThumbFrontTint('thumbs_down');
+            return;
+        }
+        if (thumbsUpActive) {
+            applyThumbFrontTint('thumbs_up');
+            return;
+        }
+        if (handActive) {
+            applyHandRaiseFrontTint();
+            return;
+        }
+        clearFrontNameplateInline();
     }
 
     /** Front only — white nameplate (used when hand lowered or prof clears hands) */
@@ -1828,7 +1857,7 @@
             var handBtn = document.getElementById('btnHand');
             if (handBtn && handBtn.classList.contains('active')) {
                 handBtn.classList.remove('active');
-                clearFrontNameplateInline();
+                syncFrontInteractionTint(false, document.getElementById('btnThumbUp').classList.contains('active'), document.getElementById('btnThumbDown').classList.contains('active'));
             }
         });
         socket.on('hand_raise_dismissed', function (d) {
@@ -1837,7 +1866,7 @@
             var handBtn = document.getElementById('btnHand');
             if (handBtn && handBtn.classList.contains('active')) {
                 handBtn.classList.remove('active');
-                clearFrontNameplateInline();
+                syncFrontInteractionTint(false, document.getElementById('btnThumbUp').classList.contains('active'), document.getElementById('btnThumbDown').classList.contains('active'));
             }
         });
         socket.on('thumbs_reactions_cleared', function (d) {
@@ -2000,6 +2029,7 @@
             const data = await res.json();
             if (data.success && typeof data.thumbs_up_active === 'boolean') {
                 applyThumbsUI(data.thumbs_up_active, data.thumbs_down_active);
+                syncFrontInteractionTint(document.getElementById('btnHand').classList.contains('active'), data.thumbs_up_active, data.thumbs_down_active);
             }
         } catch (e) {}
     }
@@ -2012,14 +2042,12 @@
             if (d.success) {
                 document.getElementById('btnHand').classList.toggle('active', d.hand_raise_active);
                 applyThumbsUI(d.thumbs_up_active, d.thumbs_down_active);
+                syncFrontInteractionTint(d.hand_raise_active, d.thumbs_up_active, d.thumbs_down_active);
                 clearThumbAutoOffTimer();
                 if (d.thumbs_up_active) {
                     scheduleThumbAutoOff('thumbs_up');
                 } else if (d.thumbs_down_active) {
                     scheduleThumbAutoOff('thumbs_down');
-                }
-                if (d.hand_raise_active) {
-                    applyHandRaiseFrontTint();
                 }
             }
         } catch (e) {}
@@ -2040,15 +2068,16 @@
         if (data.success) {
             if (type === 'hand_raise') {
                 document.getElementById('btnHand').classList.toggle('active', data.is_active);
-                if (data.is_active) {
-                    applyHandRaiseFrontTint();
-                } else {
-                    clearFrontNameplateInline();
-                }
+                syncFrontInteractionTint(
+                    data.is_active,
+                    document.getElementById('btnThumbUp').classList.contains('active'),
+                    document.getElementById('btnThumbDown').classList.contains('active')
+                );
             }
             if (type === 'thumbs_up' || type === 'thumbs_down') {
                 if (typeof data.thumbs_up_active === 'boolean') {
                     applyThumbsUI(data.thumbs_up_active, data.thumbs_down_active);
+                    syncFrontInteractionTint(document.getElementById('btnHand').classList.contains('active'), data.thumbs_up_active, data.thumbs_down_active);
                     if (data.thumbs_up_active) {
                         scheduleThumbAutoOff('thumbs_up');
                     } else if (data.thumbs_down_active) {

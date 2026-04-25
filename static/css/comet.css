@@ -30,6 +30,11 @@
   --font-family-base: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Normalize heading casing across the app */
+h1, h2, h3, h4, h5, h6 {
+  text-transform: capitalize;
+}
+
 /* ---- Global button shadow (class-card style) ---- */
 button:not(.btn-close),
 .btn:not(.btn-close),

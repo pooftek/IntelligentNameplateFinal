@@ -326,6 +326,38 @@ class Poll(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     class_obj = db.relationship('Class', backref=db.backref('polls', lazy=True))
 
+
+class PollBankSet(db.Model):
+    """Named grouping for pre-uploaded poll-bank questions."""
+    __tablename__ = 'poll_bank_set'
+    __table_args__ = (UniqueConstraint('class_id', 'name', name='uq_pollbankset_class_name'),)
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    class_obj = db.relationship('Class', backref=db.backref('poll_bank_sets', lazy=True))
+
+
+class PollBankQuestion(db.Model):
+    """Reusable pre-uploaded poll question (not a live poll row)."""
+    __tablename__ = 'poll_bank_question'
+    __table_args__ = (UniqueConstraint('set_id', 'poll_index', name='uq_pollbank_set_index'),)
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    set_id = db.Column(db.Integer, db.ForeignKey('poll_bank_set.id'), nullable=False)
+    poll_index = db.Column(db.Integer, nullable=False)
+    title = db.Column(db.String(200), nullable=False, default='Poll')
+    question = db.Column(db.String(500), nullable=False)
+    options = db.Column(db.Text, nullable=False)  # JSON string
+    correct_answer = db.Column(db.Integer, nullable=True)
+    source_filename = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    class_obj = db.relationship('Class', backref=db.backref('poll_bank_questions', lazy=True))
+    poll_set = db.relationship('PollBankSet', backref=db.backref('questions', lazy=True))
+
+
 class PollResponse(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
@@ -523,6 +555,8 @@ db.Index('ix_pollresponse_poll', PollResponse.poll_id)
 db.Index('ix_pollresponse_poll_student', PollResponse.poll_id, PollResponse.student_id)
 db.Index('ix_poll_class_active', Poll.class_id, Poll.is_active)
 db.Index('ix_poll_class_created', Poll.class_id, Poll.created_at)
+db.Index('ix_pollbank_set_class_name', PollBankSet.class_id, PollBankSet.name)
+db.Index('ix_pollbank_class_set_index', PollBankQuestion.class_id, PollBankQuestion.set_id, PollBankQuestion.poll_index)
 db.Index('ix_classsession_class_end', ClassSession.class_id, ClassSession.end_time)
 db.Index('ix_classsession_class_start', ClassSession.class_id, ClassSession.start_time)
 db.Index('ix_handraise_class_student_cleared', HandRaise.class_id, HandRaise.student_id, HandRaise.cleared)
@@ -1027,6 +1061,29 @@ def _parse_quiz_workbook(ws):
     if _detect_quiz_sheet_format(headers) == 'letter':
         return _parse_quiz_rows_letter_headers(ws, headers)
     return _parse_quiz_rows_legacy_fixed_columns(ws)
+
+
+def _parse_poll_bank_workbook(ws):
+    """Parse poll-bank workbook rows using quiz-compatible sheet headers."""
+    questions, errors = _parse_quiz_workbook(ws)
+    out = []
+    for i, qd in enumerate(questions):
+        idx = qd.get('order')
+        if idx is None:
+            idx = i + 1
+        try:
+            idx = int(idx)
+        except (TypeError, ValueError):
+            idx = i + 1
+        if idx < 1:
+            idx = i + 1
+        out.append({
+            'poll_index': idx,
+            'question': qd.get('prompt', '').strip(),
+            'options': qd.get('options') or [],
+            'correct_answer': qd.get('correct_index'),
+        })
+    return out, errors
 
 
 def _parse_quiz_excel_correct_answer(cell, n_opts):
@@ -2832,31 +2889,50 @@ def clear_poll_responses(poll_id):
 @login_required
 def download_quiz_template():
     """Excel layout for bulk quiz questions (Question Description, Option A–F, Correct Answer)."""
-    if os.path.isfile(QUIZ_TEMPLATE_XLSX):
-        return send_file(
-            QUIZ_TEMPLATE_XLSX,
-            as_attachment=True,
-            download_name='Quiz_Template.xlsx',
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        )
     wb = Workbook()
     ws = wb.active
     ws.title = 'Questions'
-    ws.append(
-        [
-            'Question #',
-            'Question Description',
-            '# of Options',
-            'Option A',
-            'Option B',
-            'Option C',
-            'Option D',
-            'Option E',
-            'Option F',
-            'Correct Answer',
-        ]
-    )
-    ws.append([1, 'Sample: What is 2+2?', 4, '2', '3', '4', '5', '', '', 'C'])
+    headers = [
+        'Question #',
+        'Question Description',
+        '# of Options',
+        'Option A',
+        'Option B',
+        'Option C',
+        'Option D',
+        'Option E',
+        'Option F',
+        'Correct Answer',
+    ]
+    ws.append(headers)
+
+    header_fill = PatternFill(start_color="2A1A40", end_color="2A1A40", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+
+    example_row = [1, 'Sample: What is 2+2?', 4, '2', '3', '4', '5', '', '', 'C']
+    ws.append(example_row)
+
+    columns_data = [
+        ('A', headers[0], example_row[0]),
+        ('B', headers[1], example_row[1]),
+        ('C', headers[2], example_row[2]),
+        ('D', headers[3], example_row[3]),
+        ('E', headers[4], example_row[4]),
+        ('F', headers[5], example_row[5]),
+        ('G', headers[6], example_row[6]),
+        ('H', headers[7], example_row[7]),
+        ('I', headers[8], example_row[8]),
+        ('J', headers[9], example_row[9]),
+    ]
+    for col_letter, header_text, example_text in columns_data:
+        max_content_length = max(len(str(header_text)), len(str(example_text)))
+        column_width = max(max_content_length * 1.15 + 2, 12)
+        column_width = min(column_width, 50)
+        ws.column_dimensions[col_letter].width = column_width
+
     bio = BytesIO()
     wb.save(bio)
     bio.seek(0)
@@ -2866,6 +2942,178 @@ def download_quiz_template():
         download_name='Quiz_Template.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
+
+
+@app.route('/api/poll_template.xlsx', methods=['GET'])
+@login_required
+def download_poll_template():
+    """Excel layout for bulk poll-bank questions (quiz-compatible columns)."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Polls'
+    headers = [
+        'Question #',
+        'Question Description',
+        '# of Options',
+        'Option A',
+        'Option B',
+        'Option C',
+        'Option D',
+        'Option E',
+        'Option F',
+        'Correct Answer',
+    ]
+    ws.append(headers)
+
+    header_fill = PatternFill(start_color="2A1A40", end_color="2A1A40", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+
+    example_row = [1, 'Sample: Which topic should we review first?', 4, 'Topic A', 'Topic B', 'Topic C', 'Topic D', '', '', '']
+    ws.append(example_row)
+
+    columns_data = [
+        ('A', headers[0], example_row[0]),
+        ('B', headers[1], example_row[1]),
+        ('C', headers[2], example_row[2]),
+        ('D', headers[3], example_row[3]),
+        ('E', headers[4], example_row[4]),
+        ('F', headers[5], example_row[5]),
+        ('G', headers[6], example_row[6]),
+        ('H', headers[7], example_row[7]),
+        ('I', headers[8], example_row[8]),
+        ('J', headers[9], example_row[9]),
+    ]
+    for col_letter, header_text, example_text in columns_data:
+        max_content_length = max(len(str(header_text)), len(str(example_text)))
+        column_width = max(max_content_length * 1.15 + 2, 12)
+        column_width = min(column_width, 50)
+        ws.column_dimensions[col_letter].width = column_width
+
+    bio = BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return send_file(
+        bio,
+        as_attachment=True,
+        download_name='Poll_Template.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@app.route('/api/poll_bank/<int:class_id>', methods=['GET'])
+@login_required
+def list_poll_bank(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    sets = PollBankSet.query.filter_by(class_id=class_id).order_by(PollBankSet.name.asc()).all()
+    set_rows = []
+    flat_rows = []
+    for ps in sets:
+        qrows = (
+            PollBankQuestion.query
+            .filter_by(class_id=class_id, set_id=ps.id)
+            .order_by(PollBankQuestion.poll_index.asc())
+            .all()
+        )
+        qout = []
+        for row in qrows:
+            options = json.loads(row.options or '[]')
+            item = {
+                'id': row.id,
+                'set_id': ps.id,
+                'set_name': ps.name,
+                'poll_index': row.poll_index,
+                'title': row.title,
+                'question': row.question,
+                'options': options,
+                'correct_answer': row.correct_answer,
+                'option_count': len(options),
+                'source_filename': row.source_filename,
+            }
+            qout.append(item)
+            flat_rows.append(item)
+        set_rows.append({'id': ps.id, 'name': ps.name, 'question_count': len(qout), 'questions': qout})
+    return jsonify({'success': True, 'poll_sets': set_rows, 'poll_bank': flat_rows})
+
+
+@app.route('/api/poll_bank_upload/<int:class_id>', methods=['POST'])
+@login_required
+def poll_bank_upload(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    if class_obj.professor_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+    file = request.files['file']
+    if not file.filename or not file.filename.lower().endswith(('.xlsx', '.xls')):
+        return jsonify({'success': False, 'error': 'Please upload an Excel file (.xlsx)'}), 400
+
+    set_name = (request.form.get('set_name') or '').strip()
+    if not set_name:
+        return jsonify({'success': False, 'error': 'set_name is required'}), 400
+    base_title = (request.form.get('title') or 'Poll').strip() or 'Poll'
+    results = {'success': True, 'added': 0, 'errors': []}
+    try:
+        poll_set = PollBankSet.query.filter_by(class_id=class_id, name=set_name).first()
+        if not poll_set:
+            poll_set = PollBankSet(class_id=class_id, name=set_name)
+            db.session.add(poll_set)
+            db.session.flush()
+        wb = load_workbook(file, read_only=True, data_only=True)
+        ws = wb.active
+        poll_rows, parse_errors = _parse_poll_bank_workbook(ws)
+        results['errors'].extend(parse_errors)
+        if results['errors'] and not poll_rows:
+            results['success'] = False
+            return jsonify(results), 400
+        if not poll_rows:
+            results['success'] = False
+            results['errors'].append('No poll rows found in the spreadsheet.')
+            return jsonify(results), 400
+
+        added = 0
+        for row in poll_rows:
+            if not row['question'] or len(row['options']) < 2:
+                continue
+            idx = int(row['poll_index'])
+            existing = PollBankQuestion.query.filter_by(class_id=class_id, set_id=poll_set.id, poll_index=idx).first()
+            title = base_title if len(poll_rows) == 1 else f'{base_title} {idx}'
+            if existing:
+                existing.title = title
+                existing.question = row['question']
+                existing.options = json.dumps(row['options'])
+                existing.correct_answer = row['correct_answer']
+                existing.source_filename = secure_filename(file.filename) if file.filename else None
+            else:
+                db.session.add(
+                    PollBankQuestion(
+                        class_id=class_id,
+                            set_id=poll_set.id,
+                        poll_index=idx,
+                        title=title,
+                        question=row['question'],
+                        options=json.dumps(row['options']),
+                        correct_answer=row['correct_answer'],
+                        source_filename=secure_filename(file.filename) if file.filename else None,
+                    )
+                )
+            added += 1
+        if added == 0:
+            results['success'] = False
+            results['errors'].append('No valid poll rows found. Each row needs a question and at least 2 options.')
+            return jsonify(results), 400
+        db.session.commit()
+        results['added'] = added
+        results['set_id'] = poll_set.id
+        results['set_name'] = poll_set.name
+        return jsonify(results)
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/quizzes/<int:class_id>', methods=['GET'])
@@ -5453,6 +5701,47 @@ def migrate_database():
                 except Exception as e:
                     db.session.rollback()
                     print(f"[ERROR] Error adding show_results_when_stopped to poll: {e}")
+
+        # Poll bank: add named sets and link questions to sets
+        inspector = inspect(db.engine)
+        table_names = inspector.get_table_names()
+        if 'poll_bank_set' in table_names and 'poll_bank_question' in table_names:
+            pbq_columns = [col['name'] for col in inspector.get_columns('poll_bank_question')]
+            if 'set_id' not in pbq_columns:
+                try:
+                    db.session.execute(text('ALTER TABLE poll_bank_question ADD COLUMN set_id INTEGER'))
+                    db.session.commit()
+                    print("[OK] Added set_id column to poll_bank_question table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding set_id to poll_bank_question: {e}")
+            try:
+                legacy_rows = db.session.execute(
+                    text('SELECT id, class_id FROM poll_bank_question WHERE set_id IS NULL')
+                ).fetchall()
+                set_by_class = {}
+                for _, class_id in legacy_rows:
+                    if class_id in set_by_class:
+                        continue
+                    existing = PollBankSet.query.filter_by(class_id=class_id, name='Default Set').first()
+                    if not existing:
+                        existing = PollBankSet(class_id=class_id, name='Default Set')
+                        db.session.add(existing)
+                        db.session.flush()
+                    set_by_class[class_id] = existing.id
+                for row_id, class_id in legacy_rows:
+                    sid = set_by_class.get(class_id)
+                    if sid:
+                        db.session.execute(
+                            text('UPDATE poll_bank_question SET set_id = :sid WHERE id = :rid'),
+                            {'sid': sid, 'rid': row_id}
+                        )
+                if legacy_rows:
+                    db.session.commit()
+                    print(f"[OK] Backfilled poll_bank_question.set_id for {len(legacy_rows)} row(s)")
+            except Exception as e:
+                db.session.rollback()
+                print(f"[WARN] poll_bank_question set backfill skipped: {e}")
         
         # Check if class_session table exists and add exclude_from_grading column
         if 'class_session' in table_names:

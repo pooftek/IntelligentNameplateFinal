@@ -122,22 +122,126 @@
     /* Tab panels that scroll as one unit (gradebook table, grading form, metrics) */
     #panelGradebook,
     #panelMetrics,
-    #panelGrading {
+    #panelGrading,
+    #panelQuiz {
         overflow-y: auto;
         overflow-x: hidden;
         padding-bottom: 1.5rem;
     }
     #panelGradebook::-webkit-scrollbar,
     #panelMetrics::-webkit-scrollbar,
-    #panelGrading::-webkit-scrollbar { width: 8px; }
+    #panelGrading::-webkit-scrollbar,
+    #panelQuiz::-webkit-scrollbar { width: 8px; }
     #panelGradebook::-webkit-scrollbar-track,
     #panelMetrics::-webkit-scrollbar-track,
-    #panelGrading::-webkit-scrollbar-track { background: transparent; }
+    #panelGrading::-webkit-scrollbar-track,
+    #panelQuiz::-webkit-scrollbar-track { background: transparent; }
     #panelGradebook::-webkit-scrollbar-thumb,
     #panelMetrics::-webkit-scrollbar-thumb,
-    #panelGrading::-webkit-scrollbar-thumb {
+    #panelGrading::-webkit-scrollbar-thumb,
+    #panelQuiz::-webkit-scrollbar-thumb {
         background: rgba(11,30,51,0.2);
         border-radius: 4px;
+    }
+    .quiz-tab-card {
+        background: #FFFFFF;
+        border: 1px solid #e5e7eb;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 4px 14px rgba(11,30,51,0.08);
+        max-width: 48rem;
+        width: 100%;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+    .quiz-tab-card .quiz-tab-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #0B1E33;
+        margin-bottom: 0.35rem;
+    }
+    .quiz-tab-card .quiz-plan-lock-notice .alert {
+        margin-bottom: 0;
+    }
+    .quiz-tab-card .quiz-upload-fields-disabled {
+        opacity: 0.55;
+    }
+    .quiz-tab-card .quiz-upload-fields-disabled input,
+    .quiz-tab-card .quiz-upload-fields-disabled button {
+        pointer-events: none;
+    }
+    #quizClassDataListContainer table {
+        margin-bottom: 0;
+    }
+    #pollClassDataListContainer table {
+        margin-bottom: 0;
+    }
+    #quizClassDataListContainer .table thead th {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        color: #0B1E33;
+        background: #f1f5f9;
+    }
+    #pollClassDataListContainer .table thead th {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        color: #0B1E33;
+        background: #f1f5f9;
+    }
+    .poll-set-group {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        margin-bottom: 0.6rem;
+        overflow: hidden;
+        background: #fff;
+    }
+    .poll-set-header {
+        width: 100%;
+        border: none;
+        background: #f8fafc;
+        color: #0B1E33;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-align: left;
+        padding: 0.6rem 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    .poll-set-header:hover {
+        background: #eef2f7;
+    }
+    .poll-set-caret {
+        font-size: 0.85rem;
+        color: #6b7280;
+    }
+    .poll-set-content {
+        display: none;
+        padding: 0.5rem;
+        background: #ffffff;
+    }
+    .poll-set-content.expanded {
+        display: block;
+    }
+    #quizClassDataListContainer .quiz-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border-radius: 9999px;
+        padding: 0.2rem 0.65rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+    }
+    #quizClassDataListContainer .quiz-status-badge.live {
+        background: #57C5E4;
+        color: #FFFFFF;
+    }
+    #quizClassDataListContainer .quiz-status-badge.ready {
+        background: #e5e7eb;
+        color: #374151;
     }
 
     /* ── Gradebook toolbar ── */
@@ -937,6 +1041,94 @@
             justify-content: center;
         }
     }
+
+    /* Dark mode compatibility for Class Data quiz tab */
+    body.theme-dark .quiz-tab-card {
+        background: #050e18;
+        border-color: #122638;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+    body.theme-dark .quiz-tab-card .quiz-tab-title,
+    body.theme-dark .quiz-tab-card .form-label,
+    body.theme-dark .quiz-tab-card .settings-section-title {
+        color: #e8eef5;
+    }
+    body.theme-dark .quiz-tab-card .text-muted {
+        color: #92a8c2 !important;
+    }
+    body.theme-dark .quiz-tab-card .form-control {
+        background-color: #0a1526;
+        border-color: #243e5a;
+        color: #e8eef5;
+    }
+    body.theme-dark .quiz-tab-card .form-control:focus {
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.15rem rgba(87, 197, 228, 0.25);
+    }
+    body.theme-dark #quizClassDataListContainer .table thead th {
+        background: #0a1526;
+        color: #e8eef5;
+        border-color: #243e5a;
+    }
+    body.theme-dark #pollClassDataListContainer .table thead th {
+        background: #0a1526;
+        color: #e8eef5;
+        border-color: #243e5a;
+    }
+    body.theme-dark .poll-set-group {
+        border-color: #243e5a;
+        background: #050e18;
+    }
+    body.theme-dark .poll-set-header {
+        background: #0a1526;
+        color: #e8eef5;
+    }
+    body.theme-dark .poll-set-header:hover {
+        background: #122638;
+    }
+    body.theme-dark .poll-set-caret {
+        color: #92a8c2;
+    }
+    body.theme-dark .poll-set-content {
+        background: #050e18;
+    }
+    body.theme-dark #quizClassDataListContainer .table tbody td {
+        color: #e8eef5;
+        background: #050e18;
+        border-color: #122638;
+    }
+    body.theme-dark #pollClassDataListContainer .table tbody td {
+        color: #e8eef5;
+        background: #050e18;
+        border-color: #122638;
+    }
+    body.theme-dark #quizClassDataListContainer .table tbody tr:nth-child(even) td {
+        background: #0a1526;
+    }
+    body.theme-dark #pollClassDataListContainer .table tbody tr:nth-child(even) td {
+        background: #0a1526;
+    }
+    body.theme-dark #quizClassDataListContainer .table tbody tr:hover td {
+        background: #122638;
+    }
+    body.theme-dark #pollClassDataListContainer .table tbody tr:hover td {
+        background: #122638;
+    }
+    body.theme-dark #quizClassDataListContainer,
+    body.theme-dark #quizClassDataListContainer p,
+    body.theme-dark #quizClassDataListContainer .text-muted {
+        color: #c5d4e3 !important;
+    }
+    body.theme-dark #pollClassDataListContainer,
+    body.theme-dark #pollClassDataListContainer p,
+    body.theme-dark #pollClassDataListContainer .text-muted {
+        color: #c5d4e3 !important;
+    }
+    body.theme-dark #quizClassDataListContainer .quiz-status-badge.ready {
+        background: #0a1526;
+        color: #c5d4e3;
+        border: 1px solid #243e5a;
+    }
 </style>
 {% endblock %}
 
@@ -962,6 +1154,7 @@
     <div class="class-data-tabs-nav">
         <button class="tab-pill active" id="tabGradebook" onclick="switchTab('gradebook')">Gradebook</button>
         <button class="tab-pill" id="tabGrading" onclick="switchTab('grading')">Grading</button>
+        <button class="tab-pill" id="tabQuiz" onclick="switchTab('quiz')">Quizzing</button>
         <button class="tab-pill" id="tabMetrics" onclick="switchTab('metrics')">Class Metrics</button>
     </div>
 
@@ -984,6 +1177,48 @@
         <div class="tab-panel" id="panelGrading">
             <div id="gradingContent">
                 <div class="loading">Loading grading weights...</div>
+            </div>
+        </div>
+
+        <!-- Quiz Panel -->
+        <div class="tab-panel" id="panelQuiz">
+            <div class="quiz-tab-card">
+                <h4 class="quiz-tab-title">In-Class Quizzes</h4>
+                <p class="text-muted small mb-3">Upload quizzes from Excel before class starts. When class is active, you can also launch a quiz from here.</p>
+                <div id="quizClassDataPlanLockNotice" class="quiz-plan-lock-notice mb-3"></div>
+                <p class="mb-2"><a class="btn btn-outline-secondary btn-sm" href="/api/quiz_template.xlsx" target="_blank" rel="noopener">Download Excel Template</a></p>
+                <form id="quizClassDataUploadForm" class="mb-3">
+                    <div id="quizClassDataUploadFields">
+                        <label class="form-label">Excel file (.xlsx)</label>
+                        <input type="file" class="form-control mb-2" id="quizClassDataFileInput" name="file" accept=".xlsx,.xls" required>
+                        <label class="form-label" for="quizClassDataUploadIndex">Quiz Slot (1 = first Quiz in grading plan)</label>
+                        <input type="number" class="form-control mb-2" id="quizClassDataUploadIndex" name="quiz_index" min="1" value="1" required>
+                        <label class="form-label" for="quizClassDataUploadTitle">Title</label>
+                        <input type="text" class="form-control mb-2" id="quizClassDataUploadTitle" name="title" placeholder="e.g. Week 3 check-in">
+                        <label class="form-label" for="quizClassDataUploadTime">Time Limit (minutes)</label>
+                        <input type="number" class="form-control mb-2" id="quizClassDataUploadTime" name="time_limit_minutes" value="5" min="1" max="1440" step="1">
+                        <button type="submit" class="btn-tron-pill" id="quizClassDataUploadSubmitBtn">Upload Quiz</button>
+                    </div>
+                </form>
+                <div id="quizClassDataMessage" class="mb-3"></div>
+                <p class="settings-section-title mb-2">Your Quizzes</p>
+                <div id="quizClassDataListContainer" class="text-muted">Open this tab to load quizzes.</div>
+                <hr class="settings-divider mt-4">
+                <h4 class="quiz-tab-title">Pre-Uploaded Poll Questions</h4>
+                <p class="text-muted small mb-3">Upload poll questions ahead of class. These appear in the live Start Poll modal for quick selection and edit.</p>
+                <p class="mb-2"><a class="btn btn-outline-secondary btn-sm" href="/api/poll_template.xlsx" target="_blank" rel="noopener">Download Poll Template</a></p>
+                <form id="pollClassDataUploadForm" class="mb-3">
+                    <label class="form-label" for="pollClassDataSetName">Poll Set Name</label>
+                    <input type="text" class="form-control mb-2" id="pollClassDataSetName" name="set_name" placeholder="e.g. Week 4 Review" required>
+                    <label class="form-label">Excel file (.xlsx)</label>
+                    <input type="file" class="form-control mb-2" id="pollClassDataFileInput" name="file" accept=".xlsx,.xls" required>
+                    <label class="form-label" for="pollClassDataUploadTitle">Title Prefix (optional)</label>
+                    <input type="text" class="form-control mb-2" id="pollClassDataUploadTitle" name="title" placeholder="e.g. Week 2 poll">
+                    <button type="submit" class="btn-tron-pill" id="pollClassDataUploadSubmitBtn">Upload Poll Questions</button>
+                </form>
+                <div id="pollClassDataMessage" class="mb-3"></div>
+                <p class="settings-section-title mb-2">Your Pre-Uploaded Poll Questions</p>
+                <div id="pollClassDataListContainer" class="text-muted">Open this tab to load poll questions.</div>
             </div>
         </div>
 
@@ -1117,17 +1352,28 @@ window.addEventListener('load', adjustDataTitleFontSize);
 window.addEventListener('resize', adjustDataTitleFontSize);
 
 // ── Tab switching ──
-const TAB_IDS = ['gradebook', 'grading', 'metrics'];
+const TAB_IDS = ['gradebook', 'grading', 'quiz', 'metrics'];
 function switchTab(tab) {
     TAB_IDS.forEach(t => {
         document.getElementById('tab' + capitalize(t)).classList.toggle('active', t === tab);
         document.getElementById('panel' + capitalize(t)).classList.toggle('active', t === tab);
     });
     if (tab === 'grading'  && document.getElementById('gradingContent').querySelector('.loading'))  loadGradingWeights();
+    if (tab === 'quiz') loadClassDataQuizzes();
     if (tab === 'metrics'  && document.getElementById('metricsContent').querySelector('.loading'))  loadMetrics();
     if (tab === 'gradebook'&& document.getElementById('gradebookContent').querySelector('.loading')) loadGradebook();
 }
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function formatQuizTimeMinutes(totalSec) {
+    const s = Math.max(0, Number(totalSec) || 0);
+    if (s === 0) return '—';
+    if (s % 60 === 0) return String(s / 60) + ' min';
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    if (m === 0) return r + ' s';
+    return m + ' min ' + r + ' s';
+}
 
 function formatEasternDateTime(isoString) {
     if (!isoString) return '-';
@@ -1473,6 +1719,224 @@ async function saveGradingWeights(event) {
         document.getElementById('gradingMessage').innerHTML = '<div class="alert alert-danger">Error saving. Please try again.</div>';
     }
 }
+
+function applyClassDataQuizPlanLockUI(quizCountTarget) {
+    const notice = document.getElementById('quizClassDataPlanLockNotice');
+    const fieldsWrap = document.getElementById('quizClassDataUploadFields');
+    const ids = ['quizClassDataFileInput', 'quizClassDataUploadIndex', 'quizClassDataUploadTitle', 'quizClassDataUploadTime', 'quizClassDataUploadSubmitBtn'];
+    if (quizCountTarget === null || quizCountTarget === undefined) {
+        ids.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+        });
+        if (fieldsWrap) fieldsWrap.classList.remove('quiz-upload-fields-disabled');
+        if (notice) notice.innerHTML = '';
+        return true;
+    }
+    const n = Number(quizCountTarget);
+    const canCreate = Number.isFinite(n) && n >= 1;
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !canCreate;
+    });
+    if (fieldsWrap) fieldsWrap.classList.toggle('quiz-upload-fields-disabled', !canCreate);
+    if (notice) {
+        notice.innerHTML = canCreate ? '' : '<div class="alert alert-secondary"><strong>Quiz setup locked.</strong> In the <strong>Grading</strong> tab, set <strong>Number of Quizzes</strong> to at least 1 and save first.</div>';
+    }
+    return canCreate;
+}
+
+async function loadClassDataQuizzes() {
+    const container = document.getElementById('quizClassDataListContainer');
+    if (!container) return;
+    container.textContent = 'Loading...';
+    try {
+        const [gwRes, qRes, dashRes] = await Promise.all([
+            fetch(`/api/grading_weights/${classId}`),
+            fetch(`/api/quizzes/${classId}`),
+            fetch(`/api/live_dashboard/${classId}`),
+        ]);
+        if (gwRes.ok) {
+            const gw = await gwRes.json();
+            applyClassDataQuizPlanLockUI(gw.quiz_count_target != null ? gw.quiz_count_target : 0);
+        } else {
+            applyClassDataQuizPlanLockUI(null);
+        }
+        const qData = await qRes.json();
+        const dash = await dashRes.json();
+        if (!qData.success) {
+            container.innerHTML = '<span class="text-danger">Could not load quizzes.</span>';
+            return;
+        }
+        const activeQuizId = dash.active_quiz && Number(dash.active_quiz.quiz_id);
+        const quizzes = qData.quizzes || [];
+        if (quizzes.length === 0) {
+            container.innerHTML = '<p class="text-muted mb-0">No quizzes uploaded yet.</p>';
+            return;
+        }
+        let html = '<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Quiz Slot</th><th>Title</th><th>Questions</th><th>Time Limit</th><th>Status</th></tr></thead><tbody>';
+        quizzes.forEach((qz) => {
+            const isLiveQuiz = activeQuizId && activeQuizId === Number(qz.id);
+            const status = isLiveQuiz
+                ? '<span class="quiz-status-badge live">Live</span>'
+                : '<span class="quiz-status-badge ready">Ready</span>';
+            html += `<tr><td>${escapeHtml(String(qz.quiz_index))}</td><td>${escapeHtml(qz.title)}</td><td>${qz.question_count}</td><td>${escapeHtml(formatQuizTimeMinutes(qz.time_limit_seconds))}</td><td>${status}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+        await loadClassDataPollBank();
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<span class="text-danger">Error loading quizzes.</span>';
+    }
+}
+
+async function loadClassDataPollBank() {
+    const container = document.getElementById('pollClassDataListContainer');
+    if (!container) return;
+    container.textContent = 'Loading...';
+    try {
+        const res = await fetch(`/api/poll_bank/${classId}`);
+        const data = await res.json();
+        if (!data.success) {
+            container.innerHTML = '<span class="text-danger">Could not load pre-uploaded poll questions.</span>';
+            return;
+        }
+        const sets = data.poll_sets || [];
+        if (!sets.length) {
+            container.innerHTML = '<p class="text-muted mb-0">No pre-uploaded poll questions yet.</p>';
+            return;
+        }
+        let html = '';
+        sets.forEach((setRow, idx) => {
+            const setId = Number(setRow.id);
+            const setName = escapeHtml(String(setRow.name || 'Poll Set'));
+            const count = Number(setRow.question_count || 0);
+            const contentId = `pollSetContent_${setId}_${idx}`;
+            html += `<div class="poll-set-group">
+                <button type="button" class="poll-set-header" onclick="togglePollSetContent('${contentId}', this)">
+                    <span>${setName}</span>
+                    <span class="poll-set-caret">${count} Question${count === 1 ? '' : 's'} ▾</span>
+                </button>
+                <div class="poll-set-content" id="${contentId}">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Poll Slot</th>
+                                    <th>Title</th>
+                                    <th>Question</th>
+                                    <th>Options</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            (setRow.questions || []).forEach((q) => {
+                html += `<tr><td>${escapeHtml(String(q.poll_index))}</td><td>${escapeHtml(String(q.title || 'Poll'))}</td><td>${escapeHtml(String(q.question || ''))}</td><td>${Number(q.option_count || 0)}</td></tr>`;
+            });
+            html += `       </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<span class="text-danger">Error loading poll questions.</span>';
+    }
+}
+
+function togglePollSetContent(contentId, btnEl) {
+    const content = document.getElementById(contentId);
+    if (!content) return;
+    const expanded = content.classList.toggle('expanded');
+    const caret = btnEl ? btnEl.querySelector('.poll-set-caret') : null;
+    if (caret) {
+        caret.textContent = caret.textContent.replace(expanded ? '▾' : '▴', expanded ? '▴' : '▾');
+    }
+}
+
+(function initClassDataQuizUploadForm() {
+    const form = document.getElementById('quizClassDataUploadForm');
+    if (!form) return;
+    form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const submitBtn = document.getElementById('quizClassDataUploadSubmitBtn');
+        if (submitBtn && submitBtn.disabled) return;
+        const msg = document.getElementById('quizClassDataMessage');
+        const fd = new FormData();
+        const fileEl = document.getElementById('quizClassDataFileInput');
+        if (!fileEl.files || !fileEl.files[0]) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning">Choose a file.</div>';
+            return;
+        }
+        fd.append('file', fileEl.files[0]);
+        fd.append('quiz_index', document.getElementById('quizClassDataUploadIndex').value);
+        fd.append('title', document.getElementById('quizClassDataUploadTitle').value || '');
+        const minEl = document.getElementById('quizClassDataUploadTime');
+        let mins = parseFloat(minEl && minEl.value);
+        if (!Number.isFinite(mins) || mins < 1) mins = 5;
+        if (mins > 1440) mins = 1440;
+        fd.append('time_limit_minutes', String(mins));
+        if (msg) msg.innerHTML = '<div class="text-muted">Uploading...</div>';
+        try {
+            const res = await fetch(`/api/quiz_upload/${classId}`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!data.success) {
+                const err = (data.errors && data.errors.length) ? data.errors.join(' ') : (data.error || 'Upload failed');
+                if (msg) msg.innerHTML = '<div class="alert alert-danger">' + escapeHtml(err) + '</div>';
+                return;
+            }
+            if (msg) msg.innerHTML = '<div class="alert alert-success">Saved ' + data.added + ' question(s).</div>';
+            fileEl.value = '';
+            loadClassDataQuizzes();
+        } catch (e) {
+            console.error(e);
+            if (msg) msg.innerHTML = '<div class="alert alert-danger">Upload failed.</div>';
+        }
+    });
+})();
+
+(function initClassDataPollUploadForm() {
+    const form = document.getElementById('pollClassDataUploadForm');
+    if (!form) return;
+    form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const submitBtn = document.getElementById('pollClassDataUploadSubmitBtn');
+        if (submitBtn && submitBtn.disabled) return;
+        const msg = document.getElementById('pollClassDataMessage');
+        const fd = new FormData();
+        const fileEl = document.getElementById('pollClassDataFileInput');
+        if (!fileEl.files || !fileEl.files[0]) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning">Choose a file.</div>';
+            return;
+        }
+        fd.append('file', fileEl.files[0]);
+        const setName = (document.getElementById('pollClassDataSetName').value || '').trim();
+        if (!setName) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning">Enter a poll set name.</div>';
+            return;
+        }
+        fd.append('set_name', setName);
+        fd.append('title', document.getElementById('pollClassDataUploadTitle').value || '');
+        if (msg) msg.innerHTML = '<div class="text-muted">Uploading...</div>';
+        try {
+            const res = await fetch(`/api/poll_bank_upload/${classId}`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!data.success) {
+                const err = (data.errors && data.errors.length) ? data.errors.join(' ') : (data.error || 'Upload failed');
+                if (msg) msg.innerHTML = '<div class="alert alert-danger">' + escapeHtml(err) + '</div>';
+                return;
+            }
+            if (msg) msg.innerHTML = '<div class="alert alert-success">Saved ' + data.added + ' poll question(s).</div>';
+            fileEl.value = '';
+            loadClassDataPollBank();
+        } catch (e) {
+            console.error(e);
+            if (msg) msg.innerHTML = '<div class="alert alert-danger">Upload failed.</div>';
+        }
+    });
+})();
 
 // ── Metrics ──
 function animatePercentMetric(el, duration = 900) {

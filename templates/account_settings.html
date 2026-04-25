@@ -91,6 +91,7 @@
         font-size: 0.875rem;
         font-weight: 500;
         margin-bottom: 0.3rem;
+        text-transform: capitalize;
     }
 
     .account-card .form-control {
@@ -171,6 +172,41 @@
         padding: 1.5rem 0 1.25rem;
     }
     .account-branding img { height: 34px; width: auto; }
+
+    body.theme-dark {
+        background: #050e18 !important;
+    }
+    body.theme-dark .responsive-title,
+    body.theme-dark .account-card .form-label {
+        color: #f3f4f6;
+    }
+    body.theme-dark .account-card {
+        background: #0a1526;
+        border-color: #1f2937;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    body.theme-dark .account-card .form-control {
+        background-color: #111827;
+        border-color: #374151;
+        color: #f3f4f6;
+    }
+    body.theme-dark .account-card .form-control:focus {
+        background-color: #111827;
+        color: #f3f4f6;
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.2rem rgba(87,197,228,0.25);
+    }
+    body.theme-dark .account-card .text-muted {
+        color: #9ca3af !important;
+    }
+    body.theme-dark .btn-account-cancel {
+        background-color: #1f2937;
+        color: #e5e7eb;
+    }
+    body.theme-dark .btn-account-cancel:hover {
+        background-color: #374151;
+        color: #f9fafb;
+    }
 </style>
 {% endblock %}
 
