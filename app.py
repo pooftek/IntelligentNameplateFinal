@@ -264,6 +264,7 @@ class Student(UserMixin, db.Model):
     email = db.Column(db.String(120), nullable=False)
     rfid_card_id = db.Column(db.String(100), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=True)  # Nullable for first-time setup
+    dark_mode = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Class(db.Model):
@@ -4271,6 +4272,7 @@ def _student_login_payload(stu):
         'last_name': stu.last_name,
         'preferred_name': stu.preferred_name,
         'email': stu.email,
+        'dark_mode': bool(getattr(stu, 'dark_mode', False)),
     }
 
 
@@ -4438,7 +4440,104 @@ def get_current_student():
             'first_name': student.first_name,
             'last_name': student.last_name,
             'preferred_name': student.preferred_name,
-            'email': student.email
+            'email': student.email,
+            'dark_mode': bool(getattr(student, 'dark_mode', False)),
+        }
+    })
+
+
+@app.route('/api/student/settings', methods=['GET'])
+def get_student_settings():
+    """Get editable student settings for authenticated student."""
+    student_id = _authenticated_student_id()
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({'success': False, 'error': 'Student not found'}), 404
+
+    return jsonify({
+        'success': True,
+        'settings': {
+            'email': student.email or '',
+            'preferred_name': student.preferred_name or '',
+            'dark_mode': bool(getattr(student, 'dark_mode', False)),
+            'has_password': bool(student.password_hash),
+        }
+    })
+
+
+@app.route('/api/student/settings', methods=['POST'])
+def update_student_settings():
+    """Update student email, preferred name, dark mode, and optionally password."""
+    student_id = _authenticated_student_id()
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({'success': False, 'error': 'Student not found'}), 404
+
+    data = request.get_json() or {}
+
+    email_raw = data.get('email', student.email)
+    preferred_raw = data.get('preferred_name', student.preferred_name or '')
+    dark_mode_raw = data.get('dark_mode', bool(getattr(student, 'dark_mode', False)))
+    current_password = data.get('current_password') or ''
+    new_password = data.get('new_password') or ''
+    confirm_new_password = data.get('confirm_new_password') or ''
+
+    email = str(email_raw or '').strip()
+    preferred_name = str(preferred_raw or '').strip() or None
+    if len(preferred_name or '') > 100:
+        return jsonify({'success': False, 'error': 'Preferred name is too long.'}), 400
+    if not email or not _looks_like_email(email):
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+
+    other = Student.query.filter(func.lower(Student.email) == email.lower(), Student.id != student.id).first()
+    if other:
+        return jsonify({'success': False, 'error': 'That email is already in use.'}), 400
+
+    if not isinstance(dark_mode_raw, bool):
+        if isinstance(dark_mode_raw, (int, str)):
+            dark_mode = str(dark_mode_raw).strip().lower() in ('1', 'true', 'yes', 'on')
+        else:
+            return jsonify({'success': False, 'error': 'Invalid dark mode value.'}), 400
+    else:
+        dark_mode = dark_mode_raw
+
+    if new_password or confirm_new_password:
+        if new_password != confirm_new_password:
+            return jsonify({'success': False, 'error': 'New passwords do not match.'}), 400
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'error': 'New password must be at least 6 characters long.'}), 400
+        if student.password_hash and not check_password_hash(student.password_hash, current_password):
+            return jsonify({'success': False, 'error': 'Current password is incorrect.'}), 400
+        student.password_hash = generate_password_hash(new_password)
+
+    student.email = email
+    student.preferred_name = preferred_name
+    student.dark_mode = dark_mode
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Settings updated successfully.',
+        'settings': {
+            'email': student.email or '',
+            'preferred_name': student.preferred_name or '',
+            'dark_mode': bool(getattr(student, 'dark_mode', False)),
+            'has_password': bool(student.password_hash),
+        },
+        'student': {
+            'id': student.id,
+            'student_number': student.student_number,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'preferred_name': student.preferred_name,
+            'email': student.email,
+            'dark_mode': bool(getattr(student, 'dark_mode', False)),
         }
     })
 
@@ -4472,6 +4571,356 @@ def get_active_classes():
         out.append(row)
     return jsonify(out)
 
+
+def _student_own_gradebook_entry(class_id, student_id):
+    """Build one gradebook row dict for student_id (same fields as /api/gradebook) or None if not enrolled."""
+    enrollment = Enrollment.query.filter_by(
+        class_id=class_id,
+        student_id=student_id,
+        is_active=True,
+    ).first()
+    if not enrollment:
+        return None
+
+    grading_weights = GradingWeights.query.filter_by(class_id=class_id).first()
+    if not grading_weights:
+        grading_weights = GradingWeights(
+            class_id=class_id,
+            attendance_weight=25.0,
+            participation_weight=50.0,
+            participation_instructor_share=50.0,
+            poll_weight=25.0,
+            quiz_weight=0.0,
+            quiz_count_target=0,
+        )
+        db.session.add(grading_weights)
+        db.session.commit()
+
+    rows = _compute_gradebook_rows(class_id, grading_weights)
+    for r in rows:
+        if r['student'].id == student_id:
+            return {
+                'student_id': r['student'].id,
+                'student_number': r['student'].student_number,
+                'name': f"{r['student'].first_name} {r['student'].last_name}",
+                'attendance_grade': round(r['attendance_grade'], 2),
+                'participation_grade': round(r['participation_grade'], 2),
+                'peer_participation': round(r['avg_peer_grade'], 2),
+                'instructor_participation': round(r['avg_instructor_grade'], 2),
+                'poll_grade': round(r['poll_grade'], 2),
+                'quiz_grade': round(r['quiz_grade'], 2),
+                'quiz_scores_by_index': {str(k): round(v, 2) for k, v in (r.get('quiz_scores_by_index') or {}).items()},
+                'overall_grade': round(r['overall_grade'], 2),
+            }
+    return None
+
+
+_WEEKLY_GRADE_CATEGORIES = frozenset({
+    'attendance',
+    'participation',
+    'instructor_participation',
+    'peer_participation',
+    'poll',
+    'quiz',
+    'overall',
+})
+
+
+def _poll_score_student_session(student_id, session, prs_for_student, poll_by_id, now):
+    end = session.end_time or now
+    rel = []
+    for pr in prs_for_student:
+        poll = poll_by_id.get(pr.poll_id)
+        if not poll or not poll.is_graded:
+            continue
+        t = poll.created_at
+        if t is not None and session.start_time <= t <= end:
+            rel.append(pr)
+    if not rel:
+        return None
+    return (sum(1 for x in rel if x.is_correct) / len(rel)) * 100.0
+
+
+def _quiz_results_student_session(class_id, student_id, session, quizzes_by_index, quiz_n_target, question_counts, now):
+    end = session.end_time or now
+    items = []
+    for idx in range(1, int(quiz_n_target) + 1):
+        qdef = quizzes_by_index.get(idx)
+        if not qdef:
+            continue
+        nq = int(question_counts.get(qdef.id, 0) or 0)
+        if nq <= 0:
+            continue
+        runs = (
+            QuizRun.query.filter_by(class_id=class_id, quiz_id=qdef.id)
+            .filter(QuizRun.started_at >= session.start_time, QuizRun.started_at <= end)
+            .order_by(QuizRun.started_at.desc())
+            .all()
+        )
+        chosen = None
+        for run in runs:
+            if _quiz_run_completed(run, now):
+                chosen = run
+                break
+        if not chosen:
+            continue
+        ans_list = QuizAnswer.query.filter_by(quiz_run_id=chosen.id, student_id=student_id).all()
+        correct = sum(1 for a in ans_list if a.is_correct)
+        score = (correct / nq) * 100.0
+        label = (qdef.title or '').strip() or f'Quiz {idx}'
+        items.append({'quiz_index': idx, 'quiz_label': label, 'score': score})
+    return items
+
+
+def _quiz_score_student_session(class_id, student_id, session, quizzes_by_index, quiz_n_target, question_counts, now):
+    items = _quiz_results_student_session(
+        class_id, student_id, session, quizzes_by_index, quiz_n_target, question_counts, now
+    )
+    if not items:
+        return None
+    return sum(x['score'] for x in items) / len(items)
+
+
+def _student_gradebook_weekly_breakdown(class_id, student_id, category):
+    """
+    Per graded ClassSession breakdown for one student (same sessions as gradebook).
+    Each row: session_start/end ISO UTC, value 0-100 or null, detail (excused, absent, etc.).
+    Returns None if not actively enrolled, [] if no graded sessions.
+    """
+    category = (category or '').strip().lower()
+    if category not in _WEEKLY_GRADE_CATEGORIES:
+        return None
+
+    enrollment = Enrollment.query.filter_by(
+        class_id=class_id,
+        student_id=student_id,
+        is_active=True,
+    ).first()
+    if not enrollment:
+        return None
+
+    grading_weights = GradingWeights.query.filter_by(class_id=class_id).first()
+    if not grading_weights:
+        grading_weights = GradingWeights(
+            class_id=class_id,
+            attendance_weight=25.0,
+            participation_weight=50.0,
+            participation_instructor_share=50.0,
+            poll_weight=25.0,
+            quiz_weight=0.0,
+            quiz_count_target=0,
+        )
+        db.session.add(grading_weights)
+        db.session.commit()
+
+    now = datetime.utcnow()
+    aw = float(grading_weights.attendance_weight)
+    pw = float(grading_weights.poll_weight)
+    qw = float(getattr(grading_weights, 'quiz_weight', 0.0) or 0.0)
+    part_weight = float(grading_weights.participation_weight)
+    inst_share = float(grading_weights.participation_instructor_share)
+    quiz_n_target = int(getattr(grading_weights, 'quiz_count_target', 0) or 0)
+
+    all_sessions = ClassSession.query.filter_by(class_id=class_id).order_by(ClassSession.start_time.asc()).all()
+    graded_sessions = [s for s in all_sessions if not s.exclude_from_grading]
+    if not graded_sessions:
+        return []
+
+    polls = Poll.query.filter_by(class_id=class_id).all()
+    poll_by_id = {p.id: p for p in polls}
+
+    sessions_with_poll = 0
+    for s in graded_sessions:
+        end = s.end_time or now
+        for poll in polls:
+            t = poll.created_at
+            if t is not None and s.start_time <= t <= end:
+                sessions_with_poll += 1
+                break
+
+    class_quiz_runs = QuizRun.query.filter_by(class_id=class_id).all()
+    sessions_with_quiz = 0
+    for s in graded_sessions:
+        end = s.end_time or now
+        for run in class_quiz_runs:
+            t = run.started_at
+            if t is not None and s.start_time <= t <= end:
+                sessions_with_quiz += 1
+                break
+
+    n_graded = len(graded_sessions)
+    if n_graded == 0:
+        eff_att_w, eff_poll_w, eff_quiz_w = aw, pw, qw
+    else:
+        sp = float(sessions_with_poll)
+        sq = float(sessions_with_quiz)
+        eff_poll_w = pw * (sp / n_graded)
+        eff_quiz_w = qw * (sq / n_graded)
+        eff_att_w = aw + pw * ((n_graded - sp) / n_graded) + qw * ((n_graded - sq) / n_graded)
+
+    graded_poll_ids = [p.id for p in polls if p.is_graded]
+    poll_in_graded_window = {}
+    for pid in graded_poll_ids:
+        t = poll_by_id[pid].created_at
+        inside = False
+        if t is not None:
+            for s in graded_sessions:
+                end = s.end_time or now
+                if s.start_time <= t <= end:
+                    inside = True
+                    break
+        poll_in_graded_window[pid] = inside
+
+    student_pr_all = []
+    if graded_poll_ids:
+        student_pr_all = PollResponse.query.filter(
+            PollResponse.student_id == student_id,
+            PollResponse.poll_id.in_(graded_poll_ids),
+        ).all()
+    prs_student = [pr for pr in student_pr_all if poll_in_graded_window.get(pr.poll_id)]
+
+    quizzes_in_class = Quiz.query.filter_by(class_id=class_id).all()
+    quizzes_by_index = {q.quiz_index: q for q in quizzes_in_class}
+    question_counts = {}
+    if quizzes_in_class:
+        qids = [q.id for q in quizzes_in_class]
+        for cnt, qz_id in (
+            db.session.query(func.count(QuizQuestion.id), QuizQuestion.quiz_id)
+            .filter(QuizQuestion.quiz_id.in_(qids))
+            .group_by(QuizQuestion.quiz_id)
+            .all()
+        ):
+            question_counts[qz_id] = int(cnt)
+
+    exempt_session_ids = set()
+    for ex in AbsenceExemption.query.filter_by(class_id=class_id, student_id=student_id).all():
+        exempt_session_ids.add(ex.class_session_id)
+
+    parts_by_date = {}
+    for p in Participation.query.filter_by(class_id=class_id, student_id=student_id).all():
+        parts_by_date[p.date] = p
+
+    out = []
+    for sess in graded_sessions:
+        row = {
+            'session_id': sess.id,
+            'session_start': _isoformat_utc_for_js(sess.start_time),
+            'session_end': _isoformat_utc_for_js(sess.end_time) if sess.end_time else None,
+            'value': None,
+            'detail': None,
+        }
+
+        if sess.id in exempt_session_ids:
+            row['detail'] = 'excused'
+            out.append(row)
+            continue
+
+        attended = student_attended_class_session(class_id, sess, student_id)
+
+        if category == 'attendance':
+            row['value'] = 100.0 if attended else 0.0
+            if not attended:
+                row['detail'] = 'absent'
+        elif category == 'participation':
+            sc = session_participation_score(class_id, sess, student_id, inst_share)
+            if sc is None:
+                row['detail'] = 'not_attended'
+            else:
+                row['value'] = round(float(sc), 2)
+        elif category == 'instructor_participation':
+            part = parts_by_date.get(sess.start_time.date())
+            if part is not None:
+                row['value'] = round(float(part.instructor_grade or 0.0), 2)
+            else:
+                row['detail'] = 'no_record'
+        elif category == 'peer_participation':
+            part = parts_by_date.get(sess.start_time.date())
+            if part is not None:
+                row['value'] = round(float(part.peer_grade or 0.0), 2)
+            else:
+                row['detail'] = 'no_record'
+        elif category == 'poll':
+            if not attended:
+                row['detail'] = 'not_attended'
+            else:
+                pv = _poll_score_student_session(student_id, sess, prs_student, poll_by_id, now)
+                if pv is None:
+                    row['detail'] = 'no_polls'
+                else:
+                    row['value'] = round(float(pv), 2)
+        elif category == 'quiz':
+            quiz_items = _quiz_results_student_session(
+                class_id, student_id, sess, quizzes_by_index, quiz_n_target, question_counts, now
+            )
+            if not quiz_items:
+                continue
+            for qi in quiz_items:
+                out.append({
+                    'session_id': sess.id,
+                    'session_start': _isoformat_utc_for_js(sess.start_time),
+                    'session_end': _isoformat_utc_for_js(sess.end_time) if sess.end_time else None,
+                    'value': round(float(qi['score']), 2),
+                    'detail': None,
+                    'quiz_index': qi['quiz_index'],
+                    'quiz_label': qi['quiz_label'],
+                })
+            continue
+        elif category == 'overall':
+            att_sc = 100.0 if attended else 0.0
+            part_sc = session_participation_score(class_id, sess, student_id, inst_share)
+            if part_sc is None:
+                part_sc = 0.0
+            poll_sc = _poll_score_student_session(student_id, sess, prs_student, poll_by_id, now) or 0.0
+            quiz_sc = _quiz_score_student_session(
+                class_id, student_id, sess, quizzes_by_index, quiz_n_target, question_counts, now
+            ) or 0.0
+            og = (
+                (att_sc * eff_att_w / 100.0)
+                + (float(part_sc) * part_weight / 100.0)
+                + (poll_sc * eff_poll_w / 100.0)
+                + (quiz_sc * eff_quiz_w / 100.0)
+            )
+            row['value'] = round(float(og), 2)
+
+        out.append(row)
+
+    return out
+
+
+@app.route('/api/student/gradebook/<int:class_id>', methods=['GET'])
+def get_student_own_gradebook(class_id):
+    """Return the logged-in student's grade row for a class (same computation as professor gradebook)."""
+    student_id = _authenticated_student_id()
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    Class.query.get_or_404(class_id)
+    entry = _student_own_gradebook_entry(class_id, student_id)
+    if entry is None:
+        return jsonify({'success': False, 'error': 'You are not enrolled in this class.'}), 403
+
+    return jsonify({'success': True, 'grades': entry})
+
+
+@app.route('/api/student/gradebook/<int:class_id>/weekly', methods=['GET'])
+def get_student_gradebook_weekly(class_id):
+    """Weekly (per graded class session) breakdown for one grade category."""
+    student_id = _authenticated_student_id()
+    if not student_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    category = (request.args.get('category') or '').strip().lower()
+    if category not in _WEEKLY_GRADE_CATEGORIES:
+        return jsonify({'success': False, 'error': 'Invalid category'}), 400
+
+    Class.query.get_or_404(class_id)
+    weeks = _student_gradebook_weekly_breakdown(class_id, student_id, category)
+    if weeks is None:
+        return jsonify({'success': False, 'error': 'You are not enrolled in this class.'}), 403
+
+    return jsonify({'success': True, 'category': category, 'weeks': weeks})
+
+
 @app.route('/api/student/join_class', methods=['POST'])
 def student_join_class():
     student_id = _authenticated_student_id()
@@ -4482,8 +4931,6 @@ def student_join_class():
     class_id = data.get('class_id')
     
     class_obj = Class.query.get_or_404(class_id)
-    if not class_obj.is_active:
-        return jsonify({'success': False, 'error': 'Class is not active'})
 
     enrollment = Enrollment.query.filter_by(
         class_id=class_id,
@@ -4492,6 +4939,20 @@ def student_join_class():
     ).first()
     if not enrollment:
         return jsonify({'success': False, 'error': 'You are not enrolled in this class.'})
+
+    if not class_obj.is_active:
+        class_settings = ClassSettings.query.filter_by(class_id=class_id).first()
+        show_fn = bool(class_settings and class_settings.show_first_name_only)
+        fn_labels = _first_name_only_labels_for_class(class_id) if show_fn else {}
+        payload = {
+            'success': True,
+            'view_mode': 'grades',
+            'class_id': class_id,
+            'show_first_name_only': show_fn,
+        }
+        if show_fn:
+            payload['first_name_only_display'] = fn_labels.get(student_id, '')
+        return jsonify(payload)
     
     active_session = get_active_class_session(class_id)
     if not active_session:
@@ -4535,6 +4996,7 @@ def student_join_class():
     active_poll = Poll.query.filter_by(class_id=class_id, is_active=True).first()
     payload = {
         'success': True,
+        'view_mode': 'live',
         'class_id': class_id,
         'show_first_name_only': show_fn,
     }
@@ -5645,6 +6107,14 @@ def migrate_database():
                 except Exception as e:
                     db.session.rollback()
                     print(f"[ERROR] Error adding password_hash column: {e}")
+            if 'dark_mode' not in student_columns:
+                try:
+                    db.session.execute(text('ALTER TABLE student ADD COLUMN dark_mode BOOLEAN DEFAULT 0'))
+                    db.session.commit()
+                    print("[OK] Added dark_mode column to student table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding dark_mode column: {e}")
         
         # Check if attendance table exists and add missing columns
         if 'attendance' in table_names:

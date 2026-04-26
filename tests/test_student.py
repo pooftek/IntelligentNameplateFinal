@@ -166,3 +166,178 @@ def test_student_interface_has_interaction_buttons(live_server, page):
     # These buttons are in the DOM even if not visible yet
     assert "hand" in content.lower() or "raise" in content.lower()
     assert "thumb" in content.lower()
+
+
+def test_student_inactive_class_join_and_gradebook(live_server, page, created_class, professor_page):
+    """
+    Inactive class: join_class returns view_mode grades (no live session).
+    Student can fetch their own grade row via /api/student/gradebook/<id>.
+    """
+    if not created_class:
+        pytest.skip("No class available")
+
+    professor_page.evaluate(
+        """async ([classId]) => {
+        const r = await fetch(`/api/create_and_add_student/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                first_name: 'Grade',
+                last_name: 'Viewer',
+                student_number: '876543210',
+                email: 'gradeviewer@comet.test'
+            })
+        });
+        return r.json();
+    }""",
+        [created_class],
+    )
+
+    pwd = "ViewerPw1"
+    out = page.evaluate(
+        """async ([base, classId, pwd]) => {
+        let lr = await fetch(base + '/api/student/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ identifier: '876543210' })
+        });
+        let ld = await lr.json();
+        if (!ld.success) return { step: 'login', ld };
+        let token = ld.token;
+        if (ld.needs_password) {
+            let sr = await fetch(base + '/api/student/set_password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ password: pwd, confirm_password: pwd })
+            });
+            let sd = await sr.json();
+            if (!sd.success) return { step: 'set_password', sd };
+            token = sd.token;
+        }
+        const jr = await fetch(base + '/api/student/join_class', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ class_id: classId })
+        });
+        const join = await jr.json();
+        const gr = await fetch(base + '/api/student/gradebook/' + classId, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const gb = await gr.json();
+        return { join, gb, token };
+    }""",
+        [live_server, created_class, pwd],
+    )
+
+    assert out["join"].get("success") is True, out
+    assert out["join"].get("view_mode") == "grades", out
+    assert out["gb"].get("success") is True, out
+    grades = out["gb"].get("grades") or {}
+    assert "overall_grade" in grades
+    assert grades.get("student_number") == "876543210"
+
+    weekly = page.evaluate(
+        """async ([base, classId, token]) => {
+        const r = await fetch(base + '/api/student/gradebook/' + classId + '/weekly?category=attendance', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        return r.json();
+    }""",
+        [live_server, created_class, out["token"]],
+    )
+    assert weekly.get("success") is True, weekly
+    assert weekly.get("category") == "attendance"
+    assert isinstance(weekly.get("weeks"), list), weekly
+
+
+def test_student_settings_update_profile_and_dark_mode(live_server, page, created_class, professor_page):
+    """Student can update preferred name/email/dark mode and change password from settings API."""
+    if not created_class:
+        pytest.skip("No class available")
+
+    professor_page.evaluate(
+        """async ([classId]) => {
+        const r = await fetch(`/api/create_and_add_student/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                first_name: 'Settings',
+                last_name: 'Student',
+                student_number: '765432109',
+                email: 'settings.student@comet.test'
+            })
+        });
+        return r.json();
+    }""",
+        [created_class],
+    )
+
+    out = page.evaluate(
+        """async ([base]) => {
+        const loginResp = await fetch(base + '/api/student/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ identifier: '765432109' })
+        });
+        const loginData = await loginResp.json();
+        if (!loginData.success) return { step: 'login', loginData };
+        let token = loginData.token;
+        const setupPw = 'OldPw123';
+        if (loginData.needs_password) {
+            const setResp = await fetch(base + '/api/student/set_password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ password: setupPw, confirm_password: setupPw })
+            });
+            const setData = await setResp.json();
+            if (!setData.success) return { step: 'set_password', setData };
+            token = setData.token;
+        }
+        const saveResp = await fetch(base + '/api/student/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                email: 'settings.updated@comet.test',
+                preferred_name: 'Setty',
+                dark_mode: true,
+                current_password: 'OldPw123',
+                new_password: 'NewPw123',
+                confirm_new_password: 'NewPw123'
+            })
+        });
+        const saveData = await saveResp.json();
+        const curResp = await fetch(base + '/api/student/current', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const curData = await curResp.json();
+        const login2Resp = await fetch(base + '/api/student/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ identifier: '765432109', password: 'NewPw123' })
+        });
+        const login2Data = await login2Resp.json();
+        return { saveData, curData, login2Data };
+    }""",
+        [live_server],
+    )
+
+    assert out["saveData"].get("success") is True, out
+    st = out["saveData"].get("student") or {}
+    assert st.get("preferred_name") == "Setty", out
+    assert st.get("email") == "settings.updated@comet.test", out
+    assert st.get("dark_mode") is True, out
+    cur = out["curData"].get("student") or {}
+    assert cur.get("dark_mode") is True, out
+    assert out["login2Data"].get("success") is True, out

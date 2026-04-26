@@ -83,7 +83,8 @@
         }
         .np-root.state-login .sleep-layer,
         .np-root.state-home .sleep-layer,
-        .np-root.state-session .sleep-layer {
+        .np-root.state-session .sleep-layer,
+        .np-root.state-grades .sleep-layer {
             display: none;
         }
         .panel-hidden { display: none !important; }
@@ -166,7 +167,8 @@
 
         /* Name display (home + session front): black on white */
         .np-root.state-home .np-front,
-        .np-root.state-session .np-front {
+        .np-root.state-session .np-front,
+        .np-root.state-grades .np-front {
             background: #fff !important;
         }
         .front-name-display {
@@ -245,6 +247,26 @@
             z-index: 3;
         }
         .btn-logout-home:hover { background-color: #3BA8C8; color: #FFFFFF; }
+        .btn-settings-home {
+            position: absolute;
+            right: 1.25rem;
+            bottom: 5.5rem;
+            width: 56px;
+            height: 56px;
+            background-color: #0B1E33;
+            color: #FFFFFF;
+            border-radius: 50%;
+            border: none;
+            padding: 0;
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(11, 30, 51, 0.22);
+            z-index: 3;
+        }
+        .btn-settings-home:hover { background-color: #1A2D4A; color: #FFFFFF; }
         .dashboard-content {
             flex: 1;
             overflow-y: auto;
@@ -726,6 +748,304 @@
         }
         .empty-classes { color: #6C757D; text-align: center; padding: 2rem; }
 
+        /* Grade-only view (inactive class) — matches Class Data gradebook metrics */
+        .back-inner-grades {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            color: #212529;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .grades-header {
+            flex-shrink: 0;
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .grades-header .grades-class-name {
+            font-size: clamp(1.25rem, 3.5vw, 1.65rem);
+            font-weight: 700;
+            color: #0B1E33;
+            margin: 0 0 0.25rem 0;
+        }
+        .grades-header .grades-class-code {
+            font-size: 0.95rem;
+            color: #57C5E4;
+            font-weight: 600;
+            margin: 0;
+        }
+        .grades-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 1rem 1.25rem 1.25rem;
+        }
+        .grades-table-wrap {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fafbfc;
+        }
+        .grades-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.9rem, 2.2vw, 1rem);
+        }
+        .grades-table th,
+        .grades-table td {
+            padding: 0.65rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .grades-table th {
+            background: #0B1E33;
+            color: #fff;
+            font-weight: 600;
+            width: 55%;
+        }
+        .grades-table tr:last-child th,
+        .grades-table tr:last-child td {
+            border-bottom: none;
+        }
+        .grades-table td {
+            font-weight: 600;
+            color: #0B1E33;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .grades-meter {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            width: 100%;
+        }
+        .grades-bar-track {
+            flex: 1;
+            min-width: 0;
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 9999px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(11, 30, 51, 0.08);
+        }
+        .grades-bar-fill {
+            height: 100%;
+            min-width: 0;
+            max-width: 100%;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #3BA8C8 0%, #57C5E4 100%);
+            transition: width 0.4s ease;
+        }
+        .grades-pct {
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+            min-width: 4.75rem;
+            text-align: right;
+            font-size: 0.9em;
+        }
+        .grades-subnote {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 0.75rem;
+            line-height: 1.4;
+        }
+        .grades-footer {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem 1.25rem;
+            gap: 1rem;
+            border-top: 2px solid #e5e7eb;
+            background: #fff;
+        }
+        .grades-loading, .grades-error {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #6c757d;
+        }
+        .grades-error { color: #dc3545; }
+
+        .back-inner-settings {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            color: #212529;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .settings-header {
+            flex-shrink: 0;
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .settings-title {
+            margin: 0;
+            color: #0B1E33;
+            font-weight: 700;
+            font-size: clamp(1.25rem, 3.5vw, 1.65rem);
+        }
+        .settings-content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 1rem 1.25rem;
+        }
+        .settings-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1rem;
+            background: #FFFFFF;
+        }
+        .settings-card .form-label {
+            font-weight: 600;
+            color: #0B1E33;
+        }
+        .settings-card .form-control {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            color: #0B1E33;
+        }
+        .settings-card .form-control:focus {
+            border-color: #57C5E4;
+            box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+            outline: none;
+        }
+        .settings-card .form-check-input:checked {
+            background-color: #57C5E4 !important;
+            border-color: #57C5E4 !important;
+        }
+        .settings-section-heading {
+            display: inline-block;
+            margin-bottom: 0.65rem;
+            padding-bottom: 0.15rem;
+            border-bottom: 2px solid #57C5E4;
+            line-height: 1.2;
+        }
+        .settings-footer {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem 1.25rem;
+            gap: 1rem;
+            border-top: 2px solid #e5e7eb;
+            background: #fff;
+        }
+        .settings-status {
+            margin-top: 0.75rem;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+        body.theme-dark .back-inner-home,
+        body.theme-dark .back-inner-grades,
+        body.theme-dark .back-inner-settings,
+        body.theme-dark .back-inner-session {
+            background: var(--comet-menu-dark) !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .dashboard-header,
+        body.theme-dark .grades-header,
+        body.theme-dark .settings-header,
+        body.theme-dark .settings-footer,
+        body.theme-dark .session-bottom,
+        body.theme-dark #backGlobalStatus {
+            background: var(--comet-menu-dark) !important;
+            color: var(--comet-menu-text) !important;
+            border-color: #122638 !important;
+        }
+        body.theme-dark .responsive-title,
+        body.theme-dark .settings-title,
+        body.theme-dark .grades-class-name,
+        body.theme-dark .grades-class-code,
+        body.theme-dark .grades-subnote,
+        body.theme-dark .settings-card .form-label,
+        body.theme-dark .settings-card .form-check-label {
+            color: #c5d4e3 !important;
+        }
+        body.theme-dark .settings-card,
+        body.theme-dark .grades-table-wrap {
+            background: var(--comet-menu-dark) !important;
+            border-color: #122638 !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .grades-table td,
+        body.theme-dark .grades-weekly-row,
+        body.theme-dark .grades-weekly-date,
+        body.theme-dark .grades-weekly-detail {
+            background: var(--comet-menu-dark) !important;
+            border-color: #122638 !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .settings-card .form-control,
+        body.theme-dark .settings-card .form-control:focus {
+            background-color: var(--comet-menu-dark-mid) !important;
+            border-color: #243e5a !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .settings-card .form-control::placeholder {
+            color: var(--comet-menu-muted) !important;
+        }
+        body.theme-dark .btn-settings-home {
+            background-color: #172f46 !important;
+            border-color: #243e5a !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .btn-settings-home:hover {
+            background-color: #223f56 !important;
+            color: var(--comet-menu-text) !important;
+        }
+
+        .grades-table th.grades-cat-heading {
+            cursor: pointer;
+            user-select: none;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .grades-table th.grades-cat-heading:hover,
+        .grades-table th.grades-cat-heading:focus-visible {
+            color: #B8E8F5;
+        }
+        .grades-weekly-empty {
+            text-align: center;
+            color: #6c757d;
+            padding: 1.5rem 0.5rem;
+            font-size: 0.95rem;
+        }
+        .grades-weekly-row {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid #e9ecef;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .grades-weekly-row:last-child { border-bottom: none; }
+        .grades-weekly-date {
+            flex: 0 0 38%;
+            min-width: 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #0B1E33;
+            line-height: 1.25;
+        }
+        .grades-weekly-meter {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .grades-weekly-detail {
+            flex: 1;
+            text-align: right;
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
         #peerParticipationModal .modal-content { border-radius: 15px; }
         #peerParticipationModal .modal-footer {
             justify-content: center;
@@ -819,6 +1139,9 @@
             <button type="button" class="btn-logout-home" id="btnLogoutHome" title="Logout" aria-label="Logout">
                 <i class="bi bi-box-arrow-right"></i>
             </button>
+            <button type="button" class="btn-settings-home" id="btnSettingsHome" title="Settings" aria-label="Settings">
+                <i class="bi bi-gear-fill"></i>
+            </button>
         </div>
 
         <!-- IN-CLASS SESSION -->
@@ -861,6 +1184,74 @@
             </div>
         </div>
 
+        <!-- Inactive class: gradebook row (same metrics as professor Class Data gradebook) -->
+        <div class="back-inner-grades panel-hidden" id="backGrades">
+            <div class="grades-header">
+                <h2 class="grades-class-name" id="gradesClassName"></h2>
+                <p class="grades-class-code" id="gradesClassCode"></p>
+            </div>
+            <div class="grades-scroll">
+                <div class="grades-loading" id="gradesLoading">Loading Grades…</div>
+                <div id="gradesError" class="grades-error panel-hidden"></div>
+                <div id="gradesContent" class="panel-hidden">
+                    <div class="grades-table-wrap">
+                        <table class="grades-table" aria-label="Your grades">
+                            <tbody id="gradesTableBody"></tbody>
+                        </table>
+                    </div>
+                    <p class="grades-subnote">Instructor and peer scores are the averages used for your participation grade (same as the instructor gradebook).</p>
+                </div>
+            </div>
+            <div class="grades-footer">
+                <button type="button" class="btn btn-circle home-btn" id="btnGradesHome" title="My Classes" aria-label="My Classes"><i class="bi bi-house-fill"></i></button>
+                <button type="button" class="btn btn-circle logout-session" id="btnGradesLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <div class="back-inner-settings panel-hidden" id="backSettings">
+            <div class="settings-header">
+                <h2 class="settings-title">Settings</h2>
+            </div>
+            <div class="settings-content">
+                <div class="settings-card">
+                    <form id="studentSettingsForm" autocomplete="off">
+                        <div class="mb-3">
+                            <label for="settingsEmail" class="form-label">Email</label>
+                            <input id="settingsEmail" type="email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="settingsPreferredName" class="form-label">Preferred Name</label>
+                            <input id="settingsPreferredName" type="text" class="form-control" maxlength="100">
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="settingsDarkMode">
+                            <label class="form-check-label" for="settingsDarkMode">Dark Mode</label>
+                        </div>
+                        <hr>
+                        <h6 class="fw-bold settings-section-heading">Change Password</h6>
+                        <div class="mb-3">
+                            <label for="settingsCurrentPassword" class="form-label">Current Password</label>
+                            <input id="settingsCurrentPassword" type="password" class="form-control" autocomplete="current-password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="settingsNewPassword" class="form-label">New Password</label>
+                            <input id="settingsNewPassword" type="password" class="form-control" autocomplete="new-password">
+                        </div>
+                        <div class="mb-2">
+                            <label for="settingsConfirmPassword" class="form-label">Confirm New Password</label>
+                            <input id="settingsConfirmPassword" type="password" class="form-control" autocomplete="new-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary-gradient fw-bold mt-2">Save Settings</button>
+                        <p class="settings-status text-muted" id="settingsStatus"></p>
+                    </form>
+                </div>
+            </div>
+            <div class="settings-footer">
+                <button type="button" class="btn btn-circle home-btn" id="btnSettingsBackHome" title="My Classes" aria-label="My Classes"><i class="bi bi-house-fill"></i></button>
+                <button type="button" class="btn btn-circle logout-session" id="btnSettingsLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+
         <!-- Peer rates classmate participation — scoped to back (student-facing) screen only -->
         <div id="peerParticipationDim" class="peer-participation-backdrop panel-hidden" aria-hidden="true"></div>
         <div class="modal fade" id="peerParticipationModal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true" aria-labelledby="peerParticipationModalLabel" aria-hidden="true">
@@ -888,6 +1279,24 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- Grades by class meeting (per category) -->
+<div class="modal fade" id="gradesWeeklyModal" tabindex="-1" aria-labelledby="gradesWeeklyModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="gradesWeeklyModalTitle">Grades by class meeting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-muted small mb-3 mb-md-2" id="gradesWeeklyModalHint"></p>
+                <div class="grades-loading py-4" id="gradesWeeklyLoading">Loading…</div>
+                <div id="gradesWeeklyError" class="grades-error panel-hidden"></div>
+                <div id="gradesWeeklyList" class="panel-hidden"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Create Password (first-time) -->
@@ -1381,6 +1790,213 @@
         return root.className.indexOf('state-home') >= 0;
     }
 
+    function fmtPct(n) {
+        var x = Number(n);
+        if (!Number.isFinite(x)) x = 0;
+        return x.toFixed(2) + '%';
+    }
+
+    function pctForBar(n) {
+        var x = Number(n);
+        if (!Number.isFinite(x)) x = 0;
+        return Math.max(0, Math.min(100, x));
+    }
+
+    var GRADES_WEEKLY_HINTS = {
+        attendance: 'Each row is one graded class meeting. The bar is 100% when you were present, 0% when absent.',
+        participation: 'Each row is your participation score for that class meeting (same rules as the course gradebook).',
+        instructor_participation: 'Daily instructor participation score matched to each class meeting date.',
+        peer_participation: 'Daily peer participation score matched to each class meeting date.',
+        poll: 'Your score on graded polls that occurred during that class meeting.',
+        quiz: 'Quiz rows show only class meetings where quizzes were given, with the quiz name and your grade.',
+        overall: 'Approximate combined score for that meeting using the same weights as your overall grade.'
+    };
+
+    function formatMeetingDate(iso) {
+        if (!iso) return '—';
+        var s = String(iso).trim();
+        var hasZone = /[zZ]$/.test(s) || /[+-]\d{2}:?\d{2}$/.test(s);
+        if (!hasZone && /^\d{4}-\d{2}-\d{2}T/.test(s)) s = s + 'Z';
+        var ms = Date.parse(s);
+        if (!Number.isFinite(ms)) return '—';
+        return new Date(ms).toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+
+    function weeklyDetailLabel(detail) {
+        var m = {
+            excused: 'Excused',
+            absent: 'Absent',
+            not_attended: 'Not in session',
+            no_record: 'No grade recorded',
+            no_polls: 'No graded polls',
+            no_quizzes: 'No quizzes'
+        };
+        return m[detail] || (detail ? String(detail).replace(/_/g, ' ') : '');
+    }
+
+    function renderGradesWeeklyRows(weeks, category) {
+        var wrap = document.getElementById('gradesWeeklyList');
+        if (!wrap) return;
+        if (!weeks || !weeks.length) {
+            wrap.innerHTML = '<div class="grades-weekly-empty">No graded class meetings yet.</div>';
+            return;
+        }
+        if (category === 'quiz') {
+            wrap.innerHTML = weeks.map(function (w) {
+                var dateLabel = formatMeetingDate(w.session_start);
+                var quizLabel = (w.quiz_label && String(w.quiz_label).trim())
+                    ? String(w.quiz_label).trim()
+                    : ('Quiz ' + String(w.quiz_index || ''));
+                return (
+                    '<div class="grades-weekly-row">' +
+                    '<div class="grades-weekly-date">' + escapeHtml(dateLabel) + '</div>' +
+                    '<div class="grades-weekly-detail">' + escapeHtml(quizLabel) + ' · ' + fmtPct(w.value) + '</div>' +
+                    '</div>'
+                );
+            }).join('');
+            return;
+        }
+        wrap.innerHTML = weeks.map(function (w) {
+            var label = formatMeetingDate(w.session_start);
+            if (w.value != null && Number.isFinite(Number(w.value))) {
+                var pct = pctForBar(w.value);
+                var pctStr = fmtPct(w.value);
+                return (
+                    '<div class="grades-weekly-row">' +
+                    '<div class="grades-weekly-date">' + escapeHtml(label) + '</div>' +
+                    '<div class="grades-weekly-meter">' +
+                    '<div class="grades-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '">' +
+                    '<div class="grades-bar-fill" style="width:' + pct + '%"></div>' +
+                    '</div>' +
+                    '<span class="grades-pct">' + pctStr + '</span>' +
+                    '</div></div>'
+                );
+            }
+            var dlab = weeklyDetailLabel(w.detail);
+            return (
+                '<div class="grades-weekly-row">' +
+                '<div class="grades-weekly-date">' + escapeHtml(label) + '</div>' +
+                '<div class="grades-weekly-detail">' + escapeHtml(dlab || '—') + '</div>' +
+                '</div>'
+            );
+        }).join('');
+    }
+
+    async function openGradesWeeklyModal(category, titleLabel) {
+        if (!currentClassId) return;
+        var modalEl = document.getElementById('gradesWeeklyModal');
+        var loadEl = document.getElementById('gradesWeeklyLoading');
+        var errEl = document.getElementById('gradesWeeklyError');
+        var listEl = document.getElementById('gradesWeeklyList');
+        var hintEl = document.getElementById('gradesWeeklyModalHint');
+        var titleEl = document.getElementById('gradesWeeklyModalTitle');
+        if (!modalEl || !loadEl || !listEl) return;
+        if (titleEl) titleEl.textContent = (titleLabel || category) + ' — by class meeting';
+        if (hintEl) hintEl.textContent = GRADES_WEEKLY_HINTS[category] || '';
+        loadEl.classList.remove('panel-hidden');
+        if (errEl) { errEl.classList.add('panel-hidden'); errEl.textContent = ''; }
+        listEl.classList.add('panel-hidden');
+        listEl.innerHTML = '';
+        if (typeof bootstrap !== 'undefined') {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+        try {
+            var res = await studentFetch(
+                '/api/student/gradebook/' + currentClassId + '/weekly?category=' + encodeURIComponent(category),
+                {}
+            );
+            var data = await res.json();
+            loadEl.classList.add('panel-hidden');
+            if (!data.success) {
+                if (errEl) {
+                    errEl.textContent = data.error || 'Could not load breakdown.';
+                    errEl.classList.remove('panel-hidden');
+                }
+                return;
+            }
+            renderGradesWeeklyRows(data.weeks || [], category);
+            listEl.classList.remove('panel-hidden');
+        } catch (e) {
+            console.error(e);
+            loadEl.classList.add('panel-hidden');
+            if (errEl) {
+                errEl.textContent = 'Could not load breakdown.';
+                errEl.classList.remove('panel-hidden');
+            }
+        }
+    }
+
+    function renderStudentGradesTable(g) {
+        var tbody = document.getElementById('gradesTableBody');
+        if (!tbody || !g) return;
+        var rows = [
+            ['attendance', 'Attendance', g.attendance_grade],
+            ['participation', 'Participation', g.participation_grade],
+            ['instructor_participation', 'Instructor Participation', g.instructor_participation],
+            ['peer_participation', 'Peer Participation', g.peer_participation],
+            ['poll', 'Poll', g.poll_grade],
+            ['quiz', 'Quiz', g.quiz_grade],
+            ['overall', 'Overall', g.overall_grade]
+        ];
+        tbody.innerHTML = rows.map(function (r) {
+            var cat = r[0];
+            var label = r[1];
+            var val = r[2];
+            var w = pctForBar(val);
+            var pctLabel = fmtPct(val);
+            var titleAttr = escapeHtml(label);
+            var ariaLab = escapeHtml(label + ', view by class meeting');
+            var clickable = cat !== 'overall';
+            var thClass = clickable ? 'grades-cat-heading' : '';
+            var tabIndex = clickable ? '0' : '-1';
+            var roleAttr = clickable ? 'button' : 'rowheader';
+            var dataCategoryAttr = clickable ? cat : '';
+            var dataTitleAttr = clickable ? titleAttr : '';
+            var ariaLabelAttr = clickable ? ariaLab : escapeHtml(label);
+            return (
+                '<tr><th scope="row" class="' + thClass + '" tabindex="' + tabIndex + '" role="' + roleAttr + '" data-category="' + dataCategoryAttr + '" data-title="' + dataTitleAttr + '" aria-label="' + ariaLabelAttr + '">' + label + '</th><td>' +
+                '<div class="grades-meter">' +
+                '<div class="grades-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + w + '" aria-label="' + label + ': ' + pctLabel + '">' +
+                '<div class="grades-bar-fill" style="width:' + w + '%"></div>' +
+                '</div>' +
+                '<span class="grades-pct">' + pctLabel + '</span>' +
+                '</div></td></tr>'
+            );
+        }).join('');
+    }
+
+    (function setupGradesCategoryClicks() {
+        var tbody = document.getElementById('gradesTableBody');
+        if (!tbody) return;
+        function activateFromTh(th) {
+            if (!th || !th.classList.contains('grades-cat-heading')) return;
+            var cat = th.getAttribute('data-category');
+            if (!cat || cat === 'overall') return;
+            var ttl = th.getAttribute('data-title') || '';
+            if (cat) openGradesWeeklyModal(cat, ttl);
+        }
+        tbody.addEventListener('click', function (e) {
+            var th = e.target.closest('.grades-cat-heading');
+            if (th) activateFromTh(th);
+        });
+        tbody.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var th = e.target.closest('.grades-cat-heading');
+            if (th) {
+                e.preventDefault();
+                activateFromTh(th);
+            }
+        });
+    })();
+
     function stopStudentLiveUpdates() {
         if (homeListPollTimer) {
             clearInterval(homeListPollTimer);
@@ -1411,9 +2027,13 @@
         var login = document.getElementById('backLogin');
         var home = document.getElementById('backHome');
         var sess = document.getElementById('backSession');
+        var grades = document.getElementById('backGrades');
+        var settings = document.getElementById('backSettings');
         var bar = document.getElementById('backGlobalStatus');
         if (!bar || !login || !home || !sess) return;
-        var show = !login.classList.contains('panel-hidden') || !home.classList.contains('panel-hidden') || !sess.classList.contains('panel-hidden');
+        var gradesVisible = grades && !grades.classList.contains('panel-hidden');
+        var settingsVisible = settings && !settings.classList.contains('panel-hidden');
+        var show = !login.classList.contains('panel-hidden') || !home.classList.contains('panel-hidden') || !sess.classList.contains('panel-hidden') || gradesVisible || settingsVisible;
         bar.classList.toggle('panel-hidden', !show);
     }
 
@@ -1425,6 +2045,10 @@
         document.getElementById('frontNameWrap').classList.add('panel-hidden');
         document.getElementById('backHome').classList.add('panel-hidden');
         document.getElementById('backSession').classList.add('panel-hidden');
+        var bg = document.getElementById('backGrades');
+        if (bg) bg.classList.add('panel-hidden');
+        var bs = document.getElementById('backSettings');
+        if (bs) bs.classList.add('panel-hidden');
         syncBackStatusBarVisibility();
     }
 
@@ -1526,6 +2150,53 @@
         scheduleFitFrontName();
     }
 
+    function applyStudentDarkMode(enabled) {
+        document.body.classList.toggle('theme-dark', !!enabled);
+    }
+
+    function clearSettingsStatus() {
+        var s = document.getElementById('settingsStatus');
+        if (!s) return;
+        s.textContent = '';
+        s.className = 'settings-status text-muted';
+    }
+
+    async function loadStudentSettingsForm() {
+        clearSettingsStatus();
+        var res = await studentFetch('/api/student/settings', {});
+        var data = await res.json();
+        if (!data.success || !data.settings) {
+            throw new Error(data.error || 'Could not load settings');
+        }
+        document.getElementById('settingsEmail').value = data.settings.email || '';
+        document.getElementById('settingsPreferredName').value = data.settings.preferred_name || '';
+        document.getElementById('settingsDarkMode').checked = !!data.settings.dark_mode;
+        document.getElementById('settingsCurrentPassword').value = '';
+        document.getElementById('settingsNewPassword').value = '';
+        document.getElementById('settingsConfirmPassword').value = '';
+    }
+
+    async function openStudentSettings() {
+        stopStudentLiveUpdates();
+        setState('home');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        var bg = document.getElementById('backGrades');
+        if (bg) bg.classList.add('panel-hidden');
+        var bs = document.getElementById('backSettings');
+        if (bs) bs.classList.remove('panel-hidden');
+        syncBackStatusBarVisibility();
+        try {
+            await loadStudentSettingsForm();
+        } catch (e) {
+            var s = document.getElementById('settingsStatus');
+            if (s) {
+                s.textContent = 'Could not load settings.';
+                s.className = 'settings-status text-danger';
+            }
+        }
+    }
+
     window.addEventListener('resize', function () {
         if (!document.getElementById('frontNameWrap').classList.contains('panel-hidden')) {
             scheduleFitFrontName();
@@ -1549,6 +2220,7 @@
             if (data.success && data.needs_password) {
                 if (data.token) setStudentToken(data.token);
                 currentStudent = data.student;
+                applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
                 document.getElementById('loginPassword').value = '';
                 new bootstrap.Modal(document.getElementById('createPasswordModal')).show();
                 return;
@@ -1556,6 +2228,7 @@
             if (data.success && data.student) {
                 if (data.token) setStudentToken(data.token);
                 currentStudent = data.student;
+                applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
                 await enterHome();
                 return;
             }
@@ -1592,6 +2265,7 @@
             if (data.token) setStudentToken(data.token);
             bootstrap.Modal.getInstance(document.getElementById('createPasswordModal')).hide();
             currentStudent = Object.assign({}, currentStudent, data.student);
+            applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
             document.getElementById('newPassword').value = '';
             document.getElementById('newPasswordConfirm').value = '';
             await enterHome();
@@ -1693,8 +2367,13 @@
         document.getElementById('frontNameWrap').classList.remove('panel-hidden');
         document.getElementById('backHome').classList.remove('panel-hidden');
         document.getElementById('backSession').classList.add('panel-hidden');
+        var bgEl = document.getElementById('backGrades');
+        if (bgEl) bgEl.classList.add('panel-hidden');
+        var bsEl = document.getElementById('backSettings');
+        if (bsEl) bsEl.classList.add('panel-hidden');
         currentClassId = null;
         currentClassMeta = null;
+        applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
         updateFrontName();
         renderClassCards();
         await ensureStudentSocketReady();
@@ -1712,6 +2391,58 @@
         const data = await res.json();
         if (!data.success) {
             alert(data.error || 'Could not join class');
+            return;
+        }
+        if (data.view_mode === 'grades') {
+            currentClassId = c.id;
+            currentClassMeta = Object.assign({}, c);
+            if (typeof data.show_first_name_only === 'boolean') {
+                currentClassMeta.show_first_name_only = data.show_first_name_only;
+            }
+            if (data.first_name_only_display != null && data.first_name_only_display !== '') {
+                currentClassMeta.first_name_only_display = data.first_name_only_display;
+            }
+            stopStudentLiveUpdates();
+            await ensureStudentSocketReady();
+            requestJoinStudentEnrollments();
+            setState('grades');
+            document.getElementById('backHome').classList.add('panel-hidden');
+            document.getElementById('backSession').classList.add('panel-hidden');
+            var bs = document.getElementById('backSettings');
+            if (bs) bs.classList.add('panel-hidden');
+            var bg = document.getElementById('backGrades');
+            if (bg) bg.classList.remove('panel-hidden');
+            document.getElementById('gradesClassName').textContent = c.name || '';
+            document.getElementById('gradesClassCode').textContent = c.class_code || '';
+            var gl = document.getElementById('gradesLoading');
+            var ge = document.getElementById('gradesError');
+            var gc = document.getElementById('gradesContent');
+            if (gl) gl.classList.remove('panel-hidden');
+            if (ge) { ge.classList.add('panel-hidden'); ge.textContent = ''; }
+            if (gc) gc.classList.add('panel-hidden');
+            updateFrontName();
+            syncBackStatusBarVisibility();
+            try {
+                var gr = await studentFetch('/api/student/gradebook/' + c.id, {});
+                var gd = await gr.json();
+                if (gl) gl.classList.add('panel-hidden');
+                if (!gd.success || !gd.grades) {
+                    if (ge) {
+                        ge.textContent = (gd && gd.error) ? gd.error : 'Could not load grades.';
+                        ge.classList.remove('panel-hidden');
+                    }
+                    return;
+                }
+                renderStudentGradesTable(gd.grades);
+                if (gc) gc.classList.remove('panel-hidden');
+            } catch (err) {
+                console.error(err);
+                if (gl) gl.classList.add('panel-hidden');
+                if (ge) {
+                    ge.textContent = 'Could not load grades.';
+                    ge.classList.remove('panel-hidden');
+                }
+            }
             return;
         }
         currentClassId = c.id;
@@ -1733,6 +2464,8 @@
         setState('session');
         document.getElementById('backHome').classList.add('panel-hidden');
         document.getElementById('backSession').classList.remove('panel-hidden');
+        var bsLive = document.getElementById('backSettings');
+        if (bsLive) bsLive.classList.add('panel-hidden');
         document.getElementById('sessionClassName').textContent = c.name;
         document.getElementById('sessionClassCode').textContent = c.class_code;
         applyQuietParticipationUI();
@@ -1910,6 +2643,8 @@
                 resetDefaultFrontPlate();
                 setState('home');
                 document.getElementById('backSession').classList.add('panel-hidden');
+                var bgStop = document.getElementById('backGrades');
+                if (bgStop) bgStop.classList.add('panel-hidden');
                 document.getElementById('backHome').classList.remove('panel-hidden');
                 updateFrontName();
                 renderClassCards();
@@ -2122,6 +2857,8 @@
         setState('home');
         document.getElementById('backSession').classList.add('panel-hidden');
         document.getElementById('backHome').classList.remove('panel-hidden');
+        var bs = document.getElementById('backSettings');
+        if (bs) bs.classList.add('panel-hidden');
         updateFrontName();
         renderClassCards();
         await ensureStudentSocketReady();
@@ -2162,14 +2899,93 @@
         document.getElementById('frontNameWrap').classList.add('panel-hidden');
         document.getElementById('backHome').classList.add('panel-hidden');
         document.getElementById('backSession').classList.add('panel-hidden');
+        var bgl = document.getElementById('backGrades');
+        if (bgl) bgl.classList.add('panel-hidden');
+        var bsl = document.getElementById('backSettings');
+        if (bsl) bsl.classList.add('panel-hidden');
         document.getElementById('frontLoginBlank').classList.add('panel-hidden');
         document.getElementById('backLogin').classList.add('panel-hidden');
+        applyStudentDarkMode(false);
         setState('sleep');
         syncBackStatusBarVisibility();
     }
 
     document.getElementById('btnLogoutHome').addEventListener('click', () => doLogout(false));
+    document.getElementById('btnSettingsHome').addEventListener('click', async function () {
+        await openStudentSettings();
+    });
     document.getElementById('btnSessionLogout').addEventListener('click', () => doLogout(true));
+
+    document.getElementById('btnGradesHome').addEventListener('click', async function () {
+        currentClassId = null;
+        currentClassMeta = null;
+        var bgr = document.getElementById('backGrades');
+        if (bgr) bgr.classList.add('panel-hidden');
+        myClasses = await loadClasses();
+        setState('home');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.remove('panel-hidden');
+        updateFrontName();
+        renderClassCards();
+        await ensureStudentSocketReady();
+        requestJoinStudentEnrollments();
+        startStudentLiveUpdates();
+        syncBackStatusBarVisibility();
+    });
+    document.getElementById('btnGradesLogout').addEventListener('click', () => doLogout(false));
+    document.getElementById('btnSettingsBackHome').addEventListener('click', async function () {
+        await enterHome();
+    });
+    document.getElementById('btnSettingsLogout').addEventListener('click', () => doLogout(false));
+
+    document.getElementById('studentSettingsForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var status = document.getElementById('settingsStatus');
+        if (status) {
+            status.textContent = 'Saving...';
+            status.className = 'settings-status text-muted';
+        }
+        try {
+            var payload = {
+                email: document.getElementById('settingsEmail').value.trim(),
+                preferred_name: document.getElementById('settingsPreferredName').value.trim(),
+                dark_mode: document.getElementById('settingsDarkMode').checked,
+                current_password: document.getElementById('settingsCurrentPassword').value,
+                new_password: document.getElementById('settingsNewPassword').value,
+                confirm_new_password: document.getElementById('settingsConfirmPassword').value
+            };
+            var res = await studentFetch('/api/student/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            var data = await res.json();
+            if (!data.success) {
+                if (status) {
+                    status.textContent = data.error || 'Could not save settings.';
+                    status.className = 'settings-status text-danger';
+                }
+                return;
+            }
+            if (data.student) {
+                currentStudent = Object.assign({}, currentStudent || {}, data.student);
+            }
+            applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
+            updateFrontName();
+            document.getElementById('settingsCurrentPassword').value = '';
+            document.getElementById('settingsNewPassword').value = '';
+            document.getElementById('settingsConfirmPassword').value = '';
+            if (status) {
+                status.textContent = data.message || 'Settings saved.';
+                status.className = 'settings-status text-success';
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Could not save settings.';
+                status.className = 'settings-status text-danger';
+            }
+        }
+    });
 
     function showPeerParticipationBackdrop() {
         var dim = document.getElementById('peerParticipationDim');
@@ -2315,6 +3131,7 @@
             }
             if (d.success && d.student) {
                 currentStudent = d.student;
+                applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
                 myClasses = await loadClasses();
                 setState('home');
                 document.getElementById('frontLoginBlank').classList.add('panel-hidden');
@@ -2322,6 +3139,10 @@
                 document.getElementById('frontNameWrap').classList.remove('panel-hidden');
                 document.getElementById('backHome').classList.remove('panel-hidden');
                 document.getElementById('backSession').classList.add('panel-hidden');
+                var bgInit = document.getElementById('backGrades');
+                if (bgInit) bgInit.classList.add('panel-hidden');
+                var bsInit = document.getElementById('backSettings');
+                if (bsInit) bsInit.classList.add('panel-hidden');
                 updateFrontName();
                 renderClassCards();
                 await ensureStudentSocketReady();
