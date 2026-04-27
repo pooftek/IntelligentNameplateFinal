@@ -1,0 +1,28 @@
+---
+description: Apply when modifying grading logic — GradingWeights, ParticipationGradeRound, attendance scoring, poll grading, or gradebook export.
+alwaysApply: false
+---
+
+## Grading System
+
+Four grade categories, each with a weight in `GradingWeights` per class:
+- **Attendance** — auto-recorded on student join during active `ClassSession`
+- **Polls** — `PollResponse` records per `Poll`; polls can be graded or ungraded
+- **Instructor participation** — `InstructorParticipationGrade`, one per `ParticipationGradeRound`
+- **Peer participation** — `PeerParticipationGrade`, multiple per `ParticipationGradeRound`
+
+## ParticipationGradeRound Flow
+
+1. Professor starts round → creates `ParticipationGradeRound` with subject student
+2. Instructor submits → `InstructorParticipationGrade` (unique per round)
+3. Peers submit → `PeerParticipationGrade` (many per round, one per student)
+4. Round ends → `_recompute_subject_participation_grades()` recalculates stored grades
+5. Rounds can be excluded or deleted — recomputation runs again
+
+## Key Rules
+
+- Always call `_recompute_subject_participation_grades(class_id, subject_student_id, grade_date)` after any change to participation grades or round exclusion.
+- `GradingWeights` weights must sum to 1.0 — validate before saving.
+- Gradebook export writes openpyxl workbook — match existing column order and style.
+- Never delete a `ClassSession` with `Attendance` records without handling attendance impact first.
+- Absence exemptions reduce attendance denominator — account for them in grade computation.

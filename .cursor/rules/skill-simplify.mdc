@@ -1,0 +1,29 @@
+---
+description: Run when asked to simplify, clean up, or reduce changed code.
+alwaysApply: false
+---
+
+Review changed code. Goal: minimum code that correctly solves the problem.
+
+**Over-engineering:**
+- Abstractions for a single call site → inline
+- Helpers wrapping one line → remove
+- Collapsible conditionals → collapse
+- Dead branches → remove
+
+**Redundancy:**
+- Duplicate DB queries for same object → deduplicate
+- Re-validation of already-validated data → remove
+- Variables assigned once, used once → inline
+
+**Style drift (must match existing `app.py`):**
+- No type hints
+- No `select()` / `session.scalars()` — use `.query.filter_by()`
+- No `flask.g` for request data
+- Match surrounding f-string vs % formatting
+
+**Token waste:**
+- Comments explaining obvious code → remove
+- Docstrings longer than one line on internal functions → trim
+
+Show: original → simplified. Don't touch code outside the changed area.

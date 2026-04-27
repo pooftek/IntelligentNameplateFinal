@@ -1,0 +1,34 @@
+---
+description: Run when asked to review code before committing. Checks correctness and logic bugs.
+alwaysApply: false
+---
+
+Review for correctness. Focus on bugs, not style.
+
+**Grading (if touched):**
+- `_recompute_subject_participation_grades()` called after any participation grade change
+- `GradingWeights` weights validated to sum to 1.0
+- Absence exemptions in attendance denominator
+- Ungraded polls excluded from poll grade computation
+
+**Auth (if touched):**
+- Professor route: `class_id` ownership verified against `current_user.id`
+- Student route: `_authenticated_student_id()` result checked for None
+- Token expiry respected
+
+**SocketIO (if touched):**
+- Correct rooms targeted — `class_{id}` vs `enrolled_{id}` vs both
+- No blocking operations in event handlers
+- Room join/leave balanced
+
+**DB (if touched):**
+- No N+1 in loops over students/sessions
+- `Class.is_active` consistent with open `ClassSession`
+- New nullable=False columns have defaults
+
+**General:**
+- All conditional branches handled — no silent fall-through
+- Error responses return JSON, not HTML
+- No unhandled exceptions exposing stack traces
+
+Report: `[file:line] problem — fix`. Flag blocking bugs separately from warnings.
