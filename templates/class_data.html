@@ -1,0 +1,2554 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — Data: {{ class_obj.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        background: #FFFFFF !important;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+    }
+    .class-data-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .class-data-header {
+        flex-shrink: 0;
+        padding: 2rem 8rem 1.25rem;
+    }
+    .class-data-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+    .class-data-header-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1;
+    }
+    .class-data-header-icon {
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        color: #0B1E33;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+    .responsive-title {
+        font-family: 'Inter', sans-serif;
+        font-size: clamp(2.5rem, 6.25vw, 3.75rem);
+        font-weight: 600;
+        color: #0B1E33;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .class-data-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-shrink: 0;
+    }
+    .btn-return-home {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-decoration: none;
+    }
+    .btn-return-home:hover {
+        background-color: #3BA8C8 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* ── Tabs nav ── */
+    .class-data-tabs-nav {
+        flex-shrink: 0;
+        padding: 0 8rem;
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .tab-pill {
+        border: none;
+        border-radius: 9999px;
+        padding: 0.5rem 1.5rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        background: transparent;
+        color: #9ca3af;
+        transition: background 0.15s, color 0.15s;
+    }
+    .tab-pill.active {
+        background-color: #0B1E33;
+        color: #FFFFFF;
+    }
+
+    /* ── Content area ── */
+    .class-data-content {
+        flex: 1;
+        min-height: 0;
+        overflow: visible;
+        padding: 0 8rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Tab panels — each handles its own scroll */
+    .tab-panel { display: none; flex-direction: column; flex: 1; min-height: 0; gap: 1rem; overflow: hidden; }
+    .tab-panel.active { display: flex; }
+
+    /* Tab panels that scroll as one unit (gradebook table, grading form, metrics) */
+    #panelGradebook,
+    #panelMetrics,
+    #panelGrading,
+    #panelQuiz {
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: 1.5rem;
+    }
+    #panelGradebook::-webkit-scrollbar,
+    #panelMetrics::-webkit-scrollbar,
+    #panelGrading::-webkit-scrollbar,
+    #panelQuiz::-webkit-scrollbar { width: 8px; }
+    #panelGradebook::-webkit-scrollbar-track,
+    #panelMetrics::-webkit-scrollbar-track,
+    #panelGrading::-webkit-scrollbar-track,
+    #panelQuiz::-webkit-scrollbar-track { background: transparent; }
+    #panelGradebook::-webkit-scrollbar-thumb,
+    #panelMetrics::-webkit-scrollbar-thumb,
+    #panelGrading::-webkit-scrollbar-thumb,
+    #panelQuiz::-webkit-scrollbar-thumb {
+        background: rgba(11,30,51,0.2);
+        border-radius: 4px;
+    }
+    .quiz-tab-card {
+        background: #FFFFFF;
+        border: 1px solid #e5e7eb;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 4px 14px rgba(11,30,51,0.08);
+        max-width: 48rem;
+        width: 100%;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+    .quiz-tab-card .quiz-tab-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #0B1E33;
+        margin-bottom: 0.35rem;
+    }
+    .quiz-tab-card .quiz-plan-lock-notice .alert {
+        margin-bottom: 0;
+    }
+    .quiz-tab-card .quiz-upload-fields-disabled {
+        opacity: 0.55;
+    }
+    .quiz-tab-card .quiz-upload-fields-disabled input,
+    .quiz-tab-card .quiz-upload-fields-disabled button {
+        pointer-events: none;
+    }
+    #quizClassDataListContainer table {
+        margin-bottom: 0;
+    }
+    #pollClassDataListContainer table {
+        margin-bottom: 0;
+    }
+    #quizClassDataListContainer .table thead th {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        color: #0B1E33;
+        background: #f1f5f9;
+    }
+    #pollClassDataListContainer .table thead th {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        color: #0B1E33;
+        background: #f1f5f9;
+    }
+    .poll-set-group {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        margin-bottom: 0.6rem;
+        overflow: hidden;
+        background: #fff;
+    }
+    .poll-set-header {
+        width: 100%;
+        border: none;
+        background: #f8fafc;
+        color: #0B1E33;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-align: left;
+        padding: 0.6rem 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    .poll-set-header:hover {
+        background: #eef2f7;
+    }
+    .poll-set-caret {
+        font-size: 0.85rem;
+        color: #6b7280;
+    }
+    .poll-set-content {
+        display: none;
+        padding: 0.5rem;
+        background: #ffffff;
+    }
+    .poll-set-content.expanded {
+        display: block;
+    }
+    #quizClassDataListContainer .quiz-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border-radius: 9999px;
+        padding: 0.2rem 0.65rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+    }
+    #quizClassDataListContainer .quiz-status-badge.live {
+        background: #57C5E4;
+        color: #FFFFFF;
+    }
+    #quizClassDataListContainer .quiz-status-badge.ready {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    /* ── Gradebook toolbar ── */
+    .gradebook-toolbar {
+        flex-shrink: 0;
+    }
+    .btn-tron-pill {
+        border-radius: 9999px;
+        background-color: #57C5E4;
+        color: #FFFFFF !important;
+        min-width: 130px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        padding: 0 1.25rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        gap: 0.4rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        text-decoration: none;
+    }
+    .btn-tron-pill:hover { background-color: #3BA8C8; color: #FFFFFF; }
+
+    /* ── Table ── */
+    .table-container {
+        border-radius: 12px;
+        box-shadow: 0 4px 14px rgba(11,30,51,0.10);
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .data-table {
+        table-layout: fixed;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        box-shadow: none;
+    }
+    .data-table thead th {
+        background-color: #0B1E33;
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 0.65rem 0.75rem;
+        font-family: 'Inter', sans-serif;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .data-table thead th:first-child { border-top-left-radius: 12px; }
+    .data-table thead th:last-child  { border-top-right-radius: 12px; }
+    .data-table tbody tr:last-child td:first-child { border-bottom-left-radius: 12px; }
+    .data-table tbody tr:last-child td:last-child  { border-bottom-right-radius: 12px; }
+    .data-table tbody td {
+        padding: 0.45rem 0.75rem;
+        vertical-align: middle;
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+        border: none;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .data-table > tbody > tr:nth-of-type(odd)  > td { background-color: #FFFFFF !important; }
+    .data-table > tbody > tr:nth-of-type(even) > td { background-color: #f1f5f9 !important; }
+    .data-table > tbody > tr:hover             > td { background-color: #e2f4fb !important; }
+    .sortable { cursor: pointer; user-select: none; }
+    .sortable:hover { background-color: #1a3552; }
+    .sortable::after { content: ' ↕'; opacity: 0.5; font-size: 0.8em; margin-left: 0.25rem; }
+    .sortable.asc::after  { content: ' ↑'; opacity: 1; }
+    .sortable.desc::after { content: ' ↓'; opacity: 1; }
+
+    /* ── Grading tab ── */
+    #panelGrading {
+        align-items: stretch;
+        gap: 0;
+    }
+    #gradingContent {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        justify-content: center;
+        align-items: flex-start;
+        overflow: visible;
+        padding-bottom: 0.5rem;
+    }
+    .participation-split-nested {
+        margin-top: 0.35rem;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+    }
+    .participation-split-nested-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        font-family: 'Inter', sans-serif;
+    }
+    .grading-quiz-section {
+        margin-top: 0.25rem;
+        padding: 0.85rem 1rem;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+    .grading-quiz-section .form-group { margin-bottom: 0; }
+    .grading-form-card {
+        background: #FFFFFF;
+        border: 1px solid #e5e7eb;
+        border-radius: var(--card-border-radius);
+        padding: 1.5rem clamp(1rem, 4vw, 2.75rem);
+        max-width: min(640px, 100%);
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        flex: 0 1 auto;
+        min-height: auto;
+        box-sizing: border-box;
+        overflow: visible;
+    }
+    .grading-form-title {
+        text-align: center;
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 1.4rem;
+        color: #0B1E33;
+        margin-bottom: 0.25rem;
+    }
+    .grading-form-subtitle {
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+    .grading-divider {
+        border: none;
+        border-top: 2px solid #e5e7eb;
+        margin: 0.9rem 0;
+    }
+    .grading-fields-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        flex: none;
+        min-height: auto;
+    }
+    .grading-form-card .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        margin-bottom: 0;
+    }
+    .grading-form-card .form-group-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem 1rem;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+    .grading-form-card label {
+        font-family: 'Inter', sans-serif;
+        font-weight: 400;
+        color: #0B1E33;
+        font-size: 0.9rem;
+        margin: 0;
+        flex: 1 1 12rem;
+        min-width: 0;
+        white-space: normal;
+        line-height: 1.35;
+    }
+    .grading-form-card .form-control {
+        border: 1.5px solid #d1d5db;
+        border-radius: 8px;
+        padding: 0.45rem 0.65rem;
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+        width: 5.5rem;
+        min-width: 5.5rem;
+        max-width: 100%;
+        flex-shrink: 0;
+        text-align: center;
+    }
+    .grading-form-card .form-control:focus {
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.15rem rgba(87,197,228,0.25);
+        outline: none;
+    }
+    .help-text {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.15rem;
+        font-family: 'Inter', sans-serif;
+    }
+    .weight-total {
+        background: #f8fafc;
+        border: 2px solid #d1d5db;
+        border-radius: 10px;
+        padding: 0.65rem 1rem;
+        text-align: center;
+        margin-top: 1.25rem;
+        flex-shrink: 0;
+        clear: both;
+    }
+    .weight-total.valid   { border-color: #28a745; background: #f0fdf4; }
+    .weight-total.invalid { border-color: #dc3545; background: #fff5f5; }
+    .weight-total-label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.1rem; }
+    .weight-total-value { font-size: 1.1rem; font-weight: 700; color: #0B1E33; }
+    .grading-form-card form {
+        display: flex;
+        flex-direction: column;
+        flex: none;
+        min-height: auto;
+        overflow: visible;
+    }
+    .grading-actions-bar {
+        margin-top: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.6rem;
+        flex-shrink: 0;
+    }
+    .grading-actions-btns {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+    .btn-grading-cancel {
+        border-radius: 9999px;
+        background-color: #e5e7eb;
+        color: #374151;
+        min-width: 130px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        padding: 0 1.25rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-grading-cancel:hover { background-color: #d1d5db; }
+    #gradingMessage { width: 100%; text-align: center; }
+    #gradingMessage .alert { margin: 0; border-radius: 9999px; padding: 0.5rem 1.25rem; font-size: 0.9rem; }
+
+    /* ── Metrics: session banners ── */
+    .session-banner {
+        border-radius: var(--card-border-radius);
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
+        margin-bottom: 1rem;
+        flex-shrink: 0;
+    }
+    .session-banner-header {
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #0B1E33;
+        cursor: pointer;
+        gap: 1rem;
+        transition: background-color 0.15s;
+    }
+    .session-banner-header:hover { background-color: #162e4d; }
+    .session-banner.open .session-banner-header {
+        background-color: #040E1A;
+    }
+    .session-banner.open .session-banner-header:hover {
+        background-color: #071628;
+    }
+    .session-banner-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #FFFFFF;
+        margin: 0;
+        flex: 1;
+    }
+    .session-banner-toggle {
+        font-size: 1.25rem;
+        color: #FFFFFF;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.2em;
+        height: 1.2em;
+        flex-shrink: 0;
+    }
+    .session-banner-toggle svg { width: 100%; height: 100%; fill: currentColor; display: block; }
+
+    .session-banner-content {
+        display: none;
+        background: #0B1E33;
+        padding: 1.5rem;
+    }
+    .session-banner-content.expanded { display: block; }
+
+    .session-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1.5px solid rgba(255,255,255,0.15);
+    }
+    .session-times {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.875rem;
+        color: rgba(255,255,255,0.7);
+        line-height: 1.6;
+    }
+    .session-times strong { color: #FFFFFF; }
+    .delete-session-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 9999px;
+        padding: 0.4rem 1.1rem;
+        font-size: 0.875rem;
+        font-family: 'Inter', sans-serif;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: background-color 0.15s;
+        flex-shrink: 0;
+    }
+    .delete-session-btn:hover { background-color: #c82333; }
+
+    /* Engagement metric cards */
+    .metrics-section-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+    }
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    .metric-card {
+        background: rgba(255,255,255,0.08);
+        border: 1.5px solid rgba(255,255,255,0.15);
+        border-radius: 10px;
+        padding: 0.9rem 1rem;
+        text-align: center;
+    }
+    .metric-value {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        line-height: 1.1;
+    }
+    .metric-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.55);
+        margin-top: 0.25rem;
+    }
+
+    /* Poll & Attendance collapsible rows */
+    .collapsible-section { margin-top: 0.75rem; }
+    .collapsible-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #040E1A;
+        border-radius: 10px;
+        padding: 0.65rem 1rem;
+        cursor: pointer;
+        gap: 1rem;
+        transition: background 0.15s;
+        margin-bottom: 0.4rem;
+    }
+    .collapsible-header:hover { background: #071628; }
+    .collapsible-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex: 1;
+        min-width: 0;
+    }
+    .collapsible-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #FFFFFF;
+        margin: 0;
+    }
+    .collapsible-header-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .grey-banner-toggle {
+        font-size: 1.1rem;
+        color: #57C5E4;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.2em;
+        height: 1.2em;
+    }
+    .grey-banner-toggle svg { width: 100%; height: 100%; fill: currentColor; display: block; }
+
+    .collapsible-content { display: none; padding: 0.5rem 0.25rem 0; }
+    .collapsible-content.expanded { display: block; }
+
+    /* Poll badge & graded toggle */
+    .poll-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.65rem;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+    }
+    .poll-badge.graded   { background-color: #57C5E4; color: #FFFFFF; }
+    .poll-badge.ungraded { background-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); }
+
+    .grading-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .grading-toggle label {
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.8);
+        margin: 0;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+    }
+    .grading-toggle input[type="checkbox"] {
+        width: 1.15rem;
+        height: 1.15rem;
+        cursor: pointer;
+        accent-color: #57C5E4;
+    }
+
+    /* Individual poll item rows */
+    .poll-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #040E1A;
+        border: none;
+        border-radius: 8px;
+        padding: 0.55rem 0.85rem;
+        cursor: pointer;
+        gap: 1rem;
+        margin-bottom: 0.35rem;
+        transition: background 0.15s;
+    }
+    .poll-item-header:hover { background: #071628; }
+    .poll-item-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: #FFFFFF;
+        flex: 1;
+        min-width: 0;
+    }
+    .poll-item-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .poll-content { display: none; padding: 0.75rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; margin-bottom: 0.5rem; }
+    .poll-content.expanded { display: block; }
+    .poll-option {
+        padding: 0.4rem 0.6rem;
+        margin-bottom: 0.35rem;
+        background: rgba(255,255,255,0.08);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        color: rgba(255,255,255,0.85);
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Attendance table inside metrics */
+    .attendance-table-container {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 14px rgba(11,30,51,0.10);
+        margin-top: 0.5rem;
+    }
+    .attendance-table-container .data-table thead th {
+        background-color: #040E1A;
+    }
+    .attendance-table-container .data-table thead th:hover {
+        background-color: #071628;
+    }
+
+    /* ── Footer ── */
+    .class-data-branding {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 1.5rem 0 1.25rem;
+    }
+    .class-data-branding img { height: 34px; width: auto; }
+
+    .loading { text-align: center; padding: 2rem; color: #6b7280; font-family: 'Inter', sans-serif; }
+
+    .gradebook-participation-th {
+        text-align: center;
+        vertical-align: middle;
+    }
+    .gradebook-participation-th-inner {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+    .gradebook-participation-detail-btn {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.88);
+        padding: 0.2rem 0.35rem;
+        line-height: 1;
+        border-radius: 6px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .gradebook-participation-detail-btn:hover,
+    .gradebook-participation-detail-btn:focus-visible {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        outline: none;
+    }
+    .gradebook-participation-th .sortable {
+        cursor: pointer;
+        padding: 0.15rem 0.35rem;
+        margin: -0.15rem -0.35rem;
+        border-radius: 6px;
+    }
+    .gradebook-participation-th .sortable:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
+    #gradebookParticipationModal .modal-content {
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+    }
+    #gradebookParticipationModal .table thead th {
+        background: #f1f5f9;
+        color: #0B1E33;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .participation-rounds-table-wrap {
+        margin-top: 0.25rem;
+    }
+    .participation-rounds-empty {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.45);
+        font-family: 'Inter', sans-serif;
+        padding: 0.35rem 0 0.5rem;
+    }
+    .participation-round-delete-btn {
+        font-size: 0.78rem;
+        padding: 0.25rem 0.55rem;
+    }
+    .participation-round-actions-cell {
+        vertical-align: middle;
+    }
+    .participation-round-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .participation-round-actions .grading-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        line-height: 1;
+    }
+    .participation-round-actions .grading-toggle input[type="checkbox"] {
+        margin: 0;
+        vertical-align: middle;
+        position: relative;
+        top: 0;
+    }
+    #gradebookParticipationModal .participation-modal-th-peer,
+    #gradebookParticipationModal .participation-modal-th-total {
+        text-align: center;
+        vertical-align: bottom;
+    }
+    #gradebookParticipationModal .participation-modal-td-peer,
+    #gradebookParticipationModal .participation-modal-td-total {
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+    .quiz-metrics-student-name-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        color: #57C5E4;
+        text-decoration: underline;
+        cursor: pointer;
+        text-align: inherit;
+    }
+    .quiz-metrics-student-name-btn:hover {
+        color: #3BA8C8;
+    }
+    #quizMetricsStudentDetailModal .modal-content {
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+    }
+    #quizMetricsStudentDetailModal .table thead th {
+        background: #f1f5f9;
+        color: #0B1E33;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    #quizMetricsStudentDetailModal .table thead th:nth-child(1),
+    #quizMetricsStudentDetailModal .table tbody td:nth-child(1) {
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+    #quizMetricsStudentDetailModal .table thead th:nth-child(5),
+    #quizMetricsStudentDetailModal .table tbody td:nth-child(5) {
+        text-align: center;
+        vertical-align: middle;
+    }
+    #quizMetricsStudentDetailModal .table tbody td:nth-child(5) .badge {
+        display: inline-block;
+    }
+    .quiz-results-metrics-table th:first-child,
+    .quiz-results-metrics-table td:first-child {
+        text-align: left !important;
+    }
+    .quiz-results-metrics-table th:nth-child(2),
+    .quiz-results-metrics-table th:nth-child(3),
+    .quiz-results-metrics-table th:nth-child(4),
+    .quiz-results-metrics-table td:nth-child(2),
+    .quiz-results-metrics-table td:nth-child(3),
+    .quiz-results-metrics-table td:nth-child(4) {
+        text-align: center !important;
+        font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 1200px) {
+        .class-data-header {
+            padding: 1.7rem 4rem 1.1rem;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 4rem;
+            padding-right: 4rem;
+        }
+        .tab-pill {
+            font-size: 1.2rem;
+            padding: 0.48rem 1.15rem;
+        }
+        .metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 992px) {
+        body {
+            height: auto;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        .class-data-container {
+            min-height: 100vh;
+            height: auto;
+        }
+        .class-data-header {
+            padding: 1.3rem 2rem 1rem;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+        .tab-pill {
+            font-size: 1.02rem;
+            padding: 0.45rem 1rem;
+        }
+        .session-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .collapsible-header-right,
+        .poll-item-right {
+            flex-wrap: wrap;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .class-data-header {
+            padding: 1rem 1rem 0.8rem;
+        }
+        .class-data-header-inner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .class-data-header-title-group {
+            width: 100%;
+        }
+        .responsive-title {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: initial;
+            line-height: 1.15;
+        }
+        .class-data-header-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .class-data-tabs-nav {
+            flex-wrap: wrap;
+        }
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+        }
+        .session-banner-header {
+            padding: 0.85rem 1rem;
+        }
+        .session-banner-content {
+            padding: 1rem;
+        }
+        .collapsible-header,
+        .poll-item-header {
+            align-items: flex-start;
+        }
+        .collapsible-header-right,
+        .poll-item-right {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .attendance-table-container {
+            overflow-x: auto;
+        }
+        .attendance-table-container .data-table {
+            min-width: 680px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .class-data-header {
+            padding: 0.85rem 0.75rem 0.7rem;
+        }
+        .class-data-tabs-nav,
+        .class-data-content {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        .tab-pill {
+            font-size: 0.95rem;
+            padding: 0.42rem 0.85rem;
+        }
+        .btn-return-home {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* Dark mode compatibility for Class Data quiz tab */
+    body.theme-dark .quiz-tab-card {
+        background: #050e18;
+        border-color: #122638;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+    body.theme-dark .quiz-tab-card .quiz-tab-title,
+    body.theme-dark .quiz-tab-card .form-label,
+    body.theme-dark .quiz-tab-card .settings-section-title {
+        color: #e8eef5;
+    }
+    body.theme-dark .quiz-tab-card .text-muted {
+        color: #92a8c2 !important;
+    }
+    body.theme-dark .quiz-tab-card .form-control {
+        background-color: #0a1526;
+        border-color: #243e5a;
+        color: #e8eef5;
+    }
+    body.theme-dark .quiz-tab-card .form-control:focus {
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.15rem rgba(87, 197, 228, 0.25);
+    }
+    body.theme-dark #quizClassDataListContainer .table thead th {
+        background: #0a1526;
+        color: #e8eef5;
+        border-color: #243e5a;
+    }
+    body.theme-dark #pollClassDataListContainer .table thead th {
+        background: #0a1526;
+        color: #e8eef5;
+        border-color: #243e5a;
+    }
+    body.theme-dark .poll-set-group {
+        border-color: #243e5a;
+        background: #050e18;
+    }
+    body.theme-dark .poll-set-header {
+        background: #0a1526;
+        color: #e8eef5;
+    }
+    body.theme-dark .poll-set-header:hover {
+        background: #122638;
+    }
+    body.theme-dark .poll-set-caret {
+        color: #92a8c2;
+    }
+    body.theme-dark .poll-set-content {
+        background: #050e18;
+    }
+    body.theme-dark #quizClassDataListContainer .table tbody td {
+        color: #e8eef5;
+        background: #050e18;
+        border-color: #122638;
+    }
+    body.theme-dark #pollClassDataListContainer .table tbody td {
+        color: #e8eef5;
+        background: #050e18;
+        border-color: #122638;
+    }
+    body.theme-dark #quizClassDataListContainer .table tbody tr:nth-child(even) td {
+        background: #0a1526;
+    }
+    body.theme-dark #pollClassDataListContainer .table tbody tr:nth-child(even) td {
+        background: #0a1526;
+    }
+    body.theme-dark #quizClassDataListContainer .table tbody tr:hover td {
+        background: #122638;
+    }
+    body.theme-dark #pollClassDataListContainer .table tbody tr:hover td {
+        background: #122638;
+    }
+    body.theme-dark #quizClassDataListContainer,
+    body.theme-dark #quizClassDataListContainer p,
+    body.theme-dark #quizClassDataListContainer .text-muted {
+        color: #c5d4e3 !important;
+    }
+    body.theme-dark #pollClassDataListContainer,
+    body.theme-dark #pollClassDataListContainer p,
+    body.theme-dark #pollClassDataListContainer .text-muted {
+        color: #c5d4e3 !important;
+    }
+    body.theme-dark #quizClassDataListContainer .quiz-status-badge.ready {
+        background: #0a1526;
+        color: #c5d4e3;
+        border: 1px solid #243e5a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="class-data-container">
+
+    <!-- Header -->
+    <div class="class-data-header">
+        <div class="class-data-header-inner">
+            <div class="class-data-header-title-group">
+                <i class="bi bi-globe2 class-data-header-icon"></i>
+                <h1 class="responsive-title" id="classDataTitle">{{ class_obj.name }}</h1>
+            </div>
+            <div class="class-data-header-actions">
+                <a href="/classroom/{{ class_obj.id }}" class="btn-return-home">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="class-data-tabs-nav">
+        <button class="tab-pill active" id="tabGradebook" onclick="switchTab('gradebook')">Gradebook</button>
+        <button class="tab-pill" id="tabGrading" onclick="switchTab('grading')">Grading</button>
+        <button class="tab-pill" id="tabQuiz" onclick="switchTab('quiz')">Quizzing</button>
+        <button class="tab-pill" id="tabMetrics" onclick="switchTab('metrics')">Class Metrics</button>
+    </div>
+
+    <!-- Content -->
+    <div class="class-data-content">
+
+        <!-- Gradebook Panel -->
+        <div class="tab-panel active" id="panelGradebook">
+            <div class="gradebook-toolbar">
+                <button class="btn-tron-pill" onclick="exportGradebook()">
+                    <i class="bi bi-download"></i> Export Gradebook to Excel
+                </button>
+            </div>
+            <div id="gradebookContent">
+                <div class="loading">Loading gradebook data...</div>
+            </div>
+        </div>
+
+        <!-- Grading Panel -->
+        <div class="tab-panel" id="panelGrading">
+            <div id="gradingContent">
+                <div class="loading">Loading grading weights...</div>
+            </div>
+        </div>
+
+        <!-- Quiz Panel -->
+        <div class="tab-panel" id="panelQuiz">
+            <div class="quiz-tab-card">
+                <h4 class="quiz-tab-title">In-Class Quizzes</h4>
+                <p class="text-muted small mb-3">Upload quizzes from Excel before class starts. When class is active, you can also launch a quiz from here.</p>
+                <div id="quizClassDataPlanLockNotice" class="quiz-plan-lock-notice mb-3"></div>
+                <p class="mb-2"><a class="btn btn-outline-secondary btn-sm" href="/api/quiz_template.xlsx" target="_blank" rel="noopener">Download Excel Template</a></p>
+                <form id="quizClassDataUploadForm" class="mb-3">
+                    <div id="quizClassDataUploadFields">
+                        <label class="form-label">Excel file (.xlsx)</label>
+                        <input type="file" class="form-control mb-2" id="quizClassDataFileInput" name="file" accept=".xlsx,.xls" required>
+                        <label class="form-label" for="quizClassDataUploadIndex">Quiz Slot (1 = first Quiz in grading plan)</label>
+                        <input type="number" class="form-control mb-2" id="quizClassDataUploadIndex" name="quiz_index" min="1" value="1" required>
+                        <label class="form-label" for="quizClassDataUploadTitle">Title</label>
+                        <input type="text" class="form-control mb-2" id="quizClassDataUploadTitle" name="title" placeholder="e.g. Week 3 check-in">
+                        <label class="form-label" for="quizClassDataUploadTime">Time Limit (minutes)</label>
+                        <input type="number" class="form-control mb-2" id="quizClassDataUploadTime" name="time_limit_minutes" value="5" min="1" max="1440" step="1">
+                        <button type="submit" class="btn-tron-pill" id="quizClassDataUploadSubmitBtn">Upload Quiz</button>
+                    </div>
+                </form>
+                <div id="quizClassDataMessage" class="mb-3"></div>
+                <p class="settings-section-title mb-2">Your Quizzes</p>
+                <div id="quizClassDataListContainer" class="text-muted">Open this tab to load quizzes.</div>
+                <hr class="settings-divider mt-4">
+                <h4 class="quiz-tab-title">Pre-Uploaded Poll Questions</h4>
+                <p class="text-muted small mb-3">Upload poll questions ahead of class. These appear in the live Start Poll modal for quick selection and edit.</p>
+                <p class="mb-2"><a class="btn btn-outline-secondary btn-sm" href="/api/poll_template.xlsx" target="_blank" rel="noopener">Download Poll Template</a></p>
+                <form id="pollClassDataUploadForm" class="mb-3">
+                    <label class="form-label" for="pollClassDataSetName">Poll Set Name</label>
+                    <input type="text" class="form-control mb-2" id="pollClassDataSetName" name="set_name" placeholder="e.g. Week 4 Review" required>
+                    <label class="form-label">Excel file (.xlsx)</label>
+                    <input type="file" class="form-control mb-2" id="pollClassDataFileInput" name="file" accept=".xlsx,.xls" required>
+                    <label class="form-label" for="pollClassDataUploadTitle">Title Prefix (optional)</label>
+                    <input type="text" class="form-control mb-2" id="pollClassDataUploadTitle" name="title" placeholder="e.g. Week 2 poll">
+                    <button type="submit" class="btn-tron-pill" id="pollClassDataUploadSubmitBtn">Upload Poll Questions</button>
+                </form>
+                <div id="pollClassDataMessage" class="mb-3"></div>
+                <p class="settings-section-title mb-2">Your Pre-Uploaded Poll Questions</p>
+                <div id="pollClassDataListContainer" class="text-muted">Open this tab to load poll questions.</div>
+            </div>
+        </div>
+
+        <!-- Metrics Panel -->
+        <div class="tab-panel" id="panelMetrics">
+            <div id="metricsContent">
+                <div class="loading">Loading class metrics...</div>
+            </div>
+        </div>
+
+    </div><!-- /.class-data-content -->
+
+    <!-- Participation detail (instructor / peer) — opened from Gradebook table heading -->
+    <div class="modal fade" id="gradebookParticipationModal" tabindex="-1" aria-labelledby="gradebookParticipationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content" style="border-radius:12px; border:1px solid #e5e7eb;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title" id="gradebookParticipationModalLabel">Participation breakdown</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="text-muted small mb-2 mb-0">Instructor and peer are separate averages (0–100%). Total is the blended participation score used in the gradebook.</p>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th class="text-end">Instructor</th>
+                                    <th class="participation-modal-th-peer">Peer</th>
+                                    <th class="participation-modal-th-total">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gradebookParticipationModalBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal" style="border-radius:9999px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Results: per-question breakdown (opened from student name in Class Metrics) -->
+    <div class="modal fade" id="quizMetricsStudentDetailModal" tabindex="-1" aria-labelledby="quizMetricsStudentDetailTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content" style="border-radius:12px; border:1px solid #e5e7eb;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title" id="quizMetricsStudentDetailTitle">Quiz</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="text-muted small mb-2 mb-0" id="quizMetricsStudentDetailMeta"></p>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" style="width:3rem;">#</th>
+                                    <th>Question</th>
+                                    <th>Student answer</th>
+                                    <th>Correct answer</th>
+                                    <th class="text-center" style="width:7rem;">Result</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quizMetricsStudentDetailBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal" style="border-radius:9999px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="class-data-branding">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
+    </div>
+
+</div><!-- /.class-data-container -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let classId = {{ class_obj.id }};
+const EASTERN_TZ = 'America/New_York';
+/** Latest gradebook rows for the participation detail modal */
+let gradebookLastData = [];
+
+// ── Title sizing (identical to classroom.html) ──
+function adjustDataTitleFontSize() {
+    const title = document.getElementById('classDataTitle');
+    if (!title) return;
+    const headerInner = title.closest('.class-data-header-inner');
+    if (!headerInner) return;
+    const backButton = headerInner.querySelector('.btn-return-home');
+    const backButtonWidth = backButton ? backButton.offsetWidth : 0;
+    const gap = 16;
+    const headerWidth = headerInner.offsetWidth;
+    const availableWidth = headerWidth - backButtonWidth - gap;
+    title.style.fontSize = '';
+    const defaultSize = parseFloat(window.getComputedStyle(title).fontSize);
+    const minSize = defaultSize * 0.3;
+    const tempElement = title.cloneNode(true);
+    tempElement.style.visibility = 'hidden';
+    tempElement.style.position = 'absolute';
+    tempElement.style.whiteSpace = 'nowrap';
+    tempElement.style.width = 'auto';
+    tempElement.style.fontSize = '';
+    document.body.appendChild(tempElement);
+    tempElement.style.fontSize = minSize + 'px';
+    const textWidthAtMin = tempElement.offsetWidth;
+    let finalSize;
+    if (textWidthAtMin > availableWidth) {
+        finalSize = minSize;
+    } else {
+        let min = minSize, max = defaultSize, bestSize = minSize;
+        while (max - min > 0.5) {
+            const testSize = (min + max) / 2;
+            tempElement.style.fontSize = testSize + 'px';
+            if (tempElement.offsetWidth <= availableWidth) { bestSize = testSize; min = testSize; }
+            else { max = testSize; }
+        }
+        finalSize = bestSize;
+    }
+    document.body.removeChild(tempElement);
+    title.style.fontSize = finalSize + 'px';
+}
+window.addEventListener('load', adjustDataTitleFontSize);
+window.addEventListener('resize', adjustDataTitleFontSize);
+
+// ── Tab switching ──
+const TAB_IDS = ['gradebook', 'grading', 'quiz', 'metrics'];
+function switchTab(tab) {
+    TAB_IDS.forEach(t => {
+        document.getElementById('tab' + capitalize(t)).classList.toggle('active', t === tab);
+        document.getElementById('panel' + capitalize(t)).classList.toggle('active', t === tab);
+    });
+    if (tab === 'grading'  && document.getElementById('gradingContent').querySelector('.loading'))  loadGradingWeights();
+    if (tab === 'quiz') loadClassDataQuizzes();
+    if (tab === 'metrics'  && document.getElementById('metricsContent').querySelector('.loading'))  loadMetrics();
+    if (tab === 'gradebook'&& document.getElementById('gradebookContent').querySelector('.loading')) loadGradebook();
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function formatQuizTimeMinutes(totalSec) {
+    const s = Math.max(0, Number(totalSec) || 0);
+    if (s === 0) return '—';
+    if (s % 60 === 0) return String(s / 60) + ' min';
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    if (m === 0) return r + ' s';
+    return m + ' min ' + r + ' s';
+}
+
+function formatEasternDateTime(isoString) {
+    if (!isoString) return '-';
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleString('en-US', {
+        timeZone: EASTERN_TZ, weekday: 'short', year: 'numeric', month: 'short',
+        day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit'
+    });
+}
+function formatEasternDate(d) {
+    if (!d || Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { timeZone: EASTERN_TZ, year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// ── Gradebook ──
+async function loadGradebook() {
+    try {
+        const response = await fetch(`/api/gradebook/${classId}`);
+        const data = await response.json();
+        const content = document.getElementById('gradebookContent');
+        if (data.length === 0) {
+            gradebookLastData = [];
+            content.innerHTML = '<div class="text-center text-muted p-4">No gradebook data available.</div>';
+            return;
+        }
+        gradebookLastData = data;
+        let html = `
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="name" data-type="text">Student Name</th>
+                            <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
+                            <th class="sortable" data-sort="attendance_grade" data-type="number">Attendance</th>
+                            <th class="gradebook-participation-th">
+                                <div class="gradebook-participation-th-inner">
+                                    <span class="sortable" data-sort="participation_grade" data-type="number">Participation</span>
+                                    <button type="button" class="gradebook-participation-detail-btn" title="Instructor, peer, and blended total" aria-label="Open participation breakdown">
+                                        <i class="bi bi-list-columns-reverse" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </th>
+                            <th class="sortable" data-sort="poll_grade" data-type="number">Poll</th>
+                            <th class="sortable" data-sort="quiz_grade" data-type="number">Quiz</th>
+                            <th class="sortable" data-sort="overall_grade" data-type="number">Overall</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradebookTableBody">`;
+        data.forEach(student => {
+            html += `
+                <tr data-name="${student.name}" data-student-number="${student.student_number}"
+                    data-attendance-grade="${student.attendance_grade}"
+                    data-participation-grade="${student.participation_grade}"
+                    data-instructor-participation="${student.instructor_participation}"
+                    data-peer-participation="${student.peer_participation}"
+                    data-poll-grade="${student.poll_grade}"
+                    data-quiz-grade="${student.quiz_grade}"
+                    data-overall-grade="${student.overall_grade}">
+                    <td>${student.name}</td>
+                    <td>${student.student_number}</td>
+                    <td>${student.attendance_grade.toFixed(2)}%</td>
+                    <td>${student.participation_grade.toFixed(2)}%</td>
+                    <td>${student.poll_grade.toFixed(2)}%</td>
+                    <td>${Number(student.quiz_grade || 0).toFixed(2)}%</td>
+                    <td><strong>${student.overall_grade.toFixed(2)}%</strong></td>
+                </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        content.innerHTML = html;
+        initSorting();
+        bindGradebookParticipationHeading();
+    } catch (error) {
+        console.error('Error loading gradebook:', error);
+        document.getElementById('gradebookContent').innerHTML = '<div class="text-center text-danger p-4">Error loading gradebook data.</div>';
+    }
+}
+
+function openGradebookParticipationDetailModal() {
+    const tbody = document.getElementById('gradebookParticipationModalBody');
+    if (!tbody) return;
+    tbody.innerHTML = gradebookLastData.map((s) => `
+        <tr>
+            <td>${escapeHtml(String(s.name))}</td>
+            <td class="text-end">${Number(s.instructor_participation).toFixed(2)}%</td>
+            <td class="participation-modal-td-peer">${Number(s.peer_participation).toFixed(2)}%</td>
+            <td class="participation-modal-td-total fw-semibold">${Number(s.participation_grade).toFixed(2)}%</td>
+        </tr>
+    `).join('');
+    const modalEl = document.getElementById('gradebookParticipationModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+function openQuizMetricsStudentDetail(cacheKey) {
+    const payload = window.__quizMetricsStudentCache && window.__quizMetricsStudentCache[cacheKey];
+    if (!payload || !payload.breakdown || !payload.breakdown.length) return;
+    const titleEl = document.getElementById('quizMetricsStudentDetailTitle');
+    const metaEl = document.getElementById('quizMetricsStudentDetailMeta');
+    const tbody = document.getElementById('quizMetricsStudentDetailBody');
+    if (titleEl) titleEl.textContent = payload.quizTitle || 'Quiz';
+    if (metaEl) metaEl.textContent = 'Question-by-question results for ' + (payload.studentName || 'student') + '.';
+    if (tbody) {
+        tbody.innerHTML = payload.breakdown.map(function (q, i) {
+            const ok = q.is_correct;
+            const badge = ok ? '<span class="badge bg-success">Correct</span>' : '<span class="badge bg-danger">Incorrect</span>';
+            return '<tr><td class="text-center">' + (i + 1) + '</td><td>' + escapeHtml(String(q.prompt)) + '</td><td>' + escapeHtml(String(q.selected_text)) + '</td><td>' + escapeHtml(String(q.correct_text)) + '</td><td class="text-center">' + badge + '</td></tr>';
+        }).join('');
+    }
+    const modalEl = document.getElementById('quizMetricsStudentDetailModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+}
+
+function bindGradebookParticipationHeading() {
+    const btn = document.querySelector('#gradebookContent .gradebook-participation-detail-btn');
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openGradebookParticipationDetailModal();
+    });
+}
+
+// ── Grading weights ──
+async function loadGradingWeights() {
+    try {
+        const response = await fetch(`/api/grading_weights/${classId}`);
+        const data = await response.json();
+        const content = document.getElementById('gradingContent');
+        let html = `
+            <div class="grading-form-card">
+                <h4 class="grading-form-title">Grading Weights Configuration</h4>
+                <p class="grading-form-subtitle">Attendance, participation, poll, and Quiz must sum to 100%. The Quiz percentage is split evenly across the number of Quizzes you set. Participation combines instructor and peer scores; set how that participation portion is split below.</p>
+                <hr class="grading-divider">
+                <form id="gradingWeightsForm">
+                    <div class="grading-fields-grid">
+                        <div class="form-group">
+                            <div class="form-group-row">
+                                <label for="attendance_weight">Attendance (%)</label>
+                                <input type="number" class="form-control" id="attendance_weight" name="attendance_weight"
+                                       value="${data.attendance_weight}" min="0" max="100" step="0.1" required>
+                            </div>
+                            <div class="help-text">Share of overall grade from attendance</div>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-group-row">
+                                <label for="participation_weight">Participation (%)</label>
+                                <input type="number" class="form-control" id="participation_weight" name="participation_weight"
+                                       value="${data.participation_weight}" min="0" max="100" step="0.1" required>
+                            </div>
+                            <div class="help-text">Share of overall grade from participation (instructor + peer blend)</div>
+                            <div class="participation-split-nested">
+                                <div class="participation-split-nested-title">Within participation grade</div>
+                                <div class="form-group-row" style="margin-bottom:0.35rem;">
+                                    <label for="participation_instructor_share">Instructor (%)</label>
+                                    <input type="number" class="form-control" id="participation_instructor_share" name="participation_instructor_share"
+                                           value="${data.participation_instructor_share}" min="0" max="100" step="0.1" required>
+                                </div>
+                                <p class="help-text" id="participation_peer_note" style="margin:0;"></p>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-group-row">
+                                <label for="poll_weight">Poll (%)</label>
+                                <input type="number" class="form-control" id="poll_weight" name="poll_weight"
+                                       value="${data.poll_weight}" min="0" max="100" step="0.1" required>
+                            </div>
+                            <div class="help-text">Share of overall grade from poll performance</div>
+                        </div>
+                        <div class="grading-quiz-section" aria-labelledby="gradingQuizSectionTitle">
+                            <div class="participation-split-nested-title" id="gradingQuizSectionTitle">Quizzes (share of overall grade)</div>
+                            <div class="form-group">
+                                <div class="form-group-row">
+                                    <label for="quiz_weight">Quiz Weight (%)</label>
+                                    <input type="number" class="form-control" id="quiz_weight" name="quiz_weight"
+                                           value="${data.quiz_weight != null ? data.quiz_weight : 0}" min="0" max="100" step="0.1" required>
+                                </div>
+                                <div class="help-text">Must sum with attendance, participation, and poll to 100%. Grade is the mean across the number of slots below.</div>
+                            </div>
+                            <div class="form-group">
+                                <div class="form-group-row">
+                                    <label for="quiz_count_target">Number of Quizzes</label>
+                                    <input type="number" class="form-control" id="quiz_count_target" name="quiz_count_target"
+                                           value="${data.quiz_count_target != null ? data.quiz_count_target : 0}" min="0" max="99" step="1" required>
+                                </div>
+                                <div class="help-text">Each slot can hold one uploaded Quiz; empty slots count as 0 until a Quiz is run there.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="weight-total" id="weightTotal">
+                        <div class="weight-total-label">Total Weight</div>
+                        <div class="weight-total-value" id="totalWeightValue">100%</div>
+                    </div>
+                    <div class="grading-actions-bar">
+                        <div id="gradingMessage"></div>
+                        <div class="grading-actions-btns">
+                            <button type="button" class="btn-grading-cancel" onclick="resetGradingWeights(${data.attendance_weight}, ${data.participation_weight}, ${data.participation_instructor_share}, ${data.poll_weight}, ${data.quiz_weight != null ? data.quiz_weight : 0}, ${data.quiz_count_target != null ? data.quiz_count_target : 0})">Cancel</button>
+                            <button type="submit" id="saveGradingWeightsBtn" class="btn-tron-pill" disabled>
+                                Save Grading Weights
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>`;
+        content.innerHTML = html;
+        function updateParticipationPeerNote() {
+            const inst = parseFloat(document.getElementById('participation_instructor_share').value);
+            const noteEl = document.getElementById('participation_peer_note');
+            if (!noteEl) return;
+            const v = Number.isFinite(inst) ? Math.min(100, Math.max(0, inst)) : 0;
+            const peerPct = (100 - v).toFixed(1);
+            noteEl.textContent = 'Peer grades will account for ' + peerPct + '% of the participation grade.';
+        }
+        const inputs = ['attendance_weight', 'participation_weight', 'poll_weight', 'quiz_weight', 'quiz_count_target'];
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                calculateTotalWeight();
+                updateSaveButtonState();
+            });
+        });
+        document.getElementById('participation_instructor_share').addEventListener('input', function() {
+            updateParticipationPeerNote();
+            updateSaveButtonState();
+        });
+        updateParticipationPeerNote();
+        document.getElementById('gradingWeightsForm').addEventListener('submit', saveGradingWeights);
+        calculateTotalWeight();
+        updateSaveButtonState();
+    } catch (error) {
+        console.error('Error loading grading weights:', error);
+        document.getElementById('gradingContent').innerHTML = '<div class="text-center text-danger p-4">Error loading grading weights.</div>';
+    }
+}
+
+function calculateTotalWeight() {
+    const attendance = parseFloat(document.getElementById('attendance_weight').value) || 0;
+    const participation = parseFloat(document.getElementById('participation_weight').value) || 0;
+    const poll = parseFloat(document.getElementById('poll_weight').value) || 0;
+    const quiz = parseFloat(document.getElementById('quiz_weight').value) || 0;
+    const total = attendance + participation + poll + quiz;
+    const totalElement = document.getElementById('weightTotal');
+    const totalValueElement = document.getElementById('totalWeightValue');
+    totalValueElement.textContent = total.toFixed(1) + '%';
+    if (Math.abs(total - 100) < 0.01) {
+        totalElement.classList.remove('invalid'); totalElement.classList.add('valid');
+        totalValueElement.style.color = '#28a745';
+    } else {
+        totalElement.classList.remove('valid'); totalElement.classList.add('invalid');
+        totalValueElement.style.color = '#dc3545';
+    }
+}
+
+function updateSaveButtonState() {
+    const saveButton = document.getElementById('saveGradingWeightsBtn');
+    if (!saveButton) return;
+    const attendance = parseFloat(document.getElementById('attendance_weight').value) || 0;
+    const participation = parseFloat(document.getElementById('participation_weight').value) || 0;
+    const poll = parseFloat(document.getElementById('poll_weight').value) || 0;
+    const quiz = parseFloat(document.getElementById('quiz_weight').value) || 0;
+    const quizCount = parseInt(document.getElementById('quiz_count_target').value, 10);
+    const instShare = parseFloat(document.getElementById('participation_instructor_share').value);
+    const total = attendance + participation + poll + quiz;
+    const splitOk = Number.isFinite(instShare) && instShare >= 0 && instShare <= 100;
+    const quizOk = !(quiz > 0.0001) || (Number.isFinite(quizCount) && quizCount >= 1);
+    const isValid = Math.abs(total - 100) < 0.01 && splitOk && quizOk;
+    saveButton.disabled = !isValid;
+    saveButton.style.opacity = isValid ? '1' : '0.5';
+    saveButton.style.cursor = isValid ? 'pointer' : 'not-allowed';
+}
+
+function resetGradingWeights(attendance, participation, instrShare, poll, quiz, quizCount) {
+    document.getElementById('attendance_weight').value = attendance;
+    document.getElementById('participation_weight').value = participation;
+    document.getElementById('participation_instructor_share').value = instrShare;
+    document.getElementById('poll_weight').value = poll;
+    document.getElementById('quiz_weight').value = quiz != null ? quiz : 0;
+    document.getElementById('quiz_count_target').value = quizCount != null ? quizCount : 0;
+    document.getElementById('saveGradingWeightsBtn').disabled = true;
+    const msg = document.getElementById('gradingMessage');
+    if (msg) msg.innerHTML = '';
+    if (typeof calculateTotalWeight === 'function') calculateTotalWeight();
+    if (typeof updateParticipationPeerNote === 'function') updateParticipationPeerNote();
+}
+
+async function saveGradingWeights(event) {
+    event.preventDefault();
+    const attendance = parseFloat(document.getElementById('attendance_weight').value);
+    const participation = parseFloat(document.getElementById('participation_weight').value);
+    const poll = parseFloat(document.getElementById('poll_weight').value);
+    const quiz = parseFloat(document.getElementById('quiz_weight').value);
+    const quiz_count_target = parseInt(document.getElementById('quiz_count_target').value, 10);
+    const participation_instructor_share = parseFloat(document.getElementById('participation_instructor_share').value);
+    const total = attendance + participation + poll + quiz;
+    const messageDiv = document.getElementById('gradingMessage');
+    if (Math.abs(total - 100) > 0.01) {
+        messageDiv.innerHTML = '<div class="alert alert-danger">Attendance, participation, poll, and Quiz must sum to exactly 100%. Current total: ' + total.toFixed(1) + '%</div>';
+        return;
+    }
+    if (attendance < 0 || participation < 0 || poll < 0 || quiz < 0) {
+        messageDiv.innerHTML = '<div class="alert alert-danger">All weights must be non-negative.</div>';
+        return;
+    }
+    if (quiz > 0.0001 && (!Number.isFinite(quiz_count_target) || quiz_count_target < 1)) {
+        messageDiv.innerHTML = '<div class="alert alert-danger">When Quiz Weight is greater than 0, set number of Quizzes to at least 1.</div>';
+        return;
+    }
+    if (!Number.isFinite(participation_instructor_share) || participation_instructor_share < 0 || participation_instructor_share > 100) {
+        messageDiv.innerHTML = '<div class="alert alert-danger">Instructor share of participation must be between 0 and 100%.</div>';
+        return;
+    }
+    try {
+        const response = await fetch(`/api/grading_weights/${classId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                attendance_weight: attendance,
+                participation_weight: participation,
+                participation_instructor_share: participation_instructor_share,
+                poll_weight: poll,
+                quiz_weight: quiz,
+                quiz_count_target: Number.isFinite(quiz_count_target) ? quiz_count_target : 0
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            messageDiv.innerHTML = '<div class="alert alert-success">Saved successfully!</div>';
+            loadGradebook();
+            setTimeout(() => { messageDiv.innerHTML = ''; }, 3000);
+        } else {
+            messageDiv.innerHTML = '<div class="alert alert-danger">Error: ' + (data.error || 'Failed to save') + '</div>';
+        }
+    } catch (error) {
+        console.error('Error saving grading weights:', error);
+        document.getElementById('gradingMessage').innerHTML = '<div class="alert alert-danger">Error saving. Please try again.</div>';
+    }
+}
+
+function applyClassDataQuizPlanLockUI(quizCountTarget) {
+    const notice = document.getElementById('quizClassDataPlanLockNotice');
+    const fieldsWrap = document.getElementById('quizClassDataUploadFields');
+    const ids = ['quizClassDataFileInput', 'quizClassDataUploadIndex', 'quizClassDataUploadTitle', 'quizClassDataUploadTime', 'quizClassDataUploadSubmitBtn'];
+    if (quizCountTarget === null || quizCountTarget === undefined) {
+        ids.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+        });
+        if (fieldsWrap) fieldsWrap.classList.remove('quiz-upload-fields-disabled');
+        if (notice) notice.innerHTML = '';
+        return true;
+    }
+    const n = Number(quizCountTarget);
+    const canCreate = Number.isFinite(n) && n >= 1;
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !canCreate;
+    });
+    if (fieldsWrap) fieldsWrap.classList.toggle('quiz-upload-fields-disabled', !canCreate);
+    if (notice) {
+        notice.innerHTML = canCreate ? '' : '<div class="alert alert-secondary"><strong>Quiz setup locked.</strong> In the <strong>Grading</strong> tab, set <strong>Number of Quizzes</strong> to at least 1 and save first.</div>';
+    }
+    return canCreate;
+}
+
+async function loadClassDataQuizzes() {
+    const container = document.getElementById('quizClassDataListContainer');
+    if (!container) return;
+    container.textContent = 'Loading...';
+    try {
+        const [gwRes, qRes, dashRes] = await Promise.all([
+            fetch(`/api/grading_weights/${classId}`),
+            fetch(`/api/quizzes/${classId}`),
+            fetch(`/api/live_dashboard/${classId}`),
+        ]);
+        if (gwRes.ok) {
+            const gw = await gwRes.json();
+            applyClassDataQuizPlanLockUI(gw.quiz_count_target != null ? gw.quiz_count_target : 0);
+        } else {
+            applyClassDataQuizPlanLockUI(null);
+        }
+        const qData = await qRes.json();
+        const dash = await dashRes.json();
+        if (!qData.success) {
+            container.innerHTML = '<span class="text-danger">Could not load quizzes.</span>';
+            return;
+        }
+        const activeQuizId = dash.active_quiz && Number(dash.active_quiz.quiz_id);
+        const quizzes = qData.quizzes || [];
+        if (quizzes.length === 0) {
+            container.innerHTML = '<p class="text-muted mb-0">No quizzes uploaded yet.</p>';
+            return;
+        }
+        let html = '<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Quiz Slot</th><th>Title</th><th>Questions</th><th>Time Limit</th><th>Status</th></tr></thead><tbody>';
+        quizzes.forEach((qz) => {
+            const isLiveQuiz = activeQuizId && activeQuizId === Number(qz.id);
+            const status = isLiveQuiz
+                ? '<span class="quiz-status-badge live">Live</span>'
+                : '<span class="quiz-status-badge ready">Ready</span>';
+            html += `<tr><td>${escapeHtml(String(qz.quiz_index))}</td><td>${escapeHtml(qz.title)}</td><td>${qz.question_count}</td><td>${escapeHtml(formatQuizTimeMinutes(qz.time_limit_seconds))}</td><td>${status}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+        await loadClassDataPollBank();
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<span class="text-danger">Error loading quizzes.</span>';
+    }
+}
+
+async function loadClassDataPollBank() {
+    const container = document.getElementById('pollClassDataListContainer');
+    if (!container) return;
+    container.textContent = 'Loading...';
+    try {
+        const res = await fetch(`/api/poll_bank/${classId}`);
+        const data = await res.json();
+        if (!data.success) {
+            container.innerHTML = '<span class="text-danger">Could not load pre-uploaded poll questions.</span>';
+            return;
+        }
+        const sets = data.poll_sets || [];
+        if (!sets.length) {
+            container.innerHTML = '<p class="text-muted mb-0">No pre-uploaded poll questions yet.</p>';
+            return;
+        }
+        let html = '';
+        sets.forEach((setRow, idx) => {
+            const setId = Number(setRow.id);
+            const setName = escapeHtml(String(setRow.name || 'Poll Set'));
+            const count = Number(setRow.question_count || 0);
+            const contentId = `pollSetContent_${setId}_${idx}`;
+            html += `<div class="poll-set-group">
+                <button type="button" class="poll-set-header" onclick="togglePollSetContent('${contentId}', this)">
+                    <span>${setName}</span>
+                    <span class="poll-set-caret">${count} Question${count === 1 ? '' : 's'} ▾</span>
+                </button>
+                <div class="poll-set-content" id="${contentId}">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Poll Slot</th>
+                                    <th>Title</th>
+                                    <th>Question</th>
+                                    <th>Options</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            (setRow.questions || []).forEach((q) => {
+                html += `<tr><td>${escapeHtml(String(q.poll_index))}</td><td>${escapeHtml(String(q.title || 'Poll'))}</td><td>${escapeHtml(String(q.question || ''))}</td><td>${Number(q.option_count || 0)}</td></tr>`;
+            });
+            html += `       </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<span class="text-danger">Error loading poll questions.</span>';
+    }
+}
+
+function togglePollSetContent(contentId, btnEl) {
+    const content = document.getElementById(contentId);
+    if (!content) return;
+    const expanded = content.classList.toggle('expanded');
+    const caret = btnEl ? btnEl.querySelector('.poll-set-caret') : null;
+    if (caret) {
+        caret.textContent = caret.textContent.replace(expanded ? '▾' : '▴', expanded ? '▴' : '▾');
+    }
+}
+
+(function initClassDataQuizUploadForm() {
+    const form = document.getElementById('quizClassDataUploadForm');
+    if (!form) return;
+    form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const submitBtn = document.getElementById('quizClassDataUploadSubmitBtn');
+        if (submitBtn && submitBtn.disabled) return;
+        const msg = document.getElementById('quizClassDataMessage');
+        const fd = new FormData();
+        const fileEl = document.getElementById('quizClassDataFileInput');
+        if (!fileEl.files || !fileEl.files[0]) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning">Choose a file.</div>';
+            return;
+        }
+        fd.append('file', fileEl.files[0]);
+        fd.append('quiz_index', document.getElementById('quizClassDataUploadIndex').value);
+        fd.append('title', document.getElementById('quizClassDataUploadTitle').value || '');
+        const minEl = document.getElementById('quizClassDataUploadTime');
+        let mins = parseFloat(minEl && minEl.value);
+        if (!Number.isFinite(mins) || mins < 1) mins = 5;
+        if (mins > 1440) mins = 1440;
+        fd.append('time_limit_minutes', String(mins));
+        if (msg) msg.innerHTML = '<div class="text-muted">Uploading...</div>';
+        try {
+            const res = await fetch(`/api/quiz_upload/${classId}`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!data.success) {
+                const err = (data.errors && data.errors.length) ? data.errors.join(' ') : (data.error || 'Upload failed');
+                if (msg) msg.innerHTML = '<div class="alert alert-danger">' + escapeHtml(err) + '</div>';
+                return;
+            }
+            if (msg) msg.innerHTML = '<div class="alert alert-success">Saved ' + data.added + ' question(s).</div>';
+            fileEl.value = '';
+            loadClassDataQuizzes();
+        } catch (e) {
+            console.error(e);
+            if (msg) msg.innerHTML = '<div class="alert alert-danger">Upload failed.</div>';
+        }
+    });
+})();
+
+(function initClassDataPollUploadForm() {
+    const form = document.getElementById('pollClassDataUploadForm');
+    if (!form) return;
+    form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const submitBtn = document.getElementById('pollClassDataUploadSubmitBtn');
+        if (submitBtn && submitBtn.disabled) return;
+        const msg = document.getElementById('pollClassDataMessage');
+        const fd = new FormData();
+        const fileEl = document.getElementById('pollClassDataFileInput');
+        if (!fileEl.files || !fileEl.files[0]) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning">Choose a file.</div>';
+            return;
+        }
+        fd.append('file', fileEl.files[0]);
+        const setName = (document.getElementById('pollClassDataSetName').value || '').trim();
+        if (!setName) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning">Enter a poll set name.</div>';
+            return;
+        }
+        fd.append('set_name', setName);
+        fd.append('title', document.getElementById('pollClassDataUploadTitle').value || '');
+        if (msg) msg.innerHTML = '<div class="text-muted">Uploading...</div>';
+        try {
+            const res = await fetch(`/api/poll_bank_upload/${classId}`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!data.success) {
+                const err = (data.errors && data.errors.length) ? data.errors.join(' ') : (data.error || 'Upload failed');
+                if (msg) msg.innerHTML = '<div class="alert alert-danger">' + escapeHtml(err) + '</div>';
+                return;
+            }
+            if (msg) msg.innerHTML = '<div class="alert alert-success">Saved ' + data.added + ' poll question(s).</div>';
+            fileEl.value = '';
+            loadClassDataPollBank();
+        } catch (e) {
+            console.error(e);
+            if (msg) msg.innerHTML = '<div class="alert alert-danger">Upload failed.</div>';
+        }
+    });
+})();
+
+// ── Metrics ──
+function animatePercentMetric(el, duration = 900) {
+    if (!el) return;
+    const target = Math.max(0, Math.min(100, Number(el.dataset.targetPercent) || 0));
+    const rawDecimals = Number(el.dataset.targetDecimals);
+    const decimals = Number.isFinite(rawDecimals) && rawDecimals >= 0 ? Math.min(2, Math.floor(rawDecimals)) : 1;
+    const start = performance.now();
+    function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = t < 1 ? 1 - Math.pow(1 - t, 2) : 1;
+        const current = eased * target;
+        el.textContent = `${current.toFixed(decimals)}%`;
+        if (t < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            el.textContent = `${target.toFixed(decimals)}%`;
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+function animateCountMetric(el, duration = 900) {
+    if (!el) return;
+    const target = Math.max(0, Math.round(Number(el.dataset.targetCount) || 0));
+    const start = performance.now();
+    function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = t < 1 ? 1 - Math.pow(1 - t, 2) : 1;
+        const current = Math.round(eased * target);
+        el.textContent = `${current}`;
+        if (t < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            el.textContent = `${target}`;
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+function animateSessionMetricPercents(sessionElement) {
+    if (!sessionElement) return;
+    sessionElement.querySelectorAll('[data-animate-percent="true"]').forEach((el) => {
+        animatePercentMetric(el);
+    });
+    sessionElement.querySelectorAll('[data-animate-count="true"]').forEach((el) => {
+        animateCountMetric(el);
+    });
+}
+
+async function loadMetrics() {
+    try {
+        const response = await fetch(`/api/class_metrics/${classId}`);
+        const data = await response.json();
+        const content = document.getElementById('metricsContent');
+        if (data.length === 0) {
+            content.innerHTML = '<div class="text-center text-muted p-4">No class sessions available.</div>';
+            return;
+        }
+        const className = {{ class_obj.name|tojson }};
+        let html = '';
+        window.__quizMetricsStudentCache = {};
+        data.forEach(session => {
+            const startTime = new Date(session.start_time);
+            const endTime = session.end_time ? new Date(session.end_time) : null;
+            const sessionDate = formatEasternDate(startTime);
+            const sessionNumber = session.session_number || 1;
+            const sessionId = `session-${session.session_id}`;
+            const pollSectionId = `polls-${session.session_id}`;
+            const quizSectionId = `quiz-${session.session_id}`;
+            const participationSectionId = `participation-${session.session_id}`;
+            const attendanceSectionId = `attendance-${session.session_id}`;
+
+            const attendancePct = Number(session?.engagement_metrics?.attendance) || 0;
+            const uniqueHandsRaised = Math.max(0, Math.round(Number(session?.engagement_metrics?.unique_hands_raised) || 0));
+            const pollVotePctRaw = session?.engagement_metrics?.poll_vote_percentage;
+            const hasPollVotePct = pollVotePctRaw !== null && pollVotePctRaw !== undefined;
+            const pollVotePct = hasPollVotePct ? (Number(pollVotePctRaw) || 0) : null;
+
+            html += `
+                <div class="session-banner">
+                    <div class="session-banner-header" onclick="toggleSession('${sessionId}')">
+                        <h5 class="session-banner-title">${className}: Session #${sessionNumber}, ${sessionDate}</h5>
+                        <span class="session-banner-toggle" id="toggle-${sessionId}">
+                            <svg viewBox="0 0 24 24"><path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/></svg>
+                        </span>
+                    </div>
+                    <div class="session-banner-content" id="${sessionId}">
+                        <div class="session-header">
+                            <div class="session-times">
+                                <strong>Start:</strong> ${formatEasternDateTime(session.start_time)}<br>
+                                <strong>End:</strong> ${endTime ? formatEasternDateTime(session.end_time) : 'In Progress'}
+                            </div>
+                            <button class="delete-session-btn" onclick="deleteSession(${session.session_id})">
+                                <i class="bi bi-trash"></i> Delete Session
+                            </button>
+                        </div>
+
+                        <div class="metrics-section-title">Engagement Metrics</div>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value" data-animate-percent="true" data-target-percent="${attendancePct}" data-target-decimals="0">0%</div>
+                                <div class="metric-label">Attendance</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value" data-animate-count="true" data-target-count="${uniqueHandsRaised}">0</div>
+                                <div class="metric-label">Unique Hands Raised</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value"${hasPollVotePct ? ` data-animate-percent="true" data-target-percent="${pollVotePct}" data-target-decimals="1"` : ''}>${hasPollVotePct ? '0%' : 'N/A'}</div>
+                                <div class="metric-label">Poll Vote %</div>
+                            </div>
+                        </div>`;
+
+            // Poll Results
+            if (session.poll_results && session.poll_results.length > 0) {
+                html += `
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="togglePoll('${pollSectionId}')">
+                            <div class="collapsible-header-left">
+                                <span class="collapsible-title">Poll Results</span>
+                            </div>
+                            <div class="collapsible-header-right">
+                                <span class="grey-banner-toggle" id="toggle-poll-${pollSectionId}">
+                                    <svg viewBox="0 0 24 24"><path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/></svg>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="${pollSectionId}">`;
+
+                session.poll_results.forEach((poll, pollIndex) => {
+                    const pollItemId = `poll-${session.session_id}-${pollIndex}`;
+                    html += `
+                        <div style="margin-bottom: 0.5rem;">
+                            <div class="poll-item-header" onclick="togglePoll('${pollItemId}')">
+                                <div class="poll-item-title">${poll.question}</div>
+                                <div class="poll-item-right" onclick="event.stopPropagation();">
+                                    <span class="poll-badge ${poll.is_graded ? 'graded' : 'ungraded'}" id="poll-badge-${poll.poll_id}">${poll.is_graded ? 'Graded' : 'Ungraded'}</span>
+                                    <div class="grading-toggle">
+                                        <input type="checkbox" id="poll-toggle-${poll.poll_id}" ${poll.is_graded ? 'checked' : ''} onchange="togglePollGrading(${poll.poll_id}, this.checked)">
+                                        <label for="poll-toggle-${poll.poll_id}">Graded</label>
+                                    </div>
+                                    <span class="grey-banner-toggle" id="toggle-poll-${pollItemId}">
+                                        <svg viewBox="0 0 24 24"><path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/></svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="poll-content" id="${pollItemId}">
+                                <div class="poll-options">`;
+                    poll.options.forEach((option, index) => {
+                        const count = poll.option_counts[index] || 0;
+                        html += `<div class="poll-option"><strong>${option}:</strong> ${count} ${count === 1 ? 'response' : 'responses'}</div>`;
+                    });
+                    html += `<div style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-top:0.5rem;font-family:'Inter',sans-serif;">Total Responses: ${poll.total_responses}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                html += `</div></div>`;
+            } else {
+                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;margin-bottom:0.75rem;">No polls conducted during this session.</div>';
+            }
+
+            // Quiz results (per-student scores for each run in this session window)
+            if (session.quiz_results && session.quiz_results.length > 0) {
+                html += `
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="togglePoll('${quizSectionId}')">
+                            <div class="collapsible-header-left">
+                                <span class="collapsible-title">Quiz Results</span>
+                            </div>
+                            <div class="collapsible-header-right">
+                                <span class="grey-banner-toggle" id="toggle-poll-${quizSectionId}">
+                                    <svg viewBox="0 0 24 24"><path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/></svg>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="${quizSectionId}">`;
+                session.quiz_results.forEach((qr) => {
+                    const title = escapeHtml(String(qr.quiz_title || 'Quiz'));
+                    const started = qr.started_at ? formatEasternDateTime(qr.started_at) : '—';
+                    html += `
+                        <div style="margin-bottom: 1rem;">
+                            <div class="poll-item-title" style="margin-bottom:0.25rem;">${title}</div>
+                            <div style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;font-family:'Inter',sans-serif;">Started: ${started}</div>
+                            <div class="participation-rounds-table-wrap">
+                                <table class="data-table participation-rounds-table quiz-results-metrics-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th class="text-center">Correct</th>
+                                            <th class="text-center">Total</th>
+                                            <th class="text-center">%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                    (qr.student_scores || []).forEach((row) => {
+                        const scoreDisp = row.correct_count != null ? String(row.correct_count) : '—';
+                        const totDisp = row.total_questions != null ? String(row.total_questions) : '—';
+                        const pctDisp = row.percent != null ? String(row.percent) + '%' : '—';
+                        const qb = row.question_breakdown;
+                        const hasDetail = Array.isArray(qb) && qb.length > 0;
+                        const cacheKey = 'qmet-' + session.session_id + '-' + qr.quiz_run_id + '-' + row.student_id;
+                        if (hasDetail) {
+                            window.__quizMetricsStudentCache[cacheKey] = {
+                                studentName: row.student_name,
+                                quizTitle: qr.quiz_title || 'Quiz',
+                                breakdown: qb
+                            };
+                        }
+                        const nameCell = hasDetail
+                            ? '<button type="button" class="quiz-metrics-student-name-btn" onclick="event.stopPropagation(); openQuizMetricsStudentDetail(\'' + cacheKey + '\')">' + escapeHtml(String(row.student_name)) + '</button>'
+                            : escapeHtml(String(row.student_name));
+                        html += `
+                                        <tr>
+                                            <td>${nameCell}</td>
+                                            <td class="text-center">${scoreDisp}</td>
+                                            <td class="text-center">${totDisp}</td>
+                                            <td class="text-center">${pctDisp}</td>
+                                        </tr>`;
+                    });
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                });
+                html += `</div></div>`;
+            } else {
+                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;margin-bottom:0.75rem;">No in-class quizzes during this session.</div>';
+            }
+
+            // Participation grades (individual grading rounds for this session date)
+            html += `
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="togglePoll('${participationSectionId}')">
+                        <div class="collapsible-header-left">
+                            <span class="collapsible-title">Participation Grades</span>
+                        </div>
+                        <div class="collapsible-header-right">
+                            <span class="grey-banner-toggle" id="toggle-poll-${participationSectionId}">
+                                <svg viewBox="0 0 24 24"><path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/></svg>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="collapsible-content" id="${participationSectionId}">`;
+            if (session.participation_rounds && session.participation_rounds.length > 0) {
+                html += `
+                    <div class="participation-rounds-table-wrap">
+                        <table class="data-table participation-rounds-table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th class="text-end">Instructor</th>
+                                    <th class="text-end">Peer</th>
+                                    <th>Started</th>
+                                    <th class="text-end" style="min-width:11rem;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                session.participation_rounds.forEach((pr) => {
+                    const instDisp = pr.instructor_score != null ? String(pr.instructor_score) : '—';
+                    const peerDisp = pr.peer_score_percent != null ? Number(pr.peer_score_percent).toFixed(2) + '%' : '—';
+                    const started = pr.created_at ? formatEasternDateTime(pr.created_at) : '—';
+                    const included = !pr.exclude_from_grading;
+                    html += `
+                        <tr>
+                            <td>${escapeHtml(String(pr.subject_name))}</td>
+                            <td class="text-end">${instDisp}</td>
+                            <td class="text-end">${peerDisp}</td>
+                            <td style="font-size:0.85rem;">${started}</td>
+                            <td class="participation-round-actions-cell">
+                                <div class="participation-round-actions">
+                                    <span class="poll-badge ${included ? 'graded' : 'ungraded'}" id="participation-round-badge-${pr.round_id}">${included ? 'Graded' : 'Excluded'}</span>
+                                    <div class="grading-toggle" onclick="event.stopPropagation();">
+                                        <input type="checkbox" id="participation-round-graded-${pr.round_id}" ${included ? 'checked' : ''} onchange="toggleParticipationRoundInclude(${pr.round_id}, this.checked)">
+                                        <label for="participation-round-graded-${pr.round_id}">Graded</label>
+                                    </div>
+                                    <button type="button" class="delete-session-btn participation-round-delete-btn" onclick="event.stopPropagation(); deleteParticipationRound(${pr.round_id});" title="Delete this participation grade">Delete</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+                html += `</tbody></table></div>`;
+            } else {
+                html += '<div class="participation-rounds-empty">No participation grades for this session date.</div>';
+            }
+            html += `</div></div>`;
+
+            // Attendance List
+            if (session.attendance_list && session.attendance_list.length > 0) {
+                const excludeFromGrading = session.exclude_from_grading || false;
+                html += `
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleAttendance('${attendanceSectionId}')">
+                            <div class="collapsible-header-left">
+                                <span class="collapsible-title">Attendance List</span>
+                            </div>
+                            <div class="collapsible-header-right" onclick="event.stopPropagation();">
+                                <span id="attendance-grade-badge-${session.session_id}" class="poll-badge ${excludeFromGrading ? 'ungraded' : 'graded'}">${excludeFromGrading ? 'Ungraded' : 'Graded'}</span>
+                                <div class="grading-toggle">
+                                    <input type="checkbox" id="attendance-toggle-${session.session_id}" ${excludeFromGrading ? '' : 'checked'} onchange="toggleSessionAttendance(${session.session_id}, this.checked)">
+                                    <label for="attendance-toggle-${session.session_id}">Graded</label>
+                                </div>
+                                <span class="grey-banner-toggle" id="toggle-attendance-${attendanceSectionId}">
+                                    <svg viewBox="0 0 24 24"><path d="M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z" fill="currentColor"/></svg>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="collapsible-content" id="${attendanceSectionId}">
+                            <p class="small mb-2" style="color:rgba(255,255,255,0.55);font-family:'Inter',sans-serif;">Excused absences are omitted from that student&rsquo;s attendance average (numerator and denominator) in the gradebook.</p>
+                            <div class="attendance-table-container">
+                                <table class="data-table" id="attendance-table-${session.session_id}">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-sort="student_number" data-type="text">Student Number</th>
+                                            <th class="sortable" data-sort="student_name" data-type="text">Student Name</th>
+                                            <th class="sortable" data-sort="sign_in_time" data-type="text">Join Time</th>
+                                            <th class="sortable" data-sort="sign_out_time" data-type="text">Exit Time</th>
+                                            <th class="sortable" data-sort="status" data-type="text">Status</th>
+                                            <th>Excused absence</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attendance-tbody-${session.session_id}">`;
+
+                const sortedList = [...session.attendance_list].sort((a, b) => {
+                    if (a.present && !b.present) return -1;
+                    if (!a.present && b.present) return 1;
+                    return 0;
+                });
+                sortedList.forEach(att => {
+                    const signInTime = formatEasternDateTime(att.sign_in_time);
+                    const signOutTime = formatEasternDateTime(att.sign_out_time);
+                    const status = att.present ? 'Present' : 'Absent';
+                    const excused = !!att.absence_exempt;
+                    const excusedCell = att.present
+                        ? '<span style="color:rgba(255,255,255,0.35);">—</span>'
+                        : `<label class="mb-0 d-inline-flex align-items-center gap-1" style="cursor:pointer;font-size:0.875rem;" onclick="event.stopPropagation();"><input type="checkbox" class="form-check-input m-0" ${excused ? 'checked' : ''} onchange="setAbsenceExemption(${session.session_id}, ${att.student_id}, this.checked, this, event)"> <span>Excused</span></label>`;
+                    html += `
+                        <tr data-student-number="${att.student_number}"
+                            data-student-name="${att.student_name}"
+                            data-sign-in-time="${att.sign_in_time || ''}"
+                            data-sign-out-time="${att.sign_out_time || ''}"
+                            data-status="${status}">
+                            <td>${att.student_number}</td>
+                            <td>${att.student_name}</td>
+                            <td>${signInTime}</td>
+                            <td>${signOutTime}</td>
+                            <td>${att.present ? '<span class="badge bg-success">Present</span>' : '<span class="badge bg-danger">Absent</span>'}</td>
+                            <td onclick="event.stopPropagation();">${excusedCell}</td>
+                        </tr>`;
+                });
+                html += `</tbody></table></div></div></div>`;
+            } else {
+                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;">No attendance records for this session.</div>';
+            }
+
+            html += '</div></div>'; // close session-banner-content + session-banner
+        });
+
+        content.innerHTML = html;
+        initSorting();
+    } catch (error) {
+        console.error('Error loading metrics:', error);
+        document.getElementById('metricsContent').innerHTML = '<div class="text-center text-danger p-4">Error loading class metrics.</div>';
+    }
+}
+
+// ── Toggle functions ──
+function toggleSession(sessionId) {
+    const content = document.getElementById(sessionId);
+    const toggle = document.getElementById(`toggle-${sessionId}`);
+    const svg = toggle.querySelector('svg path');
+    const banner = content.closest('.session-banner');
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        if (banner) banner.classList.remove('open');
+        svg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+        const sessionContent = document.getElementById(sessionId);
+        if (sessionContent) {
+            sessionContent.querySelectorAll('.poll-content.expanded, .collapsible-content.expanded').forEach(el => {
+                el.classList.remove('expanded');
+                const id = el.id;
+                const t1 = document.getElementById(`toggle-poll-${id}`);
+                const t2 = document.getElementById(`toggle-attendance-${id}`);
+                [t1, t2].forEach(t => { if (t) { const s = t.querySelector('svg path'); if (s) s.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z'); }});
+            });
+        }
+    } else {
+        content.classList.add('expanded');
+        if (banner) banner.classList.add('open');
+        svg.setAttribute('d', 'M12 7.5 Q12.9 7.5 13.5 8.1 L17.2 13.8 Q17.8 14.4 17.2 15 L16.4 15.8 Q15.8 16.4 15 15.8 L12 15.8 L9 15.8 Q8.2 16.4 7.6 15.8 L6.8 15 Q6.2 14.4 6.8 13.8 L10.5 8.1 Q11.1 7.5 12 7.5 Z');
+        animateSessionMetricPercents(content);
+    }
+}
+
+function togglePoll(pollId) {
+    const content = document.getElementById(pollId);
+    const toggle = document.getElementById(`toggle-poll-${pollId}`);
+    if (content && toggle) {
+        const svg = toggle.querySelector('svg path');
+        if (svg) {
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                svg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+            } else {
+                content.classList.add('expanded');
+                svg.setAttribute('d', 'M12 7.5 Q12.9 7.5 13.5 8.1 L17.2 13.8 Q17.8 14.4 17.2 15 L16.4 15.8 Q15.8 16.4 15 15.8 L12 15.8 L9 15.8 Q8.2 16.4 7.6 15.8 L6.8 15 Q6.2 14.4 6.8 13.8 L10.5 8.1 Q11.1 7.5 12 7.5 Z');
+            }
+        }
+    }
+}
+
+function toggleAttendance(attendanceId) {
+    const content = document.getElementById(attendanceId);
+    const toggle = document.getElementById(`toggle-attendance-${attendanceId}`);
+    if (content && toggle) {
+        const svg = toggle.querySelector('svg path');
+        if (svg) {
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                svg.setAttribute('d', 'M12 16.5 Q11.1 16.5 10.5 15.9 L6.8 10.2 Q6.2 9.6 6.8 9 L7.6 8.2 Q8.2 7.6 9 8.2 L12 8.2 L15 8.2 Q15.8 7.6 16.4 8.2 L17.2 9 Q17.8 9.6 17.2 10.2 L13.5 15.9 Q12.9 16.5 12 16.5 Z');
+            } else {
+                content.classList.add('expanded');
+                svg.setAttribute('d', 'M12 7.5 Q12.9 7.5 13.5 8.1 L17.2 13.8 Q17.8 14.4 17.2 15 L16.4 15.8 Q15.8 16.4 15 15.8 L12 15.8 L9 15.8 Q8.2 16.4 7.6 15.8 L6.8 15 Q6.2 14.4 6.8 13.8 L10.5 8.1 Q11.1 7.5 12 7.5 Z');
+            }
+        }
+    }
+}
+
+// ── Poll / attendance grading toggles ──
+async function togglePollGrading(pollId, isGraded) {
+    try {
+        const response = await fetch(`/api/update_poll_grading/${pollId}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_graded: isGraded })
+        });
+        const data = await response.json();
+        if (data.success) {
+            const badge = document.getElementById(`poll-badge-${pollId}`);
+            if (badge) { badge.textContent = isGraded ? 'Graded' : 'Ungraded'; badge.className = `poll-badge ${isGraded ? 'graded' : 'ungraded'}`; }
+            loadGradebook();
+        } else {
+            alert('Error updating poll grading status');
+            const toggle = document.getElementById(`poll-toggle-${pollId}`);
+            if (toggle) toggle.checked = !isGraded;
+        }
+    } catch (error) {
+        console.error('Error updating poll grading:', error);
+        alert('Error updating poll grading status');
+        const toggle = document.getElementById(`poll-toggle-${pollId}`);
+        if (toggle) toggle.checked = !isGraded;
+    }
+}
+
+async function toggleSessionAttendance(sessionId, countForAttendance) {
+    try {
+        const response = await fetch(`/api/update_session_grading/${sessionId}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exclude_from_grading: !countForAttendance })
+        });
+        const data = await response.json();
+        if (data.success) {
+            const badge = document.getElementById(`attendance-grade-badge-${sessionId}`);
+            if (badge) { const isGraded = countForAttendance; badge.textContent = isGraded ? 'Graded' : 'Ungraded'; badge.className = `poll-badge ${isGraded ? 'graded' : 'ungraded'}`; }
+            loadGradebook();
+        } else {
+            alert('Error updating session attendance counting');
+            const toggle = document.getElementById(`attendance-toggle-${sessionId}`);
+            if (toggle) toggle.checked = !countForAttendance;
+        }
+    } catch (error) {
+        console.error('Error updating session attendance:', error);
+        alert('Error updating session attendance counting');
+        const toggle = document.getElementById(`attendance-toggle-${sessionId}`);
+        if (toggle) toggle.checked = !countForAttendance;
+    }
+}
+
+async function toggleParticipationRoundInclude(roundId, includeInGrade) {
+    try {
+        const response = await fetch(`/api/participation_grade_round/${roundId}/exclude_from_grading`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exclude_from_grading: !includeInGrade })
+        });
+        const data = await response.json();
+        if (data.success) {
+            const badge = document.getElementById(`participation-round-badge-${roundId}`);
+            if (badge) {
+                badge.textContent = includeInGrade ? 'Graded' : 'Excluded';
+                badge.className = `poll-badge ${includeInGrade ? 'graded' : 'ungraded'}`;
+            }
+            loadGradebook();
+        } else {
+            alert(data.error || 'Could not update participation grading');
+            loadMetrics();
+        }
+    } catch (error) {
+        console.error('Error updating participation round:', error);
+        loadMetrics();
+    }
+}
+
+async function deleteParticipationRound(roundId) {
+    if (!confirm('Remove this participation grade permanently? Grade averages will update.')) return;
+    try {
+        const response = await fetch(`/api/participation_grade_round/${roundId}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) {
+            loadMetrics();
+            loadGradebook();
+        } else {
+            alert(data.error || 'Could not delete');
+        }
+    } catch (error) {
+        console.error('Error deleting participation round:', error);
+        alert('Could not delete');
+    }
+}
+
+async function deleteSession(sessionId) {
+    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) return;
+    try {
+        const response = await fetch(`/api/delete_session/${sessionId}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) { loadMetrics(); loadGradebook(); }
+        else { alert('Error deleting session'); }
+    } catch (error) { console.error('Error deleting session:', error); alert('Error deleting session'); }
+}
+
+function exportGradebook() {
+    window.location.href = `/api/export_gradebook/${classId}`;
+}
+
+async function setAbsenceExemption(sessionId, studentId, exempt, checkboxEl, ev) {
+    if (ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+    }
+    try {
+        const response = await fetch(`/api/class_session/${sessionId}/absence_exemption`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_id: studentId, exempt: exempt }),
+        });
+        const data = await response.json();
+        if (!data.success) {
+            alert(data.error || 'Could not update excused absence.');
+            if (checkboxEl) checkboxEl.checked = !exempt;
+            return;
+        }
+        /* Do not call loadMetrics() here — a full re-render collapses open sessions/sections. */
+    } catch (err) {
+        console.error(err);
+        alert('Could not update excused absence.');
+        if (checkboxEl) checkboxEl.checked = !exempt;
+    }
+}
+
+// ── Sorting ──
+const tableSortState = {};
+function initSorting() {
+    document.removeEventListener('click', handleSortClick);
+    document.addEventListener('click', handleSortClick);
+}
+function handleSortClick(event) {
+    const header = event.target.closest('.sortable');
+    if (!header) return;
+    const column = header.dataset.sort;
+    const type = header.dataset.type;
+    if (!column || !type) return;
+    const table = header.closest('table');
+    if (!table) return;
+    const tableBodyId = table.querySelector('tbody')?.id;
+    if (!tableBodyId) return;
+    if (!tableSortState[tableBodyId]) tableSortState[tableBodyId] = { column: null, direction: null };
+    const state = tableSortState[tableBodyId];
+    table.querySelectorAll('.sortable').forEach(h => h.classList.remove('asc', 'desc'));
+    if (state.column === column) { state.direction = state.direction === 'asc' ? 'desc' : 'asc'; }
+    else { state.column = column; state.direction = 'asc'; }
+    header.classList.add(state.direction);
+    sortTable(tableBodyId, column, state.direction, type);
+}
+function sortTable(tableBodyId, column, direction, type) {
+    const tbody = document.getElementById(tableBodyId);
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length === 0) return;
+    rows.sort((a, b) => {
+        const dataAttr = column.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+        let aValue = a.dataset[dataAttr] || '';
+        let bValue = b.dataset[dataAttr] || '';
+        if (column === 'sign_out_time') {
+            if (!aValue && bValue) return direction === 'asc' ? 1 : -1;
+            if (aValue && !bValue) return direction === 'asc' ? -1 : 1;
+            if (!aValue && !bValue) return 0;
+        }
+        if (type === 'number') { aValue = parseFloat(aValue) || 0; bValue = parseFloat(bValue) || 0; return direction === 'asc' ? aValue - bValue : bValue - aValue; }
+        aValue = aValue.toString().toLowerCase(); bValue = bValue.toString().toLowerCase();
+        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(row => tbody.removeChild(row));
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', function() {
+    initSorting();
+    loadGradebook();
+});
+</script>
+{% endblock %}

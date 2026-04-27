@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — Register{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body {
+    background: #FFFFFF !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 2rem 1rem;
+    overflow-y: auto;
+  }
+  .login-logo {
+    width: clamp(160px, 40vw, 220px);
+    height: auto;
+    margin-bottom: 2.5rem;
+  }
+  .login-welcome {
+    font-family: 'Open Sans', sans-serif;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 400;
+    color: #0B1E33;
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+  .login-card {
+    background-color: var(--comet-dark) !important;
+    width: clamp(300px, 90vw, 480px);
+    padding: clamp(2rem, 5vw, 3rem);
+    border-radius: var(--card-border-radius) !important;
+  }
+  .login-card-title {
+    font-family: 'Open Sans', sans-serif;
+    font-size: clamp(1.6rem, 4vw, 2.1rem);
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  .login-card .form-label {
+    color: #E0E0E0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+  .login-card .form-control {
+    background-color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.95rem;
+    color: #0B1E33;
+  }
+  .login-card .form-control:focus {
+    background-color: #FFFFFF;
+    border-color: var(--comet-blue);
+    box-shadow: 0 0 0 3px rgba(87, 197, 228, 0.25);
+  }
+  .login-card .btn-primary {
+    background-color: var(--comet-blue) !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 0.7rem;
+    font-size: 1rem;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  .login-card .btn-primary:hover {
+    background-color: var(--comet-blue-dark) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(87, 197, 228, 0.35) !important;
+  }
+  .login-card .text-muted {
+    color: #A0B0C0 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet logo" class="login-logo" fetchpriority="high">
+
+<h1 class="login-welcome">Create your account</h1>
+
+<div class="card login-card">
+  <h2 class="login-card-title">Join Comet</h2>
+  <form id="registerForm">
+    <div class="mb-3">
+      <label for="username" class="form-label">Username</label>
+      <input type="text" class="form-control" id="username" name="username" required>
+    </div>
+    <div class="mb-3">
+      <label for="email" class="form-label">Email</label>
+      <input type="email" class="form-control" id="email" name="email" required>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <div class="mb-3">
+      <label for="confirmPassword" class="form-label">Confirm Password</label>
+      <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Register</button>
+  </form>
+  <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
+  <div id="successMessage" class="alert alert-success mt-3" style="display: none;"></div>
+  <div class="text-center mt-3">
+    <p class="text-muted"><a href="{{ url_for('login') }}" class="text-white">Back to login</a></p>
+  </div>
+</div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (password !== confirmPassword) {
+        document.getElementById('errorMessage').textContent = 'Passwords do not match';
+        document.getElementById('errorMessage').style.display = 'block';
+        return;
+    }
+
+    if (password.length < 6) {
+        document.getElementById('errorMessage').textContent = 'Password must be at least 6 characters long';
+        document.getElementById('errorMessage').style.display = 'block';
+        return;
+    }
+
+    const formData = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: password
+    };
+
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').textContent = 'Registration successful! Redirecting...';
+            document.getElementById('successMessage').style.display = 'block';
+            setTimeout(() => {
+                window.location.href = data.redirect;
+            }, 1000);
+        } else {
+            document.getElementById('errorMessage').textContent = data.error || 'Registration failed';
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+    } catch (error) {
+        document.getElementById('errorMessage').textContent = 'An error occurred. Please try again.';
+        document.getElementById('errorMessage').style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — Preferences{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    .responsive-title {
+        font-size: clamp(2rem, 6vw, 4rem);
+        font-weight: bold;
+    }
+
+    .settings-card {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="text-white responsive-title">Settings &amp; Preferences</h1>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('account_settings') }}" class="btn btn-outline-light">Account settings</a>
+            <a href="/dashboard" class="btn btn-light">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card settings-card mb-4">
+        <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <p class="settings-section-title mb-1">Account</p>
+                <p class="text-muted small mb-0">Change your Username, email, or password.</p>
+            </div>
+            <a href="{{ url_for('account_settings') }}" class="btn btn-primary">Open account settings</a>
+        </div>
+    </div>
+
+    <div class="card settings-card">
+        <div class="card-body p-4">
+            <p class="settings-section-title mb-1">Display Preferences</p>
+            <p class="text-muted small mb-4">These are your default settings applied to new classes.</p>
+
+            <form id="preferencesForm">
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" id="showFirstNameOnly">
+                    <label class="form-check-label" for="showFirstNameOnly">
+                        Show First Name Only
+                    </label>
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" id="quietMode">
+                    <label class="form-check-label" for="quietMode">
+                        Quiet Mode
+                    </label>
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" id="darkMode">
+                    <label class="form-check-label" for="darkMode">
+                        Dark mode
+                    </label>
+                </div>
+                <p class="text-muted small mb-4">Dark mode keeps the Comet look but uses a very dark blue for menus and panels instead of white.</p>
+
+                <div class="d-flex justify-content-end gap-2 settings-form-actions">
+                    <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+                    <button type="button" class="btn btn-primary" id="savePrefsBtn" onclick="savePreferences(this)">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+async function savePreferences(btn) {
+    const data = {
+        show_first_name_only: document.getElementById('showFirstNameOnly').checked,
+        quiet_mode: document.getElementById('quietMode').checked,
+        dark_mode: document.getElementById('darkMode').checked
+    };
+    await withLoading(btn, async () => {
+        const response = await fetch('/api/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            if (typeof result.dark_mode === 'boolean') {
+                document.body.classList.toggle('theme-dark', result.dark_mode);
+            }
+            showToast('Preferences saved successfully.');
+        } else {
+            showToast(result.error || 'Failed to save preferences.', 'danger');
+        }
+    });
+}
+
+// Load current preferences on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const resp = await fetch('/api/preferences');
+        const data = await resp.json();
+        if (data.success) {
+            document.getElementById('showFirstNameOnly').checked = data.show_first_name_only;
+            document.getElementById('quietMode').checked = data.quiet_mode;
+            const dm = document.getElementById('darkMode');
+            if (dm) dm.checked = !!data.dark_mode;
+        }
+    } catch (e) { /* silently ignore */ }
+});
+</script>
+{% endblock %}

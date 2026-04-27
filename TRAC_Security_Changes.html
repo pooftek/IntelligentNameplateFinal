@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Comet — Security Changes for TRAC Submission</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; color: #1a1a1a; line-height: 1.6; }
+  h1 { font-size: 22px; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 15px; margin-top: 36px; margin-bottom: 2px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: bold; padding: 2px 7px; border-radius: 3px; margin-right: 8px; vertical-align: middle; letter-spacing: 0.5px; }
+  .red { background: #fde8e8; color: #c0392b; }
+  .yellow { background: #fef9e7; color: #b7770d; }
+  .extra { background: #eaf4fb; color: #1a6fa0; }
+  p { margin: 6px 0 10px 0; }
+  .detail { font-size: 13px; color: #333; margin: 4px 0; }
+  .detail strong { color: #1a1a1a; }
+  hr { border: none; border-top: 1px solid #e0e0e0; margin: 28px 0; }
+  .env-block { background: #f4f4f4; border-left: 3px solid #999; padding: 10px 14px; font-family: monospace; font-size: 12px; margin-top: 16px; white-space: pre; }
+  .section-intro { font-size: 13px; color: #555; margin-bottom: 20px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 20px; }
+  th { background: #f0f0f0; text-align: left; padding: 7px 10px; font-weight: 600; border: 1px solid #ccc; }
+  td { padding: 6px 10px; border: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  @media print {
+    body { margin: 20px; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Comet — Security Changes Reference Document</h1>
+<div class="subtitle">Prepared for Western University Technology Risk Assessment (TRAC) &nbsp;|&nbsp; April 2026</div>
+
+<p class="section-intro">
+This document describes the security controls implemented in the Comet classroom participation platform.
+All changes were made prior to the pilot submission to address standard vendor security requirements,
+FIPPA obligations under Bill 194, and best-practice edtech security posture.
+</p>
+
+<table>
+  <tr>
+    <th>ID</th><th>Category</th><th>Issue</th><th>Status</th>
+  </tr>
+  <tr><td>R1</td><td>Critical</td><td>No CSRF protection on professor routes</td><td>Fixed</td></tr>
+  <tr><td>R2</td><td>Critical</td><td>No rate limiting or account lockout on login</td><td>Fixed</td></tr>
+  <tr><td>R3</td><td>Critical</td><td>Student PII exposed without authentication</td><td>Fixed</td></tr>
+  <tr><td>R4</td><td>Critical</td><td>No HTTP security headers</td><td>Fixed</td></tr>
+  <tr><td>R5</td><td>Critical</td><td>Session cookies not hardened</td><td>Fixed</td></tr>
+  <tr><td>R6</td><td>Critical</td><td>No audit logging</td><td>Fixed</td></tr>
+  <tr><td>R7</td><td>Critical</td><td>No data deletion capability (FIPPA)</td><td>Fixed</td></tr>
+  <tr><td>Y1</td><td>Moderate</td><td>No session timeout</td><td>Fixed</td></tr>
+  <tr><td>Y2</td><td>Moderate</td><td>Weak password policy</td><td>Fixed</td></tr>
+  <tr><td>Y3</td><td>Moderate</td><td>SQLite in production (no encryption at rest)</td><td>Deployment — Azure PostgreSQL</td></tr>
+  <tr><td>Y4</td><td>Moderate</td><td>Reset tokens written to disk when SMTP missing</td><td>Fixed</td></tr>
+  <tr><td>Y5</td><td>Moderate</td><td>Open professor registration</td><td>Fixed</td></tr>
+  <tr><td>Y6</td><td>Moderate</td><td>Default credentials present in production code</td><td>Fixed</td></tr>
+  <tr><td>E1</td><td>Additional</td><td>Password-change endpoint auth bypass</td><td>Fixed</td></tr>
+  <tr><td>E2</td><td>Additional</td><td>No file upload size limit</td><td>Fixed</td></tr>
+</table>
+
+<hr>
+
+<h2><span class="tag red">R1</span> CSRF Protection</h2>
+<p><strong>What it is:</strong> Cross-Site Request Forgery is an attack where a malicious website tricks a logged-in professor's browser into silently performing actions — such as deleting a class or exporting student grades — without the professor's knowledge.</p>
+<p><strong>What was done:</strong> Flask-WTF CSRF protection was installed and enabled. Every request from the professor's browser now must include a hidden one-time cryptographic token. The server rejects any request that is missing or has an invalid token. Student-facing routes are correctly exempted — they authenticate using Bearer tokens (not cookies), which are immune to CSRF by design.</p>
+
+<hr>
+
+<h2><span class="tag red">R2</span> Rate Limiting and Account Lockout</h2>
+<p><strong>What it is:</strong> Without limits, an attacker can automatically try thousands of password combinations against an account in seconds (brute-force attack).</p>
+<p><strong>What was done:</strong></p>
+<p class="detail"><strong>Rate limiting:</strong> Login endpoints now allow a maximum of 5 attempts per minute per IP address. Exceeding this returns HTTP 429 (Too Many Requests).</p>
+<p class="detail"><strong>Account lockout:</strong> After 5 cumulative failed password attempts on the same account, the account is locked.</p>
+<p class="detail"><strong>Professor unlock path:</strong> The professor uses "Forgot Password" to receive a reset link by email. Completing the reset clears the lockout counter.</p>
+<p class="detail"><strong>Student unlock path:</strong> The lockout affects password login only. A student can still authenticate by tapping their RFID student card — hardware authentication is unaffected. Alternatively, the professor can reset the student's password from the class management interface.</p>
+
+<hr>
+
+<h2><span class="tag red">R3</span> Student PII Exposure Fixed</h2>
+<p><strong>What it is:</strong> The endpoint that allows students to look up their account before setting a first password was returning full personal information — name, email address, and student number — to anyone who submitted a student number. No login was required. Since Western student numbers follow a predictable format, this could allow bulk enumeration of student data.</p>
+<p><strong>What was done:</strong> The response was reduced to only the student's first name (sufficient to confirm the right account was found). No email address, last name, or student number is returned. The endpoint is also rate-limited to 5 requests per minute.</p>
+
+<hr>
+
+<h2><span class="tag red">R4</span> HTTP Security Headers</h2>
+<p><strong>What it is:</strong> Browsers rely on specific HTTP headers to enforce important safety rules. Without them, common attacks such as clickjacking, MIME-type confusion, and information leakage are possible.</p>
+<p><strong>What was done:</strong> A server-side hook now adds the following headers to every response:</p>
+<p class="detail"><strong>X-Frame-Options: DENY</strong> — prevents the application from being loaded inside an iframe on another website, blocking clickjacking attacks.</p>
+<p class="detail"><strong>X-Content-Type-Options: nosniff</strong> — prevents browsers from guessing file types, blocking certain injection attacks.</p>
+<p class="detail"><strong>Referrer-Policy: strict-origin-when-cross-origin</strong> — limits what URL information is shared when a user navigates away from the application.</p>
+<p class="detail"><strong>Permissions-Policy</strong> — explicitly disables camera, microphone, and geolocation access for the application domain.</p>
+<p class="detail"><strong>Strict-Transport-Security (production only)</strong> — instructs browsers to always use HTTPS when connecting to this domain, enforced for one year.</p>
+
+<hr>
+
+<h2><span class="tag red">R5</span> Session Cookie Hardening</h2>
+<p><strong>What it is:</strong> The professor's login session is tracked by a browser cookie. Without security flags, that cookie can be stolen via JavaScript injection or transmitted over unencrypted connections.</p>
+<p><strong>What was done:</strong> Three security flags are now set on all session cookies:</p>
+<p class="detail"><strong>HttpOnly</strong> — the cookie cannot be read by JavaScript, blocking the most common method of session token theft via XSS.</p>
+<p class="detail"><strong>SameSite=Lax</strong> — the cookie is not sent on cross-site requests, providing an additional layer of CSRF protection.</p>
+<p class="detail"><strong>Secure (production only)</strong> — the cookie is only transmitted over HTTPS, never plain HTTP.</p>
+<p class="detail"><strong>3-hour inactivity timeout</strong> — sessions automatically expire, preventing indefinite access from unattended or shared devices.</p>
+
+<hr>
+
+<h2><span class="tag red">R6</span> Audit Logging</h2>
+<p><strong>What it is:</strong> Without a log of who accessed what and when, it is impossible to investigate a potential data breach or unauthorized access event — a requirement under FIPPA incident response obligations.</p>
+<p><strong>What was done:</strong> Structured audit log entries (prefixed <code>[audit]</code>) are now written for the following events, each recording the relevant user ID and IP address where applicable:</p>
+<p class="detail">Professor login — success and failure &nbsp;|&nbsp; Professor logout &nbsp;|&nbsp; Class session start and stop</p>
+<p class="detail">Gradebook export &nbsp;|&nbsp; Student roster export &nbsp;|&nbsp; Student data deletion</p>
+<p class="detail">Student login — success (with authentication method: RFID, password, or first-time setup) and failure</p>
+<p>Logs are written to the application's standard output, which is captured automatically by Azure App Service and retained in its log stream.</p>
+
+<hr>
+
+<h2><span class="tag red">R7</span> FIPPA Data Deletion (Right to Erasure)</h2>
+<p><strong>What it is:</strong> Ontario's Freedom of Information and Protection of Privacy Act (FIPPA), as amended by Bill 194 (in force July 1, 2025), gives individuals the right to request deletion of their personal information. No mechanism existed to fulfill such a request.</p>
+<p><strong>What was done:</strong> A new authenticated endpoint (<code>DELETE /api/student/&lt;id&gt;/data</code>) allows a professor to anonymize a student's personal information. Upon request:</p>
+<p class="detail">Name, email address, student number, RFID card ID, and password are overwritten with anonymized placeholder values.</p>
+<p class="detail">Grade, attendance, poll response, and participation records are preserved — these are academic records required for institutional record-keeping, and are no longer linkable to the individual's identity after anonymization.</p>
+<p class="detail">The action is logged in the audit trail with professor ID, student ID, and timestamp.</p>
+<p class="detail">Access control: only a professor who has that student enrolled in one of their classes can trigger the deletion, preventing cross-professor data operations.</p>
+
+<hr>
+
+<h2><span class="tag yellow">Y1</span> Session Timeout</h2>
+<p><strong>What was done:</strong> Professor sessions now expire automatically after 3 hours of inactivity. Previously, sessions had no expiry — a professor who left a browser open on a shared or unattended device would remain logged in indefinitely.</p>
+
+<hr>
+
+<h2><span class="tag yellow">Y2</span> Password Policy</h2>
+<p><strong>What was done:</strong> All password fields (professor account creation, professor password reset, and student first-time password setup) now enforce a minimum standard consistent with NIST SP 800-63B:</p>
+<p class="detail">Minimum 10 characters &nbsp;|&nbsp; At least one number &nbsp;|&nbsp; At least one symbol</p>
+<p>Previously, student passwords required only 6 characters with no complexity requirements, and professor registration had no minimum at all.</p>
+
+<hr>
+
+<h2><span class="tag yellow">Y3</span> Database Encryption at Rest</h2>
+<p><strong>What it is:</strong> The development database is SQLite — a single file on disk with no encryption. This is not acceptable for production storage of student PII.</p>
+<p><strong>Resolution (deployment configuration, not code):</strong> Production deployment will use Azure Database for PostgreSQL (Flexible Server) in the Canada Central region. Azure PostgreSQL provides encryption at rest using AES-256, automated backups, and point-in-time restore. The application code requires no changes — SQLAlchemy already supports PostgreSQL via a connection string set in the environment configuration.</p>
+
+<hr>
+
+<h2><span class="tag yellow">Y4</span> Password Reset Token Disk Storage</h2>
+<p><strong>What it is:</strong> When email (SMTP) was not configured, password reset tokens were written to a plaintext file on the server's local filesystem. If the server were ever compromised, an attacker could use these tokens to take over professor accounts.</p>
+<p><strong>What was done:</strong> The application now refuses to start in production mode unless <code>MAIL_SERVER</code> is configured. This ensures the file-based fallback is only reachable in local development, never in a deployed environment handling real accounts.</p>
+
+<hr>
+
+<h2><span class="tag yellow">Y5</span> Controlled Professor Registration</h2>
+<p><strong>What it is:</strong> Professor account registration was open to anyone who could reach the application URL — no affiliation verification was performed.</p>
+<p><strong>What was done:</strong> A new environment variable, <code>ALLOWED_EMAIL_DOMAINS</code>, restricts registration to specified email domains. For Western deployment this is set to:</p>
+<div class="env-block">ALLOWED_EMAIL_DOMAINS=uwo.ca,schulich.uwo.ca,ivey.ca,ivey.uwo.ca</div>
+<p style="margin-top:10px">Any registration attempt using an email address outside these domains is rejected with an error. Additional domains can be added at any time by updating the environment configuration — no code change is required. When the variable is unset (local development), registration remains open for testing convenience.</p>
+
+<hr>
+
+<h2><span class="tag yellow">Y6</span> Default Development Credentials Removed from Production</h2>
+<p><strong>What it is:</strong> The application startup script automatically created a professor account with the username <code>professor</code> and password <code>password</code> if the database was empty. This ran on the same code path as production startup, meaning a freshly deployed production instance would contain a well-known default account.</p>
+<p><strong>What was done:</strong> The default account creation is now gated behind a production-mode check. It will not run when <code>PRODUCTION=1</code> is set in the environment.</p>
+
+<hr>
+
+<h2><span class="tag extra">E1</span> Password-Change Endpoint Authentication Fix</h2>
+<p><strong>What it is:</strong> The endpoint used for a student's first-time password setup did not verify that the caller's session token specifically indicated a "needs password" state. A student with a normal active session token could call this endpoint to overwrite their password without knowing their current password.</p>
+<p><strong>What was done:</strong> The endpoint now reads both values from the session token (student ID and the needs-password flag) and rejects the request if the flag is not set to true. First-time password setup and password change are now properly separated.</p>
+
+<hr>
+
+<h2><span class="tag extra">E2</span> File Upload Size Limit</h2>
+<p><strong>What it is:</strong> Quiz and poll question files are uploaded as Excel spreadsheets. No maximum file size was enforced, meaning an oversized or malformed file could exhaust server memory.</p>
+<p><strong>What was done:</strong> A 10 MB maximum file size is now enforced at the framework level. Requests exceeding this limit are rejected before the file is processed.</p>
+
+<hr>
+
+<h2>Production Environment Configuration</h2>
+<p>The following environment variables must be set before production deployment. These are stored in a <code>.env</code> file on the server (never committed to source control):</p>
+<div class="env-block">SECRET_KEY=&lt;minimum 32-character random string&gt;
+PRODUCTION=1
+MAIL_SERVER=smtp.office365.com
+MAIL_PORT=587
+MAIL_USERNAME=your@uwo.ca
+MAIL_PASSWORD=&lt;app password&gt;
+MAIL_FROM=your@uwo.ca
+ALLOWED_EMAIL_DOMAINS=uwo.ca,schulich.uwo.ca,ivey.ca,ivey.uwo.ca
+SQLALCHEMY_DATABASE_URI=postgresql://&lt;user&gt;:&lt;password&gt;@&lt;host&gt;/&lt;db&gt;
+SOCKETIO_ALLOWED_ORIGINS=https://&lt;your-domain&gt;</div>
+
+<hr>
+
+<h2>Hosting and Data Residency</h2>
+<p><strong>Target platform:</strong> Microsoft Azure — Canada Central region (Toronto)</p>
+<p><strong>Rationale:</strong> Azure Canada Central ensures all student personal information remains within Canada, satisfying the data residency considerations under FIPPA. Western University already uses Microsoft 365 and Azure services, and Microsoft's Canadian data residency commitments are well-documented and familiar to Western's privacy office. A Privacy Impact Assessment will be completed with Western's Privacy Office prior to the pilot.</p>
+
+<p style="margin-top: 40px; font-size: 12px; color: #888;">Comet — Intelligent Nameplate Platform &nbsp;|&nbsp; Document generated April 2026 &nbsp;|&nbsp; For TRAC submission use</p>
+
+</body>
+</html>

@@ -1,0 +1,850 @@
+/* ============================================
+   COMET — Brand CSS Variables & Global Styles
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Core Palette */
+  --comet-navy:        #0D1628;
+  --comet-navy-mid:    #1A2D4A;
+  --comet-dark:        #0B1E33;
+  --comet-blue:        #57C5E4;
+  --comet-blue-dark:   #3BA8C8;
+  --comet-white:       #FFFFFF;
+  --comet-surface:     #F0F6FA;
+  --comet-surface-mid: #E2EEF5;
+
+  /* Semantic aliases */
+  --bg-gradient:          linear-gradient(135deg, var(--comet-navy) 0%, var(--comet-navy-mid) 100%);
+  --btn-primary-bg:       var(--comet-blue);
+  --btn-primary-hover:    var(--comet-blue-dark);
+  --btn-primary-text:     var(--comet-navy);
+  --scrollbar-thumb:      var(--comet-navy-mid);
+  --scrollbar-hover:      var(--comet-blue-dark);
+  --card-border-radius:   14px;
+  --tooltip-bg:           var(--comet-navy-mid);
+  --btn-shadow-default:   0 8px 24px rgba(11, 30, 51, 0.22);
+  --btn-shadow-hover:     0 12px 30px rgba(11, 30, 51, 0.25);
+
+  /* Typography */
+  --font-family-base: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Normalize heading casing across the app */
+h1, h2, h3, h4, h5, h6 {
+  text-transform: capitalize;
+}
+
+/* ---- Global button shadow (class-card style) ---- */
+button:not(.btn-close),
+.btn:not(.btn-close),
+a[class*="btn-"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  box-shadow: var(--btn-shadow-default);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+button:not(.btn-close):hover,
+.btn:not(.btn-close):hover,
+a[class*="btn-"]:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover {
+  box-shadow: var(--btn-shadow-hover);
+}
+
+/* Form actions stay flat and regular-weight Inter */
+form button,
+form .btn,
+form a[class*="btn-"],
+form input[type="button"],
+form input[type="submit"],
+form input[type="reset"] {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
+}
+
+form button:hover,
+form .btn:hover,
+form a[class*="btn-"]:hover,
+form input[type="button"]:hover,
+form input[type="submit"]:hover,
+form input[type="reset"]:hover,
+form button:focus,
+form .btn:focus,
+form a[class*="btn-"]:focus,
+form input[type="button"]:focus,
+form input[type="submit"]:focus,
+form input[type="reset"]:focus,
+form button:active,
+form .btn:active,
+form a[class*="btn-"]:active,
+form input[type="button"]:active,
+form input[type="submit"]:active,
+form input[type="reset"]:active {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
+}
+
+/* Action buttons that are form-related but may live outside <form> containers */
+.modal-footer .btn,
+.btn-live-settings-save,
+.btn-start-poll,
+.btn-stop-poll,
+.btn-tron-pill,
+.btn-account-save,
+#savePrefsBtn {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
+}
+
+.modal-footer .btn:hover,
+.btn-live-settings-save:hover,
+.btn-start-poll:hover,
+.btn-stop-poll:hover,
+.btn-tron-pill:hover,
+.btn-account-save:hover,
+#savePrefsBtn:hover,
+.modal-footer .btn:focus,
+.btn-live-settings-save:focus,
+.btn-start-poll:focus,
+.btn-stop-poll:focus,
+.btn-tron-pill:focus,
+.btn-account-save:focus,
+#savePrefsBtn:focus,
+.modal-footer .btn:active,
+.btn-live-settings-save:active,
+.btn-start-poll:active,
+.btn-stop-poll:active,
+.btn-tron-pill:active,
+.btn-account-save:active,
+#savePrefsBtn:active {
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 400 !important;
+}
+
+/* ---- Global ---- */
+body {
+  font-family: var(--font-family-base) !important;
+}
+
+/* ---- Scrollbars ---- */
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+/* ---- Bootstrap Button Overrides ---- */
+.btn-primary {
+  background-color: var(--comet-blue) !important;
+  border-color: var(--comet-blue) !important;
+  color: var(--comet-navy) !important;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: background-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--comet-blue-dark) !important;
+  border-color: var(--comet-blue-dark) !important;
+  color: var(--comet-white) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(87, 197, 228, 0.35) !important;
+}
+
+/* Preferences & account settings: paired Cancel + Save (same footprint as primary) */
+.settings-form-actions .btn {
+  min-width: 130px;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.settings-form-actions .btn-secondary {
+  border-radius: 9999px !important;
+  color: #374151 !important;
+  background-color: #e5e7eb !important;
+  border-color: #e5e7eb !important;
+}
+.settings-form-actions .btn-secondary:hover,
+.settings-form-actions .btn-secondary:focus {
+  background-color: #d1d5db !important;
+  border-color: #d1d5db !important;
+  color: #374151 !important;
+}
+
+/* ---- Cards ---- */
+.card {
+  border-radius: var(--card-border-radius) !important;
+  border: none;
+}
+
+/* ---- Comet brand text utility ---- */
+.text-comet-blue { color: var(--comet-blue) !important; }
+.text-comet-navy { color: var(--comet-navy) !important; }
+.bg-comet-navy   { background-color: var(--comet-navy) !important; }
+.bg-comet-blue   { background-color: var(--comet-blue) !important; }
+
+/* ---- Comet wordmark ---- */
+.comet-wordmark {
+  font-family: var(--font-family-base);
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: -0.5px;
+  color: var(--comet-white);
+}
+.comet-wordmark span {
+  color: var(--comet-blue);
+}
+
+/* ---- Page header bar (professor pages) ---- */
+.comet-page-header {
+  background: var(--bg-gradient);
+  padding: 2rem;
+  border-radius: var(--card-border-radius) var(--card-border-radius) 0 0;
+  color: var(--comet-white);
+}
+
+/* ---- Badges ---- */
+.badge.bg-comet {
+  background-color: var(--comet-blue) !important;
+  color: var(--comet-navy) !important;
+  font-weight: 700;
+}
+
+/* ---- Focus rings ---- */
+:focus-visible {
+  outline: 2px solid var(--comet-blue);
+  outline-offset: 2px;
+}
+
+/* ---- Link color ---- */
+a.text-white:hover { color: var(--comet-blue) !important; }
+
+/* ---- Standard form modal (max-width) ---- */
+.settings-modal-dialog { max-width: 520px; }
+
+/* ---- Standard form modal chrome (.modal-std on the .modal-dialog element) ---- */
+.modal-std .modal-content {
+  border: none;
+  border-radius: var(--card-border-radius);
+}
+.modal-std .modal-header {
+  justify-content: center;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+}
+.modal-std .modal-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  color: #0B1E33;
+  font-family: 'Inter', sans-serif;
+}
+.modal-std .btn-close {
+  position: absolute;
+  right: 1rem;
+}
+.modal-std .modal-footer {
+  justify-content: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  padding-bottom: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+.modal-std .modal-footer .btn {
+  min-width: 130px;
+  height: 40px;
+  border-radius: 9999px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-std .btn-primary {
+  background-color: #57C5E4 !important;
+  border-color: #57C5E4 !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+}
+.modal-std .btn-primary:hover {
+  background-color: #3BA8C8 !important;
+  border-color: #3BA8C8 !important;
+}
+.modal-std .btn-light {
+  background-color: #e5e7eb !important;
+  color: #374151 !important;
+  border-color: #e5e7eb !important;
+}
+.modal-std .form-label {
+  color: #0B1E33;
+  font-size: 0.875rem;
+  margin-bottom: 0.3rem;
+}
+.modal-std .form-control {
+  background-color: #FFFFFF;
+  border: 1px solid #d1d5db;
+  color: #0B1E33;
+  border-radius: 8px;
+}
+.modal-std .form-control:focus {
+  background-color: #FFFFFF;
+  border-color: #57C5E4;
+  color: #0B1E33;
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+}
+.modal-std .form-select {
+  border: 1px solid #d1d5db;
+  color: #0B1E33;
+  border-radius: 8px;
+}
+.modal-std .form-select:focus {
+  border-color: #57C5E4;
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+}
+.modal-std .form-check-label {
+  color: #0B1E33;
+  font-weight: 400;
+  font-family: 'Inter', sans-serif;
+}
+.modal-std .form-check-input {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+  cursor: pointer;
+}
+.modal-std .form-check-input:checked {
+  background-color: #57C5E4 !important;
+  border-color: #57C5E4 !important;
+}
+
+/* ---- Professor UI dark mode: white menu/surfaces → very dark blue ---- */
+body.theme-dark {
+  --comet-menu-dark: #050e18;
+  --comet-menu-dark-mid: #0a1526;
+  --comet-menu-text: #e8eef5;
+  --comet-menu-muted: #92a8c2;
+  background: var(--comet-menu-dark) !important;
+}
+
+body.theme-dark .modal-content,
+body.theme-dark .modal-header,
+body.theme-dark .modal-footer {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .modal-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #preferencesModal .modal-header,
+body.theme-dark #addClassModal .modal-header {
+  border-bottom-color: #122638 !important;
+}
+body.theme-dark #preferencesModal .modal-footer,
+body.theme-dark #addClassModal .modal-footer {
+  border-top-color: #122638 !important;
+}
+body.theme-dark .btn-close {
+  filter: invert(1);
+  opacity: 0.75;
+}
+
+body.theme-dark .card:not(.class-card) {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .card:not(.class-card) .text-muted {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .form-control,
+body.theme-dark .form-select {
+  background-color: var(--comet-menu-dark-mid) !important;
+  border-color: #243e5a !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .form-control::placeholder,
+body.theme-dark .form-select::placeholder {
+  color: var(--comet-menu-muted) !important;
+  opacity: 1;
+}
+body.theme-dark .form-label,
+body.theme-dark .form-check-label {
+  color: #c5d4e3 !important;
+}
+body.theme-dark .dropdown-menu {
+  background-color: var(--comet-menu-dark) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .dropdown-item {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .dropdown-item:hover {
+  background-color: var(--comet-menu-dark-mid) !important;
+}
+body.theme-dark .bg-white {
+  background-color: var(--comet-menu-dark-mid) !important;
+}
+body.theme-dark .list-group-item {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .toast .toast-body {
+  color: inherit;
+}
+body.theme-dark hr,
+body.theme-dark .border-secondary-subtle {
+  border-color: #122638 !important;
+}
+body.theme-dark .btn-light {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark .btn-outline-light {
+  color: var(--comet-menu-text) !important;
+  border-color: #3d5f78 !important;
+}
+body.theme-dark .btn-outline-light:hover {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .settings-form-actions .btn-secondary {
+  border-radius: 9999px !important;
+  background-color: #172f46 !important;
+  border-color: #243e5a !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .settings-form-actions .btn-secondary:hover {
+  background-color: #223f56 !important;
+}
+
+/* ---- Professor “canvas” pages (classroom, class data, students, live faculty, dashboard): scoped template CSS uses #ids and !important ---- */
+body.theme-dark .responsive-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .class-data-header-icon,
+body.theme-dark .classroom-header-icon,
+body.theme-dark .students-header-icon,
+body.theme-dark .fac-header-icon {
+  color: var(--comet-menu-text) !important;
+}
+
+/* Data / gradebook tables (class_data.html) */
+body.theme-dark .data-table > tbody > tr:nth-of-type(odd) > td {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .data-table > tbody > tr:nth-of-type(even) > td {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .data-table > tbody > tr:hover > td {
+  background-color: #101d2e !important;
+  color: var(--comet-menu-text) !important;
+}
+
+body.theme-dark .participation-split-nested {
+  background: var(--comet-menu-dark-mid) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .participation-split-nested-title {
+  color: var(--comet-menu-muted) !important;
+}
+
+body.theme-dark .grading-form-card {
+  background: var(--comet-menu-dark) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .grading-form-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .grading-form-subtitle {
+  color: var(--comet-menu-muted) !important;
+}
+/* Field labels are plain <label>, not .form-label — template keeps #0B1E33 unless overridden */
+body.theme-dark .grading-form-card label {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .grading-divider {
+  border-top-color: #122638 !important;
+}
+body.theme-dark .grading-form-card .form-control {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark .grading-form-card .form-control:focus {
+  border-color: #57c5e4 !important;
+  box-shadow: 0 0 0 0.15rem rgba(87, 197, 228, 0.25) !important;
+}
+body.theme-dark .help-text {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .weight-total {
+  background: var(--comet-menu-dark-mid) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark .weight-total-label {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .weight-total-value {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .weight-total.valid {
+  border-color: #28a745 !important;
+  background: rgba(40, 167, 69, 0.18) !important;
+}
+body.theme-dark .weight-total.invalid {
+  border-color: #dc3545 !important;
+  background: rgba(220, 53, 69, 0.15) !important;
+}
+
+body.theme-dark #gradebookParticipationModal .modal-content {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #gradebookParticipationModal .table thead th {
+  background: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #gradebookParticipationModal .table tbody td {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #gradebookParticipationModal .table tbody tr:nth-of-type(even) > td {
+  background-color: var(--comet-menu-dark) !important;
+}
+
+/* Classroom settings modal (classroom.html — #settingsModal beats generic .btn-light) */
+body.theme-dark #settingsModal .modal-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #settingsModal .modal-header {
+  border-bottom-color: #122638 !important;
+}
+body.theme-dark #settingsModal .modal-footer {
+  border-top-color: #122638 !important;
+}
+body.theme-dark #settingsModal .form-label,
+body.theme-dark #settingsModal .form-check-label {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #settingsModal .form-control,
+body.theme-dark #settingsModal .form-control:focus {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark #settingsModal .form-control:focus {
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25) !important;
+}
+body.theme-dark #settingsModal .btn-light {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark .settings-divider {
+  border-top-color: #122638 !important;
+}
+body.theme-dark .settings-section-title {
+  color: var(--comet-menu-text) !important;
+}
+
+/* Students list: import dropzone + roster table (students_list.html) */
+body.theme-dark .upload-dropzone {
+  background-color: var(--comet-menu-dark-mid) !important;
+  border-color: rgba(87, 197, 228, 0.35) !important;
+}
+body.theme-dark .upload-dropzone:hover {
+  background-color: #101d2e !important;
+  border-color: rgba(87, 197, 228, 0.55) !important;
+}
+body.theme-dark .upload-icon,
+body.theme-dark .upload-dropzone p.upload-main-text {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .upload-dropzone p.upload-sub-text {
+  color: var(--comet-menu-muted) !important;
+}
+
+body.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > td {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .table-striped > tbody > tr:nth-of-type(even) > td {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .table-striped > tbody > tr:hover > td {
+  background-color: #101d2e !important;
+  color: var(--comet-menu-text) !important;
+}
+
+body.theme-dark #addStudentModal .modal-header,
+body.theme-dark #editStudentModal .modal-header {
+  border-bottom-color: #122638 !important;
+}
+body.theme-dark #addStudentModal .form-label,
+body.theme-dark #editStudentModal .form-label {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #addStudentModal .form-control,
+body.theme-dark #editStudentModal .form-control,
+body.theme-dark #addStudentModal .form-control:focus,
+body.theme-dark #editStudentModal .form-control:focus {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark #addStudentModal .btn-light,
+body.theme-dark #editStudentModal .btn-light {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+
+/* Live faculty: poll + participation modals (faculty_dashboard.html — #id + .form-control) */
+body.theme-dark #createPollModal .modal-header {
+  border-bottom-color: #122638 !important;
+}
+body.theme-dark #createPollModal .modal-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #createPollModal .modal-footer,
+body.theme-dark #participationGradeModal .modal-footer {
+  border-top-color: #122638 !important;
+}
+body.theme-dark #createPollModal .form-label,
+body.theme-dark #createPollModal .form-check-label {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #createPollModal .form-control,
+body.theme-dark #createPollModal .form-control:focus,
+body.theme-dark #participationGradeModal .form-control,
+body.theme-dark #participationGradeModal .form-control:focus {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark #createPollModal .form-control:focus,
+body.theme-dark #participationGradeModal .form-control:focus {
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25) !important;
+}
+body.theme-dark #createPollModal .btn-light,
+body.theme-dark #participationGradeModal .btn-light {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+
+body.theme-dark .modal-footer .btn-secondary {
+  background-color: #172f46 !important;
+  border-color: #243e5a !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .modal-footer .btn-secondary:hover {
+  background-color: #223f56 !important;
+  color: var(--comet-menu-text) !important;
+}
+
+/* ---- Faculty live: tab nav (Quiz / Settings / …) on dark canvas ---- */
+body.theme-dark .fac-tabs .tab-pill:not(.active) {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .fac-tabs .tab-pill:not(.active):hover {
+  color: var(--comet-menu-text) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+body.theme-dark .fac-tabs .tab-pill.active {
+  background-color: rgba(87, 197, 228, 0.16) !important;
+  color: var(--comet-menu-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(87, 197, 228, 0.35) !important;
+}
+
+/* ---- Faculty Quiz tab + Settings cards (faculty_dashboard.html #quizCard) ---- */
+body.theme-dark .fac-settings-card {
+  background-color: var(--comet-menu-dark-mid) !important;
+  border-color: #122638 !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45) !important;
+}
+body.theme-dark .fac-settings-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-section-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-section-bordered {
+  border-top-color: #122638 !important;
+}
+body.theme-dark .fac-settings-card .form-label,
+body.theme-dark .fac-settings-card .form-check-label {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .form-control,
+body.theme-dark .fac-settings-card .form-control:focus {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #243e5a !important;
+}
+body.theme-dark .fac-settings-card .form-control:focus {
+  box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25) !important;
+}
+body.theme-dark .fac-settings-card .text-muted {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .fac-settings-card .text-danger {
+  color: #f87171 !important;
+}
+body.theme-dark .fac-settings-card .table {
+  --bs-table-color: var(--comet-menu-text);
+  --bs-table-bg: transparent;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .fac-settings-card .table > :not(caption) > * > * {
+  border-bottom-color: #122638 !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .table thead th {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark .fac-settings-card .table tbody td {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .table-responsive {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #122638;
+}
+body.theme-dark .fac-settings-card .btn-outline-secondary {
+  color: var(--comet-menu-text) !important;
+  border-color: #3d5f78 !important;
+  background: transparent !important;
+}
+body.theme-dark .fac-settings-card .btn-outline-secondary:hover {
+  background-color: rgba(87, 197, 228, 0.12) !important;
+  border-color: #57c5e4 !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .btn-outline-danger {
+  color: #fca5a5 !important;
+  border-color: rgba(248, 113, 113, 0.45) !important;
+  background: transparent !important;
+}
+body.theme-dark .fac-settings-card .btn-outline-danger:hover {
+  background-color: rgba(220, 53, 69, 0.2) !important;
+  color: #fecaca !important;
+}
+body.theme-dark .fac-settings-card .btn-primary:disabled {
+  opacity: 0.45 !important;
+}
+body.theme-dark .fac-settings-card .alert-secondary {
+  background-color: rgba(18, 38, 56, 0.85) !important;
+  border-color: #243e5a !important;
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark .fac-settings-card .alert-secondary a {
+  color: #7dd3fc !important;
+}
+body.theme-dark .fac-settings-card .alert-secondary a:hover {
+  color: #bae6fd !important;
+}
+body.theme-dark .fac-settings-card .alert-success {
+  background-color: rgba(40, 167, 69, 0.18) !important;
+  border-color: rgba(74, 222, 128, 0.35) !important;
+  color: #bbf7d0 !important;
+}
+body.theme-dark .fac-settings-card .alert-danger {
+  background-color: rgba(220, 53, 69, 0.15) !important;
+  border-color: rgba(248, 113, 113, 0.4) !important;
+  color: #fecaca !important;
+}
+body.theme-dark .fac-settings-card .alert-warning {
+  background-color: rgba(234, 179, 8, 0.12) !important;
+  border-color: rgba(250, 204, 21, 0.35) !important;
+  color: #fde68a !important;
+}
+body.theme-dark .fac-settings-card .fac-empty-state {
+  color: var(--comet-menu-muted) !important;
+}
+
+/* ---- Class Data: Grading tab quiz weight / count (grading-quiz-section) ---- */
+body.theme-dark .grading-quiz-section {
+  background: var(--comet-menu-dark-mid) !important;
+  border-color: #122638 !important;
+}
+
+/* ---- Class Data: Quiz metrics per-question modal ---- */
+body.theme-dark #quizMetricsStudentDetailModal .modal-content {
+  background-color: var(--comet-menu-dark) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .modal-header {
+  border-bottom-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .modal-title {
+  color: var(--comet-menu-text) !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .text-muted {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .table thead th {
+  background: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .table tbody td {
+  background-color: var(--comet-menu-dark-mid) !important;
+  color: var(--comet-menu-text) !important;
+  border-color: #122638 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .table tbody tr:nth-of-type(even) > td {
+  background-color: var(--comet-menu-dark) !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .btn-close {
+  filter: invert(1);
+  opacity: 0.75;
+}
+body.theme-dark #quizMetricsStudentDetailModal .badge.bg-success {
+  background-color: rgba(34, 197, 94, 0.35) !important;
+  color: #ecfdf5 !important;
+}
+body.theme-dark #quizMetricsStudentDetailModal .badge.bg-danger {
+  background-color: rgba(239, 68, 68, 0.35) !important;
+  color: #fef2f2 !important;
+}
+
+/* ---- Class Data: tabs (Grading / Class Metrics — quiz tables live here) ---- */
+body.theme-dark .class-data-tabs-nav .tab-pill:not(.active) {
+  color: var(--comet-menu-muted) !important;
+}
+body.theme-dark .class-data-tabs-nav .tab-pill:not(.active):hover {
+  color: var(--comet-menu-text) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+body.theme-dark .class-data-tabs-nav .tab-pill.active {
+  background-color: rgba(87, 197, 228, 0.16) !important;
+  color: var(--comet-menu-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(87, 197, 228, 0.35) !important;
+}
+body.theme-dark #metricsContent .loading {
+  color: var(--comet-menu-muted) !important;
+}

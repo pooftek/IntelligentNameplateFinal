@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — Account Settings{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        background: #FFFFFF !important;
+        min-height: 100vh;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+        overflow-x: hidden;
+    }
+
+    .account-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .account-header {
+        flex-shrink: 0;
+        padding: 2rem 8rem 1.25rem;
+    }
+
+    .account-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .responsive-title {
+        font-family: 'Inter', sans-serif;
+        font-size: clamp(2.5rem, 6.25vw, 3.75rem);
+        font-weight: 600;
+        color: #0B1E33;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .btn-return-home {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-decoration: none;
+    }
+    .btn-return-home:hover {
+        background-color: #3BA8C8 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* ── Content ── */
+    .account-content {
+        flex: 1;
+        padding: 0.5rem 8rem 2rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* ── Form card ── */
+    .account-card {
+        background: #0F2947;
+        border: 1px solid #1A3D6B;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 4px 14px rgba(11,30,51,0.08);
+        padding: 2rem 2.5rem;
+        width: 100%;
+        max-width: 560px;
+    }
+
+    .account-card .form-label {
+        color: #FFFFFF;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.3rem;
+        text-transform: capitalize;
+    }
+
+    .account-card .form-control {
+        background-color: #FFFFFF;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        color: #0B1E33;
+        font-family: 'Inter', sans-serif;
+    }
+    .account-card .form-control:focus {
+        background-color: #FFFFFF;
+        border-color: #57C5E4;
+        color: #0B1E33;
+        box-shadow: 0 0 0 0.2rem rgba(87,197,228,0.25);
+    }
+
+    .account-card .text-muted {
+        color: rgba(255,255,255,0.65) !important;
+        font-size: 0.875rem;
+    }
+
+    .account-card .settings-section-title {
+        color: rgba(255,255,255,0.85);
+    }
+
+    .account-card .settings-divider {
+        border-top-color: rgba(255,255,255,0.15);
+    }
+
+    /* ── Actions ── */
+    .account-form-actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .btn-account-save {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        border-radius: 9999px;
+        min-width: 130px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        cursor: pointer;
+    }
+    .btn-account-save:hover { background-color: #3BA8C8 !important; }
+
+    .btn-account-cancel {
+        background-color: #e5e7eb;
+        color: #374151;
+        font-weight: 600;
+        border-radius: 9999px;
+        min-width: 130px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .btn-account-cancel:hover { background-color: #d1d5db; color: #374151; }
+
+    /* ── Branding ── */
+    .account-branding {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 1.5rem 0 1.25rem;
+    }
+    .account-branding img { height: 34px; width: auto; }
+
+    body.theme-dark {
+        background: #050e18 !important;
+    }
+    body.theme-dark .responsive-title,
+    body.theme-dark .account-card .form-label {
+        color: #f3f4f6;
+    }
+    body.theme-dark .account-card {
+        background: #0a1526;
+        border-color: #1f2937;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    body.theme-dark .account-card .form-control {
+        background-color: #111827;
+        border-color: #374151;
+        color: #f3f4f6;
+    }
+    body.theme-dark .account-card .form-control:focus {
+        background-color: #111827;
+        color: #f3f4f6;
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.2rem rgba(87,197,228,0.25);
+    }
+    body.theme-dark .account-card .text-muted {
+        color: #9ca3af !important;
+    }
+    body.theme-dark .btn-account-cancel {
+        background-color: #1f2937;
+        color: #e5e7eb;
+    }
+    body.theme-dark .btn-account-cancel:hover {
+        background-color: #374151;
+        color: #f9fafb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="account-container">
+
+    <div class="account-header">
+        <div class="account-header-inner">
+            <h1 class="responsive-title">Account Settings</h1>
+            <a href="{{ url_for('dashboard') }}" class="btn-return-home">
+                <i class="bi bi-house-fill"></i> Return Home
+            </a>
+        </div>
+    </div>
+
+    <div class="account-content">
+        <div class="account-card">
+            <p class="text-muted mb-4 text-center">Change your username, email, or password. Your current password is required to save any changes.</p>
+
+            <form id="accountForm" autocomplete="off">
+                <p class="settings-section-title">Profile</p>
+                <div class="mb-3">
+                    <label for="accUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="accUsername" name="username" required autocomplete="username">
+                </div>
+                <div class="mb-4">
+                    <label for="accEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="accEmail" name="email" required autocomplete="email">
+                </div>
+
+                <hr class="settings-divider">
+                <p class="settings-section-title">Security</p>
+                <div class="mb-3">
+                    <label for="currentPassword" class="form-label">Current password</label>
+                    <input type="password" class="form-control" id="currentPassword" name="current_password" required autocomplete="current-password">
+                </div>
+                <div class="mb-3">
+                    <label for="newPassword" class="form-label">New password <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="password" class="form-control" id="newPassword" name="new_password" autocomplete="new-password" placeholder="Leave blank to keep current password" minlength="8">
+                </div>
+                <div class="mb-4">
+                    <label for="confirmPassword" class="form-label">Confirm new password</label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirm_password" autocomplete="new-password" placeholder="Required if setting a new password">
+                </div>
+
+                <div id="accountError" class="alert alert-danger" style="display: none;" role="alert"></div>
+
+                <div class="account-form-actions">
+                    <a href="{{ url_for('dashboard') }}" class="btn-account-cancel">Cancel</a>
+                    <button type="submit" class="btn-account-save" id="saveAccountBtn">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="account-branding">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const resp = await fetch('/api/account');
+        const data = await resp.json();
+        if (data.success) {
+            document.getElementById('accUsername').value = data.username || '';
+            document.getElementById('accEmail').value = data.email || '';
+        }
+    } catch (e) { /* ignore */ }
+});
+
+document.getElementById('accountForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('accountError');
+    errEl.style.display = 'none';
+
+    const newPw = document.getElementById('newPassword').value;
+    const confirmPw = document.getElementById('confirmPassword').value;
+    if (newPw || confirmPw) {
+        if (newPw.length < 8) {
+            errEl.textContent = 'New password must be at least 8 characters.';
+            errEl.style.display = 'block';
+            return;
+        }
+        if (newPw !== confirmPw) {
+            errEl.textContent = 'New password and confirmation do not match.';
+            errEl.style.display = 'block';
+            return;
+        }
+    }
+
+    const btn = document.getElementById('saveAccountBtn');
+    const payload = {
+        username: document.getElementById('accUsername').value.trim(),
+        email: document.getElementById('accEmail').value.trim(),
+        current_password: document.getElementById('currentPassword').value,
+        new_password: newPw,
+        confirm_password: confirmPw
+    };
+
+    await withLoading(btn, async () => {
+        const response = await fetch('/api/account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.success) {
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            showToast('Account settings saved.');
+        } else {
+            errEl.textContent = result.error || 'Could not save changes.';
+            errEl.style.display = 'block';
+        }
+    });
+});
+</script>
+{% endblock %}

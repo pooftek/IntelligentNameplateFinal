@@ -1,0 +1,46 @@
+# Environment and secrets
+.env
+*.env
+
+# Database
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Password reset tokens written to disk in dev
+password_reset_last_link.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Playwright
+test-results/
+playwright-report/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

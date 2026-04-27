@@ -1,0 +1,1220 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — Students: {{ class_obj.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        background: #FFFFFF !important;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+    }
+    .students-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .students-header {
+        flex-shrink: 0;
+        padding: 2rem 8rem 1.25rem;
+    }
+    .students-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+    .students-header-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1;
+    }
+    .students-header-icon {
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        color: #0B1E33;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+    .responsive-title {
+        font-family: 'Inter', sans-serif;
+        font-size: clamp(2.5rem, 6.25vw, 3.75rem);
+        font-weight: 600;
+        color: #0B1E33;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .btn-return-home {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-decoration: none;
+    }
+    .btn-return-home:hover {
+        background-color: #3BA8C8 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* ── Tabs nav ── */
+    .students-tabs-nav {
+        flex-shrink: 0;
+        padding: 0 8rem;
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .tab-pill {
+        border: none;
+        border-radius: 9999px;
+        padding: 0.5rem 1.5rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        background: transparent;
+        color: #9ca3af;
+        transition: background 0.15s, color 0.15s;
+    }
+    .tab-pill.active {
+        background-color: #0B1E33;
+        color: #FFFFFF;
+    }
+    .tab-count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 50%;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-left: 0.4rem;
+        color: #FFFFFF;
+        padding: 0 0.3rem;
+        vertical-align: middle;
+    }
+    .tab-count-selected   { background-color: #040E1A; }
+    .tab-count-unselected { background-color: #9ca3af; }
+
+    /* ── Content area ── */
+    .students-content {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 8rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .students-content::-webkit-scrollbar { width: 8px; }
+    .students-content::-webkit-scrollbar-track { background: transparent; }
+    .students-content::-webkit-scrollbar-thumb {
+        background: rgba(11,30,51,0.2);
+        border-radius: 4px;
+    }
+    #activePanel, #inactivePanel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding-bottom: 0;
+    }
+
+    /* ── Import card (Comet blue) ── */
+    .import-card {
+        background-color: #0B1E33;
+        border-radius: var(--card-border-radius);
+        padding: 1.5rem;
+        flex-shrink: 0;
+        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
+    }
+    .import-buttons {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    .btn-import {
+        border-radius: 9999px;
+        background-color: #57C5E4;
+        color: #FFFFFF;
+        border: none;
+        padding: 0.55rem 1.25rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 400;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-import:hover {
+        background-color: #3BA8C8;
+    }
+    .upload-dropzone {
+        border: 2px solid rgba(255,255,255,0.45);
+        border-radius: 10px;
+        padding: 1.5rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: #FFFFFF;
+    }
+    .upload-dropzone:hover {
+        background-color: #f5fbfe;
+        border-color: rgba(255,255,255,0.8);
+    }
+    .upload-dropzone.dragover {
+        background-color: rgba(87,197,228,0.08);
+        border-color: #57C5E4;
+    }
+    .upload-icon {
+        font-size: 2.25rem;
+        color: #0B1E33;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    .upload-dropzone p.upload-main-text {
+        color: #0B1E33;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-family: 'Inter', sans-serif;
+    }
+    .upload-dropzone p.upload-sub-text {
+        color: #9ca3af;
+        font-size: 0.85rem;
+        margin: 0;
+        font-style: italic;
+        font-family: 'Inter', sans-serif;
+    }
+    .file-input { display: none; }
+    .upload-status {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        display: none;
+        font-family: 'Inter', sans-serif;
+    }
+    .upload-status.success {
+        background-color: rgba(40,167,69,0.25);
+        color: #b7f5cc;
+        display: block;
+    }
+    .upload-status.error {
+        background-color: rgba(220,53,69,0.25);
+        color: #f5b7bb;
+        display: block;
+    }
+    .upload-status.info {
+        background-color: rgba(87,197,228,0.2);
+        color: #b8e8f7;
+        display: block;
+    }
+
+    /* ── Table ── */
+    .table-container {
+        width: 100%;
+        border-radius: 12px;
+        box-shadow: 0 4px 14px rgba(11,30,51,0.10);
+        overflow: hidden;
+    }
+    .table {
+        table-layout: fixed;
+        width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        border-collapse: separate;
+        border-spacing: 0;
+        box-shadow: none;
+        margin-bottom: 0;
+    }
+    .table thead th {
+        background-color: #0B1E33;
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 0.65rem 0.75rem;
+        font-family: 'Inter', sans-serif;
+        text-align: center;
+        width: calc(100% / 6);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .table thead th:first-child { border-top-left-radius: 12px; }
+    .table thead th:last-child  { border-top-right-radius: 12px; }
+    .table tbody tr:last-child td:first-child { border-bottom-left-radius: 12px; }
+    .table tbody tr:last-child td:last-child  { border-bottom-right-radius: 12px; }
+
+    .table tbody td {
+        padding: 0.3rem 0.75rem;
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+        border: none;
+        box-shadow: none;
+        width: calc(100% / 6);
+    }
+    .table-striped > tbody > tr:nth-of-type(odd)  > td { background-color: #FFFFFF !important; }
+    .table-striped > tbody > tr:nth-of-type(even) > td { background-color: #f1f5f9 !important; }
+    .table-striped > tbody > tr:hover             > td { background-color: #e2f4fb !important; }
+
+    /* Sortable */
+    .sortable { cursor: pointer; user-select: none; position: relative; }
+    .sortable:hover { background-color: #1a3552; }
+    .sortable::after { content: ' ↕'; opacity: 0.5; font-size: 0.8em; margin-left: 0.5rem; }
+    .sortable.asc::after  { content: ' ↑'; opacity: 1; }
+    .sortable.desc::after { content: ' ↓'; opacity: 1; }
+
+    /* All body cells centered */
+    .table tbody td { text-align: center; }
+    .table tbody td .btn-group { justify-content: center; }
+
+    /* Action buttons */
+    .btn-group { display: flex; gap: 0.4rem; align-items: center; flex-wrap: nowrap; }
+    .btn-status {
+        border: none;
+        padding: 0.3rem 0.9rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        font-size: 0.82rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: 'Inter', sans-serif;
+        white-space: nowrap;
+    }
+    .btn-status.active {
+        background-color: #57C5E4;
+        color: #FFFFFF;
+    }
+    .btn-status.active:hover { background-color: #3BA8C8; }
+    .btn-status.inactive {
+        background-color: rgba(108,117,125,0.15);
+        color: #6c757d;
+        border: 1px solid rgba(108,117,125,0.3);
+    }
+    .btn-status.inactive:hover { background-color: rgba(108,117,125,0.28); }
+
+    .btn-square {
+        width: 2rem;
+        height: 2rem;
+        min-width: 2rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        border-radius: 9999px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-edit-student   { background-color: #0B1E33; color: #FFFFFF; }
+    .btn-edit-student:hover { background-color: #1a3552; }
+    .btn-remove-student { background-color: rgba(220,53,69,0.12); color: #dc3545; }
+    .btn-remove-student:hover { background-color: rgba(220,53,69,0.25); }
+
+    /* Hidden section titles kept for JS compatibility */
+    .section-title { display: none; }
+
+    /* ── Student modals ── */
+    #addStudentModal .modal-header,
+    #editStudentModal .modal-header {
+        justify-content: center;
+        border-bottom: 1px solid #e5e7eb;
+        position: relative;
+    }
+    #addStudentModal .modal-title,
+    #editStudentModal .modal-title {
+        flex: 1;
+        text-align: center;
+        font-weight: 700;
+    }
+    #addStudentModal .btn-close,
+    #editStudentModal .btn-close {
+        position: absolute;
+        right: 1rem;
+    }
+    #addStudentModal .modal-footer,
+    #editStudentModal .modal-footer {
+        justify-content: center;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 1.25rem;
+    }
+    #addStudentModal .modal-footer .btn,
+    #editStudentModal .modal-footer .btn {
+        min-width: 130px;
+        height: 40px;
+        border-radius: 9999px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #addStudentModal .btn-primary,
+    #editStudentModal .btn-primary {
+        color: #FFFFFF !important;
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+        font-weight: 600;
+    }
+    #addStudentModal .btn-primary:hover,
+    #editStudentModal .btn-primary:hover {
+        background-color: #3BA8C8 !important;
+        border-color: #3BA8C8 !important;
+    }
+    #addStudentModal .btn-light,
+    #editStudentModal .btn-light {
+        background-color: #e5e7eb !important;
+        color: #374151 !important;
+        border-color: #e5e7eb !important;
+    }
+    #addStudentModal .form-label,
+    #editStudentModal .form-label {
+        font-family: 'Inter', sans-serif;
+        font-weight: 400;
+        color: #0B1E33;
+    }
+    #addStudentModal .form-control,
+    #editStudentModal .form-control {
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+    }
+    #addStudentModal .form-control:focus,
+    #editStudentModal .form-control:focus {
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+        outline: none;
+    }
+    /* Header actions wrapper (matches classroom.html) */
+    .students-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-shrink: 0;
+    }
+
+    /* ── Footer ── */
+    .students-branding {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 1.5rem 0 1.25rem;
+    }
+    .students-branding img { height: 34px; width: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="students-container">
+
+    <!-- Header -->
+    <div class="students-header">
+        <div class="students-header-inner">
+            <div class="students-header-title-group">
+                <i class="bi bi-globe2 students-header-icon"></i>
+                <h1 class="responsive-title" id="studentsTitle">{{ class_obj.name }}</h1>
+            </div>
+            <div class="students-header-actions">
+                <a href="/classroom/{{ class_obj.id }}" class="btn-return-home">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="students-tabs-nav">
+        <button class="tab-pill active" id="activeTabBtn" onclick="switchTab('active')">
+            Active Students <span class="tab-count-badge tab-count-selected" id="activeTabCount">{{ active_students|length }}</span>
+        </button>
+        <button class="tab-pill" id="inactiveTabBtn" onclick="switchTab('inactive')">
+            Inactive Students <span class="tab-count-badge tab-count-unselected" id="inactiveTabCount">{{ inactive_students|length }}</span>
+        </button>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="students-content">
+
+        <!-- Active Students Panel -->
+        <div id="activePanel">
+            <!-- Import card -->
+            <div class="import-card">
+                <div class="import-buttons">
+                    <button class="btn-import" onclick="exportCurrentList()">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Export Class List to Excel
+                    </button>
+                    <button class="btn-import" onclick="downloadTemplate()">
+                        <i class="bi bi-download"></i> Download Excel Template
+                    </button>
+                    <button class="btn-import" onclick="showAddStudentModal()">
+                        <i class="bi bi-plus-circle"></i> Add Student
+                    </button>
+                </div>
+                <div class="upload-dropzone" id="uploadDropzone" onclick="document.getElementById('fileInput').click()">
+                    <i class="bi bi-box-arrow-up upload-icon"></i>
+                    <p class="upload-main-text mb-1">Click here or drag and drop your Excel file</p>
+                    <p class="upload-sub-text">File must match the template format exactly</p>
+                    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+                </div>
+                <div id="uploadStatus" class="upload-status"></div>
+            </div>
+
+            <!-- Hidden section title for JS compatibility -->
+            <div class="section-title">Active Students <span class="student-count-badge">({{ active_students|length }})</span></div>
+
+            <!-- Active table -->
+            <div class="table-container">
+                <table class="table table-striped" id="activeStudentsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="first_name" data-type="text">First Name</th>
+                            <th class="sortable" data-sort="last_name" data-type="text">Last Name</th>
+                            <th class="sortable" data-sort="preferred_name" data-type="text">Preferred Name</th>
+                            <th class="sortable" data-sort="email" data-type="text">Email</th>
+                            <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activeStudentsTableBody">
+                        {% for student in active_students %}
+                        <tr data-student-id="{{ student.id }}"
+                            data-first-name="{{ student.first_name }}"
+                            data-preferred-name="{{ student.preferred_name or '' }}"
+                            data-last-name="{{ student.last_name }}"
+                            data-student-number="{{ student.student_number }}"
+                            data-email="{{ student.email|default('') }}"
+                            data-status="active">
+                            <td title="{{ student.first_name }}">{{ student.first_name }}</td>
+                            <td title="{{ student.last_name }}">{{ student.last_name }}</td>
+                            <td title="{{ student.preferred_name or '-' }}">{{ student.preferred_name or '-' }}</td>
+                            <td title="{{ student.email|default('-') }}">{{ student.email|default('-') }}</td>
+                            <td title="{{ student.student_number }}">{{ student.student_number }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn-status active"
+                                        onclick="toggleStudentStatus({{ student.id }}, true, '{{ student.first_name }} {{ student.last_name }}')"
+                                        title="Click to deactivate">
+                                        <i class="bi bi-check-circle"></i> Active
+                                    </button>
+                                    <button class="btn-square btn-edit-student"
+                                        onclick="editStudent({{ student.id }})" title="Edit Student">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if active_students|length == 0 %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No active students enrolled in this class.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inactive Students Panel (hidden by default) -->
+        <div id="inactivePanel" class="inactive-section" style="display:none">
+            <!-- Hidden section title for JS compatibility -->
+            <div class="section-title">Inactive Students <span class="student-count-badge">({{ inactive_students|length }})</span></div>
+
+            <div class="table-container">
+                <table class="table table-striped" id="inactiveStudentsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="first_name" data-type="text">First Name</th>
+                            <th class="sortable" data-sort="last_name" data-type="text">Last Name</th>
+                            <th class="sortable" data-sort="preferred_name" data-type="text">Preferred Name</th>
+                            <th class="sortable" data-sort="email" data-type="text">Email</th>
+                            <th class="sortable" data-sort="student_number" data-type="number">Student Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inactiveStudentsTableBody">
+                        {% for student in inactive_students %}
+                        <tr data-student-id="{{ student.id }}"
+                            data-first-name="{{ student.first_name }}"
+                            data-preferred-name="{{ student.preferred_name or '' }}"
+                            data-last-name="{{ student.last_name }}"
+                            data-student-number="{{ student.student_number }}"
+                            data-email="{{ student.email|default('') }}"
+                            data-status="inactive">
+                            <td title="{{ student.first_name }}">{{ student.first_name }}</td>
+                            <td title="{{ student.last_name }}">{{ student.last_name }}</td>
+                            <td title="{{ student.preferred_name or '-' }}">{{ student.preferred_name or '-' }}</td>
+                            <td title="{{ student.email|default('-') }}">{{ student.email|default('-') }}</td>
+                            <td title="{{ student.student_number }}">{{ student.student_number }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn-status inactive"
+                                        onclick="toggleStudentStatus({{ student.id }}, false, '{{ student.first_name }} {{ student.last_name }}')"
+                                        title="Click to reactivate">
+                                        <i class="bi bi-x-circle"></i> Inactive
+                                    </button>
+                                    <button class="btn-square btn-edit-student"
+                                        onclick="editStudent({{ student.id }})" title="Edit Student">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-square btn-remove-student"
+                                        onclick="removeStudent({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')"
+                                        title="Remove Student">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if inactive_students|length == 0 %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No inactive students.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- /.students-content -->
+
+    <!-- Footer -->
+    <div class="students-branding">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
+    </div>
+
+</div><!-- /.students-container -->
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-std settings-modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="settings-section-title">Student Information</p>
+                <form id="addStudentForm">
+                    <div class="mb-3">
+                        <label for="addFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addFirstName" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addLastName" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addPreferredName" class="form-label">Preferred Name</label>
+                        <input type="text" class="form-control" id="addPreferredName" name="preferred_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="addStudentNumber" class="form-label">Student Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="addStudentNumber" name="student_number" pattern="[0-9]{9}" maxlength="9" minlength="9" required inputmode="numeric">
+                        <small class="form-text text-muted">Must be exactly 9 digits (numbers only)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="addEmail" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addRfidCardId" class="form-label">RFID Card ID</label>
+                        <input type="text" class="form-control" id="addRfidCardId" name="rfid_card_id" placeholder="Optional">
+                        <small class="form-text text-muted">Leave blank if student doesn't have an RFID card yet</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewStudent()">Add Student</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-std settings-modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="settings-section-title">Student Information</p>
+                <form id="editStudentForm">
+                    <input type="hidden" id="editStudentId" name="student_id">
+                    <div class="mb-3">
+                        <label for="editFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editFirstName" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editLastName" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPreferredName" class="form-label">Preferred Name</label>
+                        <input type="text" class="form-control" id="editPreferredName" name="preferred_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStudentNumber" class="form-label">Student Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editStudentNumber" name="student_number" pattern="[0-9]{9}" maxlength="9" required>
+                        <small class="form-text text-muted">Must be exactly 9 digits</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="editEmail" name="email" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveStudentEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const classId = {{ class_obj.id }};
+
+// ── Title sizing (identical logic to classroom.html) ──
+function adjustStudentsTitleFontSize() {
+    const title = document.getElementById('studentsTitle');
+    if (!title) return;
+    const headerInner = title.closest('.students-header-inner');
+    if (!headerInner) return;
+    const backButton = headerInner.querySelector('.btn-return-home');
+    const backButtonWidth = backButton ? backButton.offsetWidth : 0;
+    const gap = 16;
+    const headerWidth = headerInner.offsetWidth;
+    const availableWidth = headerWidth - backButtonWidth - gap;
+    title.style.fontSize = '';
+    const defaultSize = parseFloat(window.getComputedStyle(title).fontSize);
+    const minSize = defaultSize * 0.3;
+    const tempElement = title.cloneNode(true);
+    tempElement.style.visibility = 'hidden';
+    tempElement.style.position = 'absolute';
+    tempElement.style.whiteSpace = 'nowrap';
+    tempElement.style.width = 'auto';
+    tempElement.style.fontSize = '';
+    document.body.appendChild(tempElement);
+    tempElement.style.fontSize = minSize + 'px';
+    const textWidthAtMin = tempElement.offsetWidth;
+    let finalSize;
+    if (textWidthAtMin > availableWidth) {
+        finalSize = minSize;
+    } else {
+        let min = minSize, max = defaultSize, bestSize = minSize;
+        while (max - min > 0.5) {
+            const testSize = (min + max) / 2;
+            tempElement.style.fontSize = testSize + 'px';
+            if (tempElement.offsetWidth <= availableWidth) { bestSize = testSize; min = testSize; }
+            else { max = testSize; }
+        }
+        finalSize = bestSize;
+    }
+    document.body.removeChild(tempElement);
+    title.style.fontSize = finalSize + 'px';
+}
+window.addEventListener('load', adjustStudentsTitleFontSize);
+window.addEventListener('resize', adjustStudentsTitleFontSize);
+
+// ── Tab switching ──
+function switchTab(tab) {
+    const activePanel   = document.getElementById('activePanel');
+    const inactivePanel = document.getElementById('inactivePanel');
+    const activeBtn     = document.getElementById('activeTabBtn');
+    const inactiveBtn   = document.getElementById('inactiveTabBtn');
+    const activeBadge   = document.getElementById('activeTabCount');
+    const inactiveBadge = document.getElementById('inactiveTabCount');
+    if (tab === 'active') {
+        activePanel.style.display   = '';
+        inactivePanel.style.display = 'none';
+        activeBtn.classList.add('active');
+        inactiveBtn.classList.remove('active');
+        if (activeBadge)   { activeBadge.className   = 'tab-count-badge tab-count-selected'; }
+        if (inactiveBadge) { inactiveBadge.className = 'tab-count-badge tab-count-unselected'; }
+    } else {
+        activePanel.style.display   = 'none';
+        inactivePanel.style.display = '';
+        activeBtn.classList.remove('active');
+        inactiveBtn.classList.add('active');
+        if (activeBadge)   { activeBadge.className   = 'tab-count-badge tab-count-unselected'; }
+        if (inactiveBadge) { inactiveBadge.className = 'tab-count-badge tab-count-selected'; }
+    }
+}
+
+// Show add student modal
+function showAddStudentModal() {
+    document.getElementById('addStudentForm').reset();
+    const modal = new bootstrap.Modal(document.getElementById('addStudentModal'));
+    modal.show();
+}
+
+// Save new student
+async function saveNewStudent() {
+    const firstName = document.getElementById('addFirstName').value.trim();
+    const lastName = document.getElementById('addLastName').value.trim();
+    const preferredName = document.getElementById('addPreferredName').value.trim();
+    const studentNumber = document.getElementById('addStudentNumber').value.trim();
+    const email = document.getElementById('addEmail').value.trim();
+    const rfidCardId = document.getElementById('addRfidCardId').value.trim();
+
+    if (!firstName || !lastName || !studentNumber || !email) {
+        alert('First name, last name, student number, and email are required');
+        return;
+    }
+    if (!/^\d+$/.test(studentNumber)) {
+        alert('Student number must contain only digits');
+        return;
+    }
+    if (studentNumber.length !== 9) {
+        alert(`Student number must be exactly 9 digits. You entered ${studentNumber.length} digit(s).`);
+        return;
+    }
+    if (!email || !email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+
+    const formData = {
+        first_name: firstName,
+        last_name: lastName,
+        preferred_name: preferredName || null,
+        student_number: studentNumber,
+        email: email,
+        rfid_card_id: rfidCardId || null
+    };
+
+    try {
+        const response = await fetch(`/api/create_and_add_student/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        const data = await response.json();
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal'));
+            modal.hide();
+            showStatus('success', `Student "${formData.first_name} ${formData.last_name}" has been added successfully!`);
+            setTimeout(() => { window.location.reload(); }, 1500);
+        } else {
+            alert('Error adding student: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error adding student:', error);
+        alert('Error adding student. Please try again.');
+    }
+}
+
+// Download template
+function downloadTemplate() {
+    window.location.href = `/api/download_student_template/${classId}`;
+}
+
+// Export current class list
+function exportCurrentList() {
+    window.location.href = `/api/export_students/${classId}`;
+}
+
+// File input change handler
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) { uploadFile(file); }
+}
+
+// Drag and drop handlers
+const dropzone = document.getElementById('uploadDropzone');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+['dragenter', 'dragover'].forEach(eventName => { dropzone.addEventListener(eventName, highlight, false); });
+['dragleave', 'drop'].forEach(eventName => { dropzone.addEventListener(eventName, unhighlight, false); });
+
+function highlight(e)   { dropzone.classList.add('dragover'); }
+function unhighlight(e) { dropzone.classList.remove('dragover'); }
+
+dropzone.addEventListener('drop', handleDrop, false);
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+            uploadFile(file);
+        } else {
+            showStatus('error', 'Please upload an Excel file (.xlsx or .xls)');
+        }
+    }
+}
+
+async function uploadFile(file) {
+    showStatus('info', 'Uploading and processing file...');
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await fetch(`/api/upload_students/${classId}`, { method: 'POST', body: formData });
+        const result = await response.json();
+        if (result.success) {
+            let message = `Success! `;
+            if (result.added > 0)   message += `${result.added} student(s) added. `;
+            if (result.updated > 0) message += `${result.updated} student(s) updated. `;
+            if (result.skipped > 0) message += `${result.skipped} row(s) skipped.`;
+            if (result.errors && result.errors.length > 0) {
+                message += '<br><br><strong>Errors:</strong><ul style="text-align:left;margin-top:0.5rem;">';
+                result.errors.slice(0, 10).forEach(error => { message += `<li>${error}</li>`; });
+                if (result.errors.length > 10) message += `<li>... and ${result.errors.length - 10} more errors</li>`;
+                message += '</ul>';
+            }
+            showStatus('success', message);
+            setTimeout(() => { window.location.reload(); }, 3000);
+        } else {
+            showStatus('error', result.error || 'Failed to upload file');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        showStatus('error', 'An error occurred while uploading the file. Please try again.');
+    }
+    fileInput.value = '';
+}
+
+function showStatus(type, message) {
+    uploadStatus.className = `upload-status ${type}`;
+    uploadStatus.innerHTML = message;
+    uploadStatus.style.display = 'block';
+    uploadStatus.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Sorting
+const tableSortState = {};
+
+function initSorting() {
+    document.removeEventListener('click', handleSortClick);
+    document.addEventListener('click', handleSortClick);
+}
+
+function handleSortClick(event) {
+    const header = event.target.closest('.sortable');
+    if (!header) return;
+    const column = header.dataset.sort;
+    const type   = header.dataset.type;
+    if (!column || !type) return;
+    const table = header.closest('table');
+    if (!table) return;
+    const tableBodyId = table.querySelector('tbody')?.id;
+    if (!tableBodyId) return;
+    if (!tableSortState[tableBodyId]) {
+        tableSortState[tableBodyId] = { column: null, direction: null };
+    }
+    const state = tableSortState[tableBodyId];
+    table.querySelectorAll('.sortable').forEach(h => { h.classList.remove('asc', 'desc'); });
+    if (state.column === column) {
+        state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.column = column;
+        state.direction = 'asc';
+    }
+    header.classList.add(state.direction);
+    sortTable(tableBodyId, column, state.direction, type);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initSorting();
+    const activeTableBody   = document.getElementById('activeStudentsTableBody');
+    const inactiveTableBody = document.getElementById('inactiveStudentsTableBody');
+    if (activeTableBody && activeTableBody.querySelectorAll('tr[data-student-id]').length > 0) {
+        const activeTable = document.getElementById('activeStudentsTable');
+        const lastNameHeader = activeTable.querySelector('th[data-sort="last_name"]');
+        if (lastNameHeader) {
+            tableSortState['activeStudentsTableBody'] = { column: 'last_name', direction: 'asc' };
+            lastNameHeader.classList.add('asc');
+            sortTable('activeStudentsTableBody', 'last_name', 'asc', 'text');
+        }
+    }
+    if (inactiveTableBody && inactiveTableBody.querySelectorAll('tr[data-student-id]').length > 0) {
+        const inactiveTable  = document.getElementById('inactiveStudentsTable');
+        const lastNameHeader = inactiveTable.querySelector('th[data-sort="last_name"]');
+        if (lastNameHeader) {
+            tableSortState['inactiveStudentsTableBody'] = { column: 'last_name', direction: 'asc' };
+            lastNameHeader.classList.add('asc');
+            sortTable('inactiveStudentsTableBody', 'last_name', 'asc', 'text');
+        }
+    }
+});
+
+function sortTable(tableBodyId, column, direction, type) {
+    const tbody = document.getElementById(tableBodyId);
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const dataRows = rows.filter(row => row.dataset.studentId);
+    if (dataRows.length === 0) return;
+    dataRows.sort((a, b) => {
+        const dataAttr = column.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+        let aValue = a.dataset[dataAttr] || '';
+        let bValue = b.dataset[dataAttr] || '';
+        if (type === 'number') {
+            aValue = parseInt(aValue) || 0;
+            bValue = parseInt(bValue) || 0;
+            return direction === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+        aValue = aValue.toString().toLowerCase();
+        bValue = bValue.toString().toLowerCase();
+        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(row => tbody.removeChild(row));
+    const noStudentsRow = rows.find(row => !row.dataset.studentId);
+    dataRows.forEach(row => tbody.appendChild(row));
+    if (noStudentsRow && dataRows.length === 0) tbody.appendChild(noStudentsRow);
+}
+
+// Edit student
+function editStudent(studentId) {
+    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+    if (!row) return;
+    document.getElementById('editStudentId').value    = studentId;
+    document.getElementById('editFirstName').value    = row.dataset.firstName || '';
+    document.getElementById('editLastName').value     = row.dataset.lastName || '';
+    document.getElementById('editPreferredName').value = row.dataset.preferredName || '';
+    document.getElementById('editStudentNumber').value = row.dataset.studentNumber || '';
+    document.getElementById('editEmail').value        = row.dataset.email || '';
+    const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+    modal.show();
+}
+
+async function saveStudentEdit() {
+    const studentId = document.getElementById('editStudentId').value;
+    const formData = {
+        first_name:     document.getElementById('editFirstName').value.trim(),
+        last_name:      document.getElementById('editLastName').value.trim(),
+        preferred_name: document.getElementById('editPreferredName').value.trim() || null,
+        student_number: document.getElementById('editStudentNumber').value.trim(),
+        email:          document.getElementById('editEmail').value.trim()
+    };
+    if (formData.student_number.length !== 9 || !/^\d+$/.test(formData.student_number)) {
+        alert('Student Number must be exactly 9 digits');
+        return;
+    }
+    if (!formData.email || !formData.email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    try {
+        const response = await fetch(`/api/update_student/${studentId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        const data = await response.json();
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error updating student: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error updating student:', error);
+        alert('Error updating student. Please try again.');
+    }
+}
+
+// Remove student
+async function removeStudent(studentId, studentName) {
+    if (!confirm(`Are you sure you want to permanently remove "${studentName}" from this class?\n\nThis will:\n- Remove the student's enrollment from this class\n- Delete all attendance, participation, and poll response records for this student in this class\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    try {
+        const response = await fetch(`/api/remove_student_from_class/${classId}/${studentId}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error removing student: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error removing student:', error);
+        alert('Error removing student. Please try again.');
+    }
+}
+
+async function toggleStudentStatus(studentId, isCurrentlyActive, studentName) {
+    const action = isCurrentlyActive ? 'deactivate' : 'reactivate';
+    if (!confirm(`Are you sure you want to ${action} "${studentName}"?`)) return;
+    try {
+        const response = await fetch(`/api/toggle_student_status/${classId}/${studentId}`, { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+            const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+            if (row) {
+                const newStatus = result.is_active;
+                const studentData = {
+                    id: studentId,
+                    first_name: row.dataset.firstName,
+                    preferred_name: row.dataset.preferredName,
+                    last_name: row.dataset.lastName,
+                    student_number: row.dataset.studentNumber,
+                    email: row.dataset.email || ''
+                };
+                row.remove();
+                const targetTableBody = newStatus ?
+                    document.getElementById('activeStudentsTableBody') :
+                    document.getElementById('inactiveStudentsTableBody');
+                if (targetTableBody) {
+                    const newRow = createStudentRow(studentData, newStatus);
+                    targetTableBody.appendChild(newRow);
+                    updateStudentCount();
+                    showStatus('success', `Student "${studentName}" has been ${newStatus ? 'reactivated' : 'deactivated'}.`);
+                    // Switch to the tab where the student now lives
+                    switchTab(newStatus ? 'active' : 'inactive');
+                } else {
+                    window.location.reload();
+                }
+            }
+        } else {
+            showStatus('error', result.error || 'Failed to update student status');
+        }
+    } catch (error) {
+        console.error('Toggle status error:', error);
+        showStatus('error', 'An error occurred while updating student status. Please try again.');
+    }
+}
+
+function createStudentRow(studentData, isActive) {
+    const row = document.createElement('tr');
+    row.setAttribute('data-student-id', studentData.id);
+    row.setAttribute('data-first-name', studentData.first_name);
+    row.setAttribute('data-preferred-name', studentData.preferred_name || '');
+    row.setAttribute('data-last-name', studentData.last_name);
+    row.setAttribute('data-student-number', studentData.student_number);
+    row.setAttribute('data-email', studentData.email || '');
+    row.setAttribute('data-status', isActive ? 'active' : 'inactive');
+    const statusText  = isActive ? 'Active' : 'Inactive';
+    const statusClass = isActive ? 'active' : 'inactive';
+    const statusIcon  = isActive ? 'bi-check-circle' : 'bi-x-circle';
+    const actionText  = isActive ? 'Click to deactivate' : 'Click to reactivate';
+    const onClickStatus = isActive ? 'true' : 'false';
+    const studentName = `${studentData.first_name} ${studentData.last_name}`;
+    const email = studentData.email || '-';
+    let actionsHtml = `
+        <div class="btn-group" role="group">
+            <button class="btn-status ${statusClass}"
+                onclick="toggleStudentStatus(${studentData.id}, ${onClickStatus}, '${studentName.replace(/'/g, "\\'")}')"
+                title="${actionText}">
+                <i class="bi ${statusIcon}"></i> ${statusText}
+            </button>
+            <button class="btn-square btn-edit-student"
+                onclick="editStudent(${studentData.id})" title="Edit Student">
+                <i class="bi bi-pencil"></i>
+            </button>`;
+    if (!isActive) {
+        actionsHtml += `
+            <button class="btn-square btn-remove-student"
+                onclick="removeStudent(${studentData.id}, '${studentName.replace(/'/g, "\\'")}')"
+                title="Remove Student">
+                <i class="bi bi-trash"></i>
+            </button>`;
+    }
+    actionsHtml += `</div>`;
+    row.innerHTML = `
+        <td title="${studentData.first_name}">${studentData.first_name}</td>
+        <td title="${studentData.last_name}">${studentData.last_name}</td>
+        <td title="${studentData.preferred_name || '-'}">${studentData.preferred_name || '-'}</td>
+        <td title="${email}">${email}</td>
+        <td title="${studentData.student_number}">${studentData.student_number}</td>
+        <td>${actionsHtml}</td>`;
+    return row;
+}
+
+function updateStudentCount() {
+    const activeTbody   = document.getElementById('activeStudentsTableBody');
+    const inactiveTbody = document.getElementById('inactiveStudentsTableBody');
+    const activeCount   = activeTbody   ? activeTbody.querySelectorAll('tr[data-student-id]').length   : 0;
+    const inactiveCount = inactiveTbody ? inactiveTbody.querySelectorAll('tr[data-student-id]').length : 0;
+
+    // Update tab button counts
+    const activeTabCount = document.getElementById('activeTabCount');
+    if (activeTabCount) activeTabCount.textContent = activeCount;
+    const inactiveTabCount = document.getElementById('inactiveTabCount');
+    if (inactiveTabCount) inactiveTabCount.textContent = inactiveCount;
+
+    // Update hidden section title badges (JS compatibility)
+    const activeSection = document.querySelector('.section-title');
+    if (activeSection) {
+        const badge = activeSection.querySelector('.student-count-badge');
+        if (badge) badge.textContent = `(${activeCount})`;
+    }
+    const inactiveSection = document.querySelector('.inactive-section');
+    if (inactiveSection) {
+        const inactiveTitle = inactiveSection.querySelector('.section-title');
+        if (inactiveTitle) {
+            const badge = inactiveTitle.querySelector('.student-count-badge');
+            if (badge) badge.textContent = `(${inactiveCount})`;
+        }
+        const inactiveTbody2 = document.getElementById('inactiveStudentsTableBody');
+        if (inactiveTbody2) {
+            const noStudentsRow = inactiveTbody2.querySelector('td[colspan]');
+            if (inactiveCount === 0) {
+                if (!noStudentsRow) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="6" class="text-center text-muted">No inactive students.</td>';
+                    inactiveTbody2.appendChild(row);
+                }
+            } else if (noStudentsRow) {
+                noStudentsRow.closest('tr').remove();
+            }
+        }
+    }
+    if (activeTbody) {
+        if (activeCount === 0) {
+            if (!activeTbody.querySelector('td[colspan]')) {
+                const noStudentsRow = document.createElement('tr');
+                noStudentsRow.innerHTML = '<td colspan="6" class="text-center text-muted">No active students enrolled in this class.</td>';
+                activeTbody.appendChild(noStudentsRow);
+            }
+        } else {
+            const noStudentsRow = activeTbody.querySelector('td[colspan]');
+            if (noStudentsRow) noStudentsRow.closest('tr').remove();
+        }
+    }
+}
+</script>
+{% endblock %}

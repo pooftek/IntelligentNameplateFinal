@@ -1,0 +1,3158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Comet — Student Nameplate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/comet.css') }}">
+    <style>
+        :root {
+            --comet-navy: #0D1628;
+            --comet-navy-mid: #1A2D4A;
+            --comet-blue: #57C5E4;
+            --comet-blue-dark: #3BA8C8;
+            --faculty-gradient: linear-gradient(135deg, var(--comet-navy) 0%, var(--comet-navy-mid) 100%);
+        }
+        html, body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .np-root {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+        .np-screen {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+        .faculty-bg {
+            background: var(--faculty-gradient);
+            min-height: 100%;
+        }
+        #npBack {
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            position: relative;
+            isolation: isolate;
+            font-family: 'Inter', sans-serif;
+        }
+        /* Peer rating: only on student-facing (back) screen — not full dual-monitor viewport */
+        #npBack .peer-participation-backdrop {
+            position: absolute;
+            inset: 0;
+            z-index: 2990;
+            background: rgba(0, 0, 0, 0.45);
+            pointer-events: auto;
+        }
+        #npBack #peerParticipationModal {
+            position: absolute !important;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            z-index: 3000;
+        }
+        #npBack #peerParticipationModal .modal-dialog {
+            max-height: calc(100% - 2rem);
+            overflow-y: auto;
+        }
+        #backGlobalStatus.session-top {
+            background-color: #FFFFFF;
+            color: #0B1E33;
+            border-bottom: none;
+        }
+        .sleep-layer {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 50;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .np-root.state-login .sleep-layer,
+        .np-root.state-home .sleep-layer,
+        .np-root.state-session .sleep-layer,
+        .np-root.state-grades .sleep-layer {
+            display: none;
+        }
+        .panel-hidden { display: none !important; }
+
+        /* Login state */
+        .back-inner-login {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            min-height: 0;
+            padding: 2rem 1rem;
+            overflow-y: auto;
+            background: #FFFFFF;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .login-logo {
+            width: clamp(120px, 30vw, 180px);
+            height: auto;
+            margin-bottom: 2rem;
+        }
+        .login-welcome {
+            font-family: 'Open Sans', sans-serif;
+            font-size: clamp(1.75rem, 4vw, 2.25rem);
+            font-weight: 400;
+            color: #0B1E33;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .login-card {
+            background-color: #0B1E33 !important;
+            width: clamp(300px, 90vw, 450px);
+            padding: clamp(2rem, 5vw, 2.5rem);
+            border-radius: 14px !important;
+            border: none;
+        }
+        .login-card-title {
+            font-family: 'Open Sans', sans-serif;
+            font-size: clamp(1.4rem, 3.5vw, 1.9rem);
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .login-card .form-label {
+            color: #E0E0E0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+        .login-card .form-control {
+            background-color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6rem 0.85rem;
+            font-size: 0.95rem;
+            color: #0B1E33;
+        }
+        .login-card .form-control:focus {
+            background-color: #FFFFFF;
+            border-color: var(--comet-blue);
+            box-shadow: 0 0 0 3px rgba(87, 197, 228, 0.25);
+        }
+        .btn-primary-gradient {
+            background-color: var(--comet-blue) !important;
+            border: none !important;
+            border-radius: 10px;
+            padding: 0.7rem;
+            color: #FFFFFF !important;
+            font-weight: 700;
+            width: 100%;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+        .btn-primary-gradient:hover { background-color: var(--comet-blue-dark) !important; transform: translateY(-1px); box-shadow: 0 5px 15px rgba(87,197,228,0.35) !important; }
+
+        /* Front: blank login */
+        .front-login-blank { width: 100%; height: 100%; }
+
+        /* Name display (home + session front): black on white */
+        .np-root.state-home .np-front,
+        .np-root.state-session .np-front,
+        .np-root.state-grades .np-front {
+            background: #fff !important;
+        }
+        .front-name-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            min-height: 100%;
+            padding: clamp(0.5rem, 2vmin, 1.25rem);
+            text-align: center;
+            background: #fff;
+            box-sizing: border-box;
+            overflow: visible;
+        }
+        .front-name-display .name-text {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: bold;
+            color: #000;
+            line-height: 1.05;
+            white-space: nowrap;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            box-sizing: border-box;
+            display: block;
+        }
+
+        /* My Classes (faculty dashboard clone) */
+        .back-inner-home {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #FFFFFF;
+            font-family: 'Inter', 'Nunito', sans-serif;
+            position: relative;
+        }
+        .dashboard-header {
+            flex-shrink: 0;
+            background-color: #FFFFFF;
+            border-bottom: none;
+            padding: 1.2rem 1.5rem 0.9rem;
+        }
+        .dashboard-header .container { max-width: 1200px; margin: 0 auto; }
+        .responsive-title {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.75rem, 4.1vw, 2.55rem);
+            font-weight: 600;
+            color: #0B1E33;
+            white-space: nowrap;
+            line-height: 1.2;
+            margin: 0;
+        }
+        .header-buttons { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+        .header-buttons .btn { height: 38px; display: inline-flex; align-items: center; padding: 0.375rem 0.75rem; }
+        .btn-logout-home {
+            position: absolute;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            width: 56px;
+            height: 56px;
+            background-color: #57C5E4;
+            color: #FFFFFF;
+            border-radius: 50%;
+            border: none;
+            padding: 0;
+            font-weight: 600;
+            font-size: 1.35rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(11, 30, 51, 0.22);
+            z-index: 3;
+        }
+        .btn-logout-home:hover { background-color: #3BA8C8; color: #FFFFFF; }
+        .btn-settings-home {
+            position: absolute;
+            right: 1.25rem;
+            bottom: 5.5rem;
+            width: 56px;
+            height: 56px;
+            background-color: #0B1E33;
+            color: #FFFFFF;
+            border-radius: 50%;
+            border: none;
+            padding: 0;
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(11, 30, 51, 0.22);
+            z-index: 3;
+        }
+        .btn-settings-home:hover { background-color: #1A2D4A; color: #FFFFFF; }
+        .dashboard-content {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            padding: 1rem;
+            padding-bottom: clamp(4rem, 15vh, 8rem);
+        }
+        .dashboard-content::-webkit-scrollbar { width: 12px; }
+        .dashboard-content::-webkit-scrollbar-thumb { background: #2A1A40; border-radius: 6px; }
+        .row > [class*='col-'] { display: flex; padding-left: 20px; padding-right: 20px; }
+        .class-card {
+            background-color: #0B1E33 !important;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            margin-bottom: clamp(30px, 5vw, 40px);
+            height: clamp(170px, 22vh, 200px);
+            min-height: 170px;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(11,30,51,0.22);
+            border: none;
+        }
+        .class-card:active { transform: scale(0.98); }
+        .class-card .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            min-height: 0;
+            padding: 1.25rem;
+        }
+        .card-header-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            overflow: hidden;
+        }
+        .card-photo-placeholder {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 1rem;
+        }
+        .class-card .card-title {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.2rem, 2.6vw, 1.65rem);
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 0;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+        }
+        .class-card .class-code {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+            font-weight: 400;
+            color: #7A99B5;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .class-card .status-badge {
+            margin-top: auto;
+            align-self: flex-start;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 400;
+            line-height: 1.5;
+            padding: 0.22rem 0.85rem;
+            border-radius: 9999px;
+        }
+        .class-card .status-badge.active {
+            background-color: #57C5E4;
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+        .class-card .status-badge.inactive {
+            background-color: rgba(255, 255, 255, 0.12);
+            color: #7A99B5;
+        }
+        .class-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .class-card.class-card-inactive {
+            opacity: 0.95;
+        }
+        .class-card.class-card-inactive:hover {
+            transform: translateY(-3px);
+        }
+
+        /* In-class session back */
+        .back-inner-session {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            color: #212529;
+            position: relative;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .session-main {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Full-screen poll (back only) — matches faculty chart colors */
+        .back-poll-fs {
+            position: absolute;
+            inset: 0;
+            z-index: 60;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .back-poll-fs .back-poll-q {
+            flex-shrink: 0;
+            padding: clamp(1rem, 3vw, 1.75rem) clamp(1rem, 3vw, 2rem);
+            font-size: clamp(1.35rem, 4.2vw, 2.25rem);
+            font-weight: 700;
+            color: #0B1E33;
+            line-height: 1.25;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .back-poll-fs .back-poll-opts {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            gap: 0;
+        }
+        .back-poll-fs .poll-opt-btn {
+            flex: 1;
+            min-height: 3.5rem;
+            border: none;
+            font-size: clamp(1.15rem, 3.2vw, 1.85rem);
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            transition: filter 0.12s ease, transform 0.08s ease;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+        .back-poll-fs .poll-opt-btn:active {
+            filter: brightness(0.92);
+            transform: scale(0.995);
+        }
+        .back-poll-fs .poll-opt-btn:disabled {
+            opacity: 0.85;
+            cursor: default;
+        }
+        .back-poll-fs .back-poll-done {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+            font-weight: 600;
+            color: #495057;
+            padding: 2rem;
+            text-align: center;
+        }
+        /* Quiz: compact pill submit (matches Class Data btn-tron-pill — not poll-opt-btn sizing) */
+        #backQuizFullscreen .back-quiz-footer {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.65rem 1rem 1rem;
+            border-top: 1px solid #e5e7eb;
+            background: #fff;
+        }
+        #backQuizFullscreen .back-quiz-submit-btn {
+            border-radius: 9999px;
+            background-color: #57C5E4;
+            color: #FFFFFF !important;
+            min-width: 130px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            padding: 0 1.25rem;
+            font-family: 'Inter', 'Nunito', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.15s ease, filter 0.12s ease;
+            touch-action: manipulation;
+        }
+        #backQuizFullscreen .back-quiz-submit-btn:hover {
+            background-color: #3BA8C8;
+            color: #FFFFFF;
+        }
+        #backQuizFullscreen .back-quiz-submit-btn:active {
+            filter: brightness(0.96);
+        }
+        #backQuizFullscreen .back-quiz-submit-btn:disabled {
+            opacity: 0.85;
+            cursor: default;
+        }
+        .poll-result-row {
+            flex-shrink: 0;
+            padding: 0.65rem clamp(1rem, 3vw, 1.5rem);
+            border-bottom: 1px solid #e9ecef;
+            font-size: clamp(0.95rem, 2.8vw, 1.35rem);
+        }
+        .poll-result-row:last-of-type { border-bottom: none; }
+        .poll-result-correct {
+            box-shadow: inset 4px 0 0 0 #28a745;
+            background: rgba(40, 167, 69, 0.06);
+        }
+        .poll-result-label {
+            display: block;
+            font-weight: 600;
+            color: #0B1E33;
+            margin-bottom: 0.35rem;
+        }
+        .poll-result-meta {
+            font-size: 0.88em;
+            color: #6c757d;
+        }
+        .poll-result-bar-wrap {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-top: 0.45rem;
+            overflow: hidden;
+        }
+        .poll-result-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.35s ease;
+        }
+        .poll-result-footer {
+            flex-shrink: 0;
+            padding: 0.5rem clamp(1rem, 3vw, 1.5rem) 0.75rem;
+            font-size: clamp(0.85rem, 2.2vw, 1rem);
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+        .session-top {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0B1E33;
+            background-color: #FFFFFF;
+            border-bottom: none;
+        }
+        #sessionTime {
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+            min-width: 0;
+        }
+        .session-top-status {
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 0.15rem;
+        }
+        .session-battery-charging {
+            font-size: 0.95rem;
+            line-height: 1;
+            color: #57C5E4;
+            flex-shrink: 0;
+        }
+        /* Custom battery — faculty inactive-symbol grey (#6c757d), compact */
+        .session-battery {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            flex-shrink: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+        .session-battery-shell {
+            position: relative;
+            width: clamp(2.1rem, 7.8vw, 2.45rem);
+            height: clamp(1.1rem, 3.6vw, 1.25rem);
+            border: 2.5px solid #0B1E33;
+            border-radius: 4px;
+            background: #E2EEF5;
+            overflow: hidden;
+            box-sizing: border-box;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        }
+        .session-battery.session-battery-low .session-battery-shell {
+            border-color: #0D1628;
+        }
+        .session-battery.session-battery-low .session-battery-fill {
+            background: #0B1E33;
+        }
+        .session-battery-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 100%;
+            background: #57C5E4;
+            transition: width 0.35s ease;
+            pointer-events: none;
+        }
+        .session-battery-pct {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 0 3px 0 1px;
+            box-sizing: border-box;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            font-size: 0.95rem;
+            line-height: 1;
+            letter-spacing: -0.03em;
+            color: #0B1E33;
+            text-shadow: none;
+        }
+        .session-battery.session-battery-low .session-battery-pct {
+            color: #FFFFFF;
+        }
+        .session-battery-nub {
+            width: 3px;
+            height: 0.5rem;
+            margin-left: 1px;
+            background: #0B1E33;
+            border: 2.5px solid #0B1E33;
+            border-left: none;
+            border-radius: 0 3px 3px 0;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            align-self: center;
+        }
+        .session-battery.session-battery-low .session-battery-nub {
+            background: #0D1628;
+            border-color: #0D1628;
+        }
+        .session-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+            min-height: 0;
+            background: #fff;
+        }
+        .session-center-inner {
+            text-align: center;
+            max-width: 95%;
+        }
+        .session-class-name {
+            font-size: clamp(2.75rem, 9vw, 5rem);
+            font-weight: bold;
+            color: #0D1628;
+            margin: 0;
+            line-height: 1.15;
+        }
+        .session-class-code {
+            font-size: clamp(1.75rem, 5vw, 3rem);
+            color: #57C5E4;
+            font-weight: 700;
+            margin-top: 1.25rem;
+            margin-bottom: 0;
+            letter-spacing: 0.02em;
+        }
+        .session-bottom {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 1.25rem 1.25rem 1.5rem;
+            gap: 1rem;
+            background: #fff;
+            border-top: 2px solid #e5e7eb;
+            position: relative;
+        }
+        .session-bottom-left, .session-bottom-right {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .session-bottom-right {
+            margin-left: auto;
+        }
+        .session-bottom-logo {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .session-bottom-logo img {
+            height: clamp(20px, 4.5vw, 32px);
+            width: auto;
+            opacity: 0.85;
+        }
+        .btn-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 1.35rem;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            touch-action: manipulation;
+        }
+        .btn-circle:active { transform: scale(0.92); }
+        .btn-circle.hand {
+            border: 2px solid #0D1628;
+            background: #fff;
+            color: #0D1628;
+        }
+        .btn-circle.hand.active { background: #0D1628; color: #fff; }
+        .btn-circle.hand .hand-raised-icon {
+            width: 1.35em;
+            height: 1.35em;
+            display: block;
+        }
+        .btn-circle.thumb-up {
+            border: 2px solid #198754;
+            background: #fff;
+            color: #198754;
+        }
+        .btn-circle.thumb-up.active { background: #198754; color: #fff; }
+        .btn-circle.thumb-down {
+            border: 2px solid #dc3545;
+            background: #fff;
+            color: #dc3545;
+        }
+        .btn-circle.thumb-down.active { background: #dc3545; color: #fff; }
+        .btn-circle.home-btn {
+            background: #0D1628;
+            color: #fff;
+            border: none;
+        }
+        .btn-circle.logout-session {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+        }
+        .empty-classes { color: #6C757D; text-align: center; padding: 2rem; }
+
+        /* Grade-only view (inactive class) — matches Class Data gradebook metrics */
+        .back-inner-grades {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            color: #212529;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .grades-header {
+            flex-shrink: 0;
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .grades-header .grades-class-name {
+            font-size: clamp(1.25rem, 3.5vw, 1.65rem);
+            font-weight: 700;
+            color: #0B1E33;
+            margin: 0 0 0.25rem 0;
+        }
+        .grades-header .grades-class-code {
+            font-size: 0.95rem;
+            color: #57C5E4;
+            font-weight: 600;
+            margin: 0;
+        }
+        .grades-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 1rem 1.25rem 1.25rem;
+        }
+        .grades-table-wrap {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fafbfc;
+        }
+        .grades-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.9rem, 2.2vw, 1rem);
+        }
+        .grades-table th,
+        .grades-table td {
+            padding: 0.65rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .grades-table th {
+            background: #0B1E33;
+            color: #fff;
+            font-weight: 600;
+            width: 55%;
+        }
+        .grades-table tr:last-child th,
+        .grades-table tr:last-child td {
+            border-bottom: none;
+        }
+        .grades-table td {
+            font-weight: 600;
+            color: #0B1E33;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .grades-meter {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            width: 100%;
+        }
+        .grades-bar-track {
+            flex: 1;
+            min-width: 0;
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 9999px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(11, 30, 51, 0.08);
+        }
+        .grades-bar-fill {
+            height: 100%;
+            min-width: 0;
+            max-width: 100%;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #3BA8C8 0%, #57C5E4 100%);
+            transition: width 0.4s ease;
+        }
+        .grades-pct {
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+            min-width: 4.75rem;
+            text-align: right;
+            font-size: 0.9em;
+        }
+        .grades-subnote {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 0.75rem;
+            line-height: 1.4;
+        }
+        .grades-footer {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem 1.25rem;
+            gap: 1rem;
+            border-top: 2px solid #e5e7eb;
+            background: #fff;
+        }
+        .grades-loading, .grades-error {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #6c757d;
+        }
+        .grades-error { color: #dc3545; }
+
+        .back-inner-settings {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            color: #212529;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .settings-header {
+            flex-shrink: 0;
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .settings-title {
+            margin: 0;
+            color: #0B1E33;
+            font-weight: 700;
+            font-size: clamp(1.25rem, 3.5vw, 1.65rem);
+        }
+        .settings-content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 1rem 1.25rem;
+        }
+        .settings-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1rem;
+            background: #FFFFFF;
+        }
+        .settings-card .form-label {
+            font-weight: 600;
+            color: #0B1E33;
+        }
+        .settings-card .form-control {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            color: #0B1E33;
+        }
+        .settings-card .form-control:focus {
+            border-color: #57C5E4;
+            box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+            outline: none;
+        }
+        .settings-card .form-check-input:checked {
+            background-color: #57C5E4 !important;
+            border-color: #57C5E4 !important;
+        }
+        .settings-section-heading {
+            display: inline-block;
+            margin-bottom: 0.65rem;
+            padding-bottom: 0.15rem;
+            border-bottom: 2px solid #57C5E4;
+            line-height: 1.2;
+        }
+        .settings-footer {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem 1.25rem;
+            gap: 1rem;
+            border-top: 2px solid #e5e7eb;
+            background: #fff;
+        }
+        .settings-status {
+            margin-top: 0.75rem;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+        body.theme-dark .back-inner-home,
+        body.theme-dark .back-inner-grades,
+        body.theme-dark .back-inner-settings,
+        body.theme-dark .back-inner-session {
+            background: var(--comet-menu-dark) !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .dashboard-header,
+        body.theme-dark .grades-header,
+        body.theme-dark .settings-header,
+        body.theme-dark .settings-footer,
+        body.theme-dark .session-bottom,
+        body.theme-dark #backGlobalStatus {
+            background: var(--comet-menu-dark) !important;
+            color: var(--comet-menu-text) !important;
+            border-color: #122638 !important;
+        }
+        body.theme-dark .responsive-title,
+        body.theme-dark .settings-title,
+        body.theme-dark .grades-class-name,
+        body.theme-dark .grades-class-code,
+        body.theme-dark .grades-subnote,
+        body.theme-dark .settings-card .form-label,
+        body.theme-dark .settings-card .form-check-label {
+            color: #c5d4e3 !important;
+        }
+        body.theme-dark .settings-card,
+        body.theme-dark .grades-table-wrap {
+            background: var(--comet-menu-dark) !important;
+            border-color: #122638 !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .grades-table td,
+        body.theme-dark .grades-weekly-row,
+        body.theme-dark .grades-weekly-date,
+        body.theme-dark .grades-weekly-detail {
+            background: var(--comet-menu-dark) !important;
+            border-color: #122638 !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .settings-card .form-control,
+        body.theme-dark .settings-card .form-control:focus {
+            background-color: var(--comet-menu-dark-mid) !important;
+            border-color: #243e5a !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .settings-card .form-control::placeholder {
+            color: var(--comet-menu-muted) !important;
+        }
+        body.theme-dark .btn-settings-home {
+            background-color: #172f46 !important;
+            border-color: #243e5a !important;
+            color: var(--comet-menu-text) !important;
+        }
+        body.theme-dark .btn-settings-home:hover {
+            background-color: #223f56 !important;
+            color: var(--comet-menu-text) !important;
+        }
+
+        .grades-table th.grades-cat-heading {
+            cursor: pointer;
+            user-select: none;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .grades-table th.grades-cat-heading:hover,
+        .grades-table th.grades-cat-heading:focus-visible {
+            color: #B8E8F5;
+        }
+        .grades-weekly-empty {
+            text-align: center;
+            color: #6c757d;
+            padding: 1.5rem 0.5rem;
+            font-size: 0.95rem;
+        }
+        .grades-weekly-row {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid #e9ecef;
+            font-family: 'Inter', 'Nunito', sans-serif;
+        }
+        .grades-weekly-row:last-child { border-bottom: none; }
+        .grades-weekly-date {
+            flex: 0 0 38%;
+            min-width: 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #0B1E33;
+            line-height: 1.25;
+        }
+        .grades-weekly-meter {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .grades-weekly-detail {
+            flex: 1;
+            text-align: right;
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        #peerParticipationModal .modal-content { border-radius: 15px; }
+        #peerParticipationModal .modal-footer {
+            justify-content: center;
+            padding-top: 0;
+            padding-bottom: 1rem;
+            border-top: none;
+        }
+        #peerParticipationModal .btn-peer-participation-submit {
+            padding: 0.45rem 1.15rem !important;
+            font-size: 0.875rem !important;
+            border-radius: 10px !important;
+        }
+        .peer-rating-btn {
+            min-width: 3rem;
+            padding: 0.45rem 0.3rem;
+            font-weight: 700;
+            border-radius: 10px;
+            line-height: 1.15;
+        }
+        .peer-rating-btn small { display: block; font-size: 0.65rem; font-weight: 600; opacity: 0.85; }
+        .peer-rating-btn.active {
+            background: var(--comet-blue);
+            border-color: var(--comet-blue-dark) !important;
+            color: var(--comet-navy);
+        }
+    </style>
+</head>
+<body>
+<div class="np-root state-sleep" id="npRoot">
+    <!-- FRONT SCREEN -->
+    <section class="np-screen np-front faculty-bg" id="npFront">
+        <div class="sleep-layer" id="sleepFront" aria-label="Wake"></div>
+        <div class="front-login-blank panel-hidden" id="frontLoginBlank"></div>
+        <div class="front-name-display panel-hidden" id="frontNameWrap">
+            <div class="name-text" id="frontStudentName"></div>
+        </div>
+    </section>
+    <!-- BACK SCREEN -->
+    <section class="np-screen np-back faculty-bg" id="npBack">
+        <div class="sleep-layer" id="sleepBack" aria-label="Wake"></div>
+        <div class="session-top panel-hidden" id="backGlobalStatus">
+            <span id="sessionTime"></span>
+            <div class="session-top-status">
+                <span class="session-battery-charging panel-hidden" id="sessionBatteryCharging" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i></span>
+                <span class="session-battery" id="sessionBattery" title="Battery" role="img" aria-label="Battery level">
+                    <span class="session-battery-shell">
+                        <span class="session-battery-fill" id="sessionBatteryFill"></span>
+                        <span class="session-battery-pct" id="sessionBatteryPct">100</span>
+                    </span>
+                    <span class="session-battery-nub" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="back-inner-login panel-hidden" id="backLogin">
+            <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet logo" class="login-logo" fetchpriority="high">
+            <h1 class="login-welcome">Welcome</h1>
+            <div class="card login-card">
+                <h2 class="login-card-title">Student Login</h2>
+                <form id="studentLoginForm" autocomplete="on">
+                    <div class="mb-3">
+                        <label for="loginIdentifier" class="form-label">Student Number or Email</label>
+                        <input type="text" class="form-control" id="loginIdentifier" name="identifier" required autocomplete="username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="loginPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" name="password" autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary-gradient w-100">Login</button>
+                </form>
+                <div id="loginError" class="alert alert-danger mt-3" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- MY CLASSES -->
+        <div class="back-inner-home panel-hidden" id="backHome">
+            <div class="dashboard-header">
+                <div class="container">
+                    <div class="d-flex align-items-center">
+                        <h1 class="responsive-title">My Classes</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-content">
+                <div class="container">
+                    <div class="row" id="classCardsRow"></div>
+                    <p class="empty-classes panel-hidden" id="emptyClassesMsg">No active classes available.</p>
+                </div>
+            </div>
+            <button type="button" class="btn-logout-home" id="btnLogoutHome" title="Logout" aria-label="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+            <button type="button" class="btn-settings-home" id="btnSettingsHome" title="Settings" aria-label="Settings">
+                <i class="bi bi-gear-fill"></i>
+            </button>
+        </div>
+
+        <!-- IN-CLASS SESSION -->
+        <div class="back-inner-session panel-hidden" id="backSession">
+            <div class="session-main">
+                <div class="session-center">
+                    <div class="session-center-inner">
+                        <h2 class="session-class-name" id="sessionClassName"></h2>
+                        <p class="session-class-code" id="sessionClassCode"></p>
+                    </div>
+                </div>
+                <div class="session-bottom">
+                    <div class="session-bottom-left" id="sessionParticipationControls">
+                        <button type="button" class="btn btn-circle hand" id="btnHand" title="Raise hand" aria-label="Raise hand">{% include 'partials/hand_raised_icon.html' %}</button>
+                        <button type="button" class="btn btn-circle thumb-up" id="btnThumbUp" title="Thumbs up" aria-label="Thumbs up"><i class="bi bi-hand-thumbs-up"></i></button>
+                        <button type="button" class="btn btn-circle thumb-down" id="btnThumbDown" title="Thumbs down" aria-label="Thumbs down"><i class="bi bi-hand-thumbs-down"></i></button>
+                    </div>
+                    <div class="session-bottom-logo" aria-hidden="true">
+                        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="">
+                    </div>
+                    <div class="session-bottom-right">
+                        <button type="button" class="btn btn-circle home-btn" id="btnSessionHome" title="Home" aria-label="Home"><i class="bi bi-house-fill"></i></button>
+                        <button type="button" class="btn btn-circle logout-session" id="btnSessionLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+                <div id="backPollFullscreen" class="back-poll-fs panel-hidden" aria-live="polite">
+                    <div class="back-poll-q" id="backPollQuestion"></div>
+                    <div class="back-poll-opts" id="backPollOptions"></div>
+                    <div id="backPollSubmitted" class="back-poll-done panel-hidden"></div>
+                </div>
+                <div id="backQuizFullscreen" class="back-poll-fs panel-hidden" aria-live="polite" style="flex-direction:column;">
+                    <div class="back-poll-q" id="backQuizHeadline"></div>
+                    <div id="backQuizTimer" style="text-align:center;font-weight:600;margin-bottom:0.5rem;"></div>
+                    <div id="backQuizBody" style="overflow-y:auto;flex:1;min-height:0;"></div>
+                    <div class="back-quiz-footer" id="backQuizFooter">
+                        <button type="button" id="backQuizSubmitBtn" class="back-quiz-submit-btn">Submit All Answers</button>
+                    </div>
+                    <div id="backQuizSubmitted" class="back-poll-done panel-hidden"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inactive class: gradebook row (same metrics as professor Class Data gradebook) -->
+        <div class="back-inner-grades panel-hidden" id="backGrades">
+            <div class="grades-header">
+                <h2 class="grades-class-name" id="gradesClassName"></h2>
+                <p class="grades-class-code" id="gradesClassCode"></p>
+            </div>
+            <div class="grades-scroll">
+                <div class="grades-loading" id="gradesLoading">Loading Grades…</div>
+                <div id="gradesError" class="grades-error panel-hidden"></div>
+                <div id="gradesContent" class="panel-hidden">
+                    <div class="grades-table-wrap">
+                        <table class="grades-table" aria-label="Your grades">
+                            <tbody id="gradesTableBody"></tbody>
+                        </table>
+                    </div>
+                    <p class="grades-subnote">Instructor and peer scores are the averages used for your participation grade (same as the instructor gradebook).</p>
+                </div>
+            </div>
+            <div class="grades-footer">
+                <button type="button" class="btn btn-circle home-btn" id="btnGradesHome" title="My Classes" aria-label="My Classes"><i class="bi bi-house-fill"></i></button>
+                <button type="button" class="btn btn-circle logout-session" id="btnGradesLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <div class="back-inner-settings panel-hidden" id="backSettings">
+            <div class="settings-header">
+                <h2 class="settings-title">Settings</h2>
+            </div>
+            <div class="settings-content">
+                <div class="settings-card">
+                    <form id="studentSettingsForm" autocomplete="off">
+                        <div class="mb-3">
+                            <label for="settingsEmail" class="form-label">Email</label>
+                            <input id="settingsEmail" type="email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="settingsPreferredName" class="form-label">Preferred Name</label>
+                            <input id="settingsPreferredName" type="text" class="form-control" maxlength="100">
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="settingsDarkMode">
+                            <label class="form-check-label" for="settingsDarkMode">Dark Mode</label>
+                        </div>
+                        <hr>
+                        <h6 class="fw-bold settings-section-heading">Change Password</h6>
+                        <div class="mb-3">
+                            <label for="settingsCurrentPassword" class="form-label">Current Password</label>
+                            <input id="settingsCurrentPassword" type="password" class="form-control" autocomplete="current-password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="settingsNewPassword" class="form-label">New Password</label>
+                            <input id="settingsNewPassword" type="password" class="form-control" autocomplete="new-password">
+                        </div>
+                        <div class="mb-2">
+                            <label for="settingsConfirmPassword" class="form-label">Confirm New Password</label>
+                            <input id="settingsConfirmPassword" type="password" class="form-control" autocomplete="new-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary-gradient fw-bold mt-2">Save Settings</button>
+                        <p class="settings-status text-muted" id="settingsStatus"></p>
+                    </form>
+                </div>
+            </div>
+            <div class="settings-footer">
+                <button type="button" class="btn btn-circle home-btn" id="btnSettingsBackHome" title="My Classes" aria-label="My Classes"><i class="bi bi-house-fill"></i></button>
+                <button type="button" class="btn btn-circle logout-session" id="btnSettingsLogout" title="Logout" aria-label="Logout"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <!-- Peer rates classmate participation — scoped to back (student-facing) screen only -->
+        <div id="peerParticipationDim" class="peer-participation-backdrop panel-hidden" aria-hidden="true"></div>
+        <div class="modal fade" id="peerParticipationModal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true" aria-labelledby="peerParticipationModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 15px;">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="peerParticipationModalLabel">Rate participation</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2" id="peerParticipationSubjectLine"></p>
+                        <p class="text-muted small mb-3">Choose 0–4. Each level maps to a percentage: 0 = 0%, 1 = 25%, 2 = 50%, 3 = 75%, 4 = 100%.</p>
+                        <div class="d-flex flex-wrap gap-2 justify-content-center mb-3" id="peerParticipationScale" role="group" aria-label="Participation rating">
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="0">0<small>0%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="1">1<small>25%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="2">2<small>50%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="3">3<small>75%</small></button>
+                            <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="4">4<small>100%</small></button>
+                        </div>
+                        <div id="peerParticipationError" class="alert alert-danger py-2" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary-gradient fw-bold btn-peer-participation-submit" id="btnPeerParticipationSubmit" disabled>Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Grades by class meeting (per category) -->
+<div class="modal fade" id="gradesWeeklyModal" tabindex="-1" aria-labelledby="gradesWeeklyModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="gradesWeeklyModalTitle">Grades by class meeting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-muted small mb-3 mb-md-2" id="gradesWeeklyModalHint"></p>
+                <div class="grades-loading py-4" id="gradesWeeklyLoading">Loading…</div>
+                <div id="gradesWeeklyError" class="grades-error panel-hidden"></div>
+                <div id="gradesWeeklyList" class="panel-hidden"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Password (first-time) -->
+<div class="modal fade" id="createPasswordModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Create Password</h5>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Choose a password for your account (min. 6 characters).</p>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="newPassword" autocomplete="new-password">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirm password</label>
+                    <input type="password" class="form-control" id="newPasswordConfirm" autocomplete="new-password">
+                </div>
+                <div id="createPwError" class="alert alert-danger py-2" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary-gradient fw-bold" id="btnSubmitPassword">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script>
+(function () {
+    const root = document.getElementById('npRoot');
+    let currentStudent = null;
+    let myClasses = [];
+    let currentClassId = null;
+    let currentClassMeta = null;
+    let socket = null;
+    let currentPoll = null;
+    let currentQuizRun = null;
+    let quizCountdownTimer = null;
+    var peerParticipationPending = null;
+    var selectedPeerRating = null;
+    var pollResultsDismissTimer = null;
+    var POLL_RESULTS_DISPLAY_MS = 7500;
+
+    function clearPollResultsDismissTimer() {
+        if (pollResultsDismissTimer) {
+            clearTimeout(pollResultsDismissTimer);
+            pollResultsDismissTimer = null;
+        }
+    }
+
+    const NP_STUDENT_TOKEN_KEY = 'np_student_token';
+
+    function getStudentToken() {
+        try { return sessionStorage.getItem(NP_STUDENT_TOKEN_KEY) || ''; } catch (e) { return ''; }
+    }
+    function setStudentToken(t) {
+        if (!t) return;
+        try { sessionStorage.setItem(NP_STUDENT_TOKEN_KEY, t); } catch (e) {}
+    }
+    function clearStudentToken() {
+        try { sessionStorage.removeItem(NP_STUDENT_TOKEN_KEY); } catch (e) {}
+    }
+
+    async function studentFetch(url, options) {
+        options = options || {};
+        var o = Object.assign({}, options);
+        var headers = new Headers(options.headers || {});
+        var tok = getStudentToken();
+        if (tok) headers.set('Authorization', 'Bearer ' + tok);
+        o.headers = headers;
+        if (o.credentials === undefined) o.credentials = 'include';
+        return fetch(url, o);
+    }
+    let homeListPollTimer = null;
+    /* Same order as faculty dashboard poll chart */
+    var POLL_OPTION_BG = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
+    var POLL_OPTION_BTN_FG = ['#ffffff', '#ffffff', '#212529', '#ffffff', '#ffffff'];
+
+    function hideBackPollUI() {
+        clearPollResultsDismissTimer();
+        var el = document.getElementById('backPollFullscreen');
+        if (el) el.classList.add('panel-hidden');
+        var opts = document.getElementById('backPollOptions');
+        if (opts) { opts.innerHTML = ''; opts.classList.remove('panel-hidden'); }
+        var sub = document.getElementById('backPollSubmitted');
+        if (sub) { sub.classList.add('panel-hidden'); sub.textContent = ''; }
+    }
+
+    function showBackQuizQuestionChrome() {
+        ['backQuizHeadline', 'backQuizTimer', 'backQuizBody', 'backQuizFooter'].forEach(function (id) {
+            var e = document.getElementById(id);
+            if (e) e.classList.remove('panel-hidden');
+        });
+    }
+
+    function hideBackQuizUI() {
+        if (quizCountdownTimer) {
+            clearInterval(quizCountdownTimer);
+            quizCountdownTimer = null;
+        }
+        currentQuizRun = null;
+        var el = document.getElementById('backQuizFullscreen');
+        if (el) el.classList.add('panel-hidden');
+        var body = document.getElementById('backQuizBody');
+        if (body) body.innerHTML = '';
+        var tim = document.getElementById('backQuizTimer');
+        if (tim) tim.textContent = '';
+        var sub = document.getElementById('backQuizSubmitted');
+        if (sub) { sub.classList.add('panel-hidden'); sub.textContent = ''; }
+        var btn = document.getElementById('backQuizSubmitBtn');
+        if (btn) { btn.disabled = false; }
+        showBackQuizQuestionChrome();
+    }
+
+    function showBackQuizFullscreen(payload) {
+        if (!payload || payload.quiz_run_id == null) return;
+        hideBackPollUI();
+        currentPoll = null;
+        currentQuizRun = payload;
+        var titleEl = document.getElementById('backQuizHeadline');
+        var body = document.getElementById('backQuizBody');
+        var sub = document.getElementById('backQuizSubmitted');
+        var btn = document.getElementById('backQuizSubmitBtn');
+        if (!titleEl || !body || !btn) return;
+        var baseTitle = payload.title || 'Quiz';
+        var secLimit = Number(payload.time_limit_seconds);
+        if (Number.isFinite(secLimit) && secLimit > 0) {
+            var minPart = secLimit / 60;
+            var minLabel = (secLimit % 60 === 0)
+                ? String(Math.round(minPart))
+                : (Math.round(minPart * 10) / 10).toFixed(1).replace(/\.0$/, '');
+            titleEl.textContent = baseTitle + ' (' + minLabel + ' min)';
+        } else {
+            titleEl.textContent = baseTitle;
+        }
+        sub.classList.add('panel-hidden');
+        sub.textContent = '';
+        btn.disabled = false;
+        showBackQuizQuestionChrome();
+        body.innerHTML = '';
+        (payload.questions || []).forEach(function (q) {
+            var wrap = document.createElement('div');
+            wrap.className = 'mb-3';
+            wrap.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
+            wrap.style.paddingBottom = '0.75rem';
+            var lab = document.createElement('div');
+            lab.style.fontWeight = '600';
+            lab.style.marginBottom = '0.35rem';
+            lab.textContent = q.prompt || ('Question ' + q.id);
+            wrap.appendChild(lab);
+            (q.options || []).forEach(function (opt, idx) {
+                var id = 'qq_' + q.id + '_' + idx;
+                var row = document.createElement('div');
+                row.style.marginBottom = '0.25rem';
+                var inp = document.createElement('input');
+                inp.type = 'radio';
+                inp.name = 'quiz_q_' + q.id;
+                inp.value = String(idx);
+                inp.id = id;
+                var l = document.createElement('label');
+                l.setAttribute('for', id);
+                l.style.marginLeft = '0.35rem';
+                var letter = String.fromCharCode(65 + idx);
+                l.textContent = letter + '. ' + opt;
+                row.appendChild(inp);
+                row.appendChild(l);
+                wrap.appendChild(row);
+            });
+            body.appendChild(wrap);
+        });
+        if (quizCountdownTimer) {
+            clearInterval(quizCountdownTimer);
+            quizCountdownTimer = null;
+        }
+        function parseUtcDeadlineMs(iso) {
+            if (!iso) return NaN;
+            var s = String(iso).trim();
+            var hasZone = /[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s);
+            if (!hasZone && /^\d{4}-\d{2}-\d{2}T/.test(s)) {
+                s = s + 'Z';
+            }
+            var ms = Date.parse(s);
+            return Number.isFinite(ms) ? ms : NaN;
+        }
+        var deadlineMs = parseUtcDeadlineMs(payload.deadline_at);
+        function tickQuizTimer() {
+            var tEl = document.getElementById('backQuizTimer');
+            if (!tEl) return;
+            if (!Number.isFinite(deadlineMs)) {
+                tEl.textContent = '';
+                return;
+            }
+            var left = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
+            var m = Math.floor(left / 60);
+            var s = left % 60;
+            tEl.textContent = 'Time left: ' + m + ':' + (s < 10 ? '0' : '') + s;
+            if (left <= 0) tEl.textContent = 'Time is up — submit if you still can.';
+        }
+        tickQuizTimer();
+        quizCountdownTimer = setInterval(tickQuizTimer, 500);
+        btn.onclick = function () { submitStudentQuiz(); };
+        document.getElementById('backQuizFullscreen').classList.remove('panel-hidden');
+        resetDefaultFrontPlate();
+    }
+
+    async function submitStudentQuiz() {
+        if (!currentQuizRun) return;
+        var runId = currentQuizRun.quiz_run_id;
+        var answers = {};
+        var qs = currentQuizRun.questions || [];
+        for (var i = 0; i < qs.length; i++) {
+            var qid = qs[i].id;
+            var picked = document.querySelector('input[name="quiz_q_' + qid + '"]:checked');
+            if (!picked) {
+                alert('Please answer every question before submitting.');
+                return;
+            }
+            answers[String(qid)] = parseInt(picked.value, 10);
+        }
+        var btn = document.getElementById('backQuizSubmitBtn');
+        if (btn) btn.disabled = true;
+        try {
+            var res = await studentFetch('/api/student/quiz_submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quiz_run_id: runId, answers: answers })
+            });
+            var data = await res.json();
+            if (data.success) {
+                if (quizCountdownTimer) {
+                    clearInterval(quizCountdownTimer);
+                    quizCountdownTimer = null;
+                }
+                ['backQuizHeadline', 'backQuizTimer', 'backQuizBody', 'backQuizFooter'].forEach(function (id) {
+                    var e = document.getElementById(id);
+                    if (e) e.classList.add('panel-hidden');
+                });
+                var sub = document.getElementById('backQuizSubmitted');
+                sub.textContent = 'Your score: ' + data.correct_count + ' / ' + data.total_questions + ' correct.';
+                sub.classList.remove('panel-hidden');
+            } else {
+                if (btn) btn.disabled = false;
+                alert(data.error || 'Could not submit');
+            }
+        } catch (e) {
+            console.error(e);
+            if (btn) btn.disabled = false;
+            alert('Could not submit Quiz.');
+        }
+    }
+
+    /** Brief aggregate results after professor ends the poll (same room as poll_started). */
+    function showBriefPollResults(results) {
+        clearPollResultsDismissTimer();
+        if (!results || !results.options) {
+            hideBackPollUI();
+            resetDefaultFrontPlate();
+            refreshInteractionState();
+            return;
+        }
+        var pq = document.getElementById('backPollQuestion');
+        var opts = document.getElementById('backPollOptions');
+        var sub = document.getElementById('backPollSubmitted');
+        if (!pq || !opts) return;
+        sub.classList.add('panel-hidden');
+        sub.textContent = '';
+        var total = Number(results.total_responses) || 0;
+        pq.innerHTML = '';
+        var qLine = document.createElement('div');
+        qLine.textContent = results.question || 'Poll';
+        pq.appendChild(qLine);
+        var subLine = document.createElement('div');
+        subLine.style.fontSize = 'clamp(0.85rem, 2.5vw, 1.05rem)';
+        subLine.style.fontWeight = '600';
+        subLine.style.color = '#6c757d';
+        subLine.style.marginTop = '0.35rem';
+        subLine.textContent = 'Results · ' + total + ' response' + (total === 1 ? '' : 's');
+        pq.appendChild(subLine);
+
+        opts.innerHTML = '';
+        opts.classList.remove('panel-hidden');
+        var counts = results.counts || [];
+        var options = results.options || [];
+        var graded = results.is_graded && results.correct_answer !== null && results.correct_answer !== undefined && results.correct_answer !== '';
+        var ca = graded ? Number(results.correct_answer) : NaN;
+        options.forEach(function (opt, i) {
+            var c = counts[i] != null ? Number(counts[i]) : 0;
+            var pct = total > 0 ? Math.round((c / total) * 100) : 0;
+            var row = document.createElement('div');
+            row.className = 'poll-result-row';
+            if (graded && !isNaN(ca) && ca === i) row.classList.add('poll-result-correct');
+            var label = document.createElement('span');
+            label.className = 'poll-result-label';
+            label.textContent = String(opt);
+            var meta = document.createElement('span');
+            meta.className = 'poll-result-meta';
+            meta.textContent = c + ' (' + pct + '%)' + (graded && !isNaN(ca) && ca === i ? ' — Correct' : '');
+            var barWrap = document.createElement('div');
+            barWrap.className = 'poll-result-bar-wrap';
+            var bar = document.createElement('div');
+            bar.className = 'poll-result-bar';
+            bar.style.width = pct + '%';
+            bar.style.background = POLL_OPTION_BG[i] || '#6c757d';
+            barWrap.appendChild(bar);
+            row.appendChild(label);
+            row.appendChild(meta);
+            row.appendChild(barWrap);
+            opts.appendChild(row);
+        });
+        var foot = document.createElement('div');
+        foot.className = 'poll-result-footer';
+        foot.textContent = 'Closing automatically…';
+        opts.appendChild(foot);
+
+        document.getElementById('backPollFullscreen').classList.remove('panel-hidden');
+        resetDefaultFrontPlate();
+        clearPollResultsDismissTimer();
+        pollResultsDismissTimer = setTimeout(function () {
+            pollResultsDismissTimer = null;
+            hideBackPollUI();
+            resetDefaultFrontPlate();
+            refreshInteractionState();
+        }, POLL_RESULTS_DISPLAY_MS);
+    }
+
+    function resetDefaultFrontPlate() {
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        var topBar = document.getElementById('backGlobalStatus');
+        if (fr) {
+            fr.style.removeProperty('background');
+            fr.style.removeProperty('background-color');
+        }
+        if (nameWrap) {
+            nameWrap.style.removeProperty('background');
+            nameWrap.style.removeProperty('background-color');
+        }
+        if (nameEl) {
+            nameEl.style.removeProperty('color');
+            nameEl.style.removeProperty('transform');
+            nameEl.style.removeProperty('transform-origin');
+        }
+        var pollFs = document.getElementById('backPollFullscreen');
+        if (pollFs) {
+            pollFs.style.removeProperty('background');
+            pollFs.style.removeProperty('background-color');
+        }
+        var pq = document.getElementById('backPollQuestion');
+        var pd = document.getElementById('backPollSubmitted');
+        if (pq) {
+            pq.style.removeProperty('color');
+            pq.style.removeProperty('border-bottom-color');
+        }
+        if (pd) pd.style.removeProperty('color');
+        if (topBar) {
+            topBar.style.removeProperty('background');
+            topBar.style.removeProperty('background-color');
+            topBar.style.removeProperty('border-bottom-color');
+        }
+        scheduleFitFrontName();
+    }
+
+    /** Name + poll text always this colour (matches default nameplate) */
+    var STUDENT_DISPLAY_TEXT = '#212529';
+
+    /** Non-anonymous: background = faculty bar colour for correct option (if quiz has key), else selected option */
+    function applyNonAnonymousAnswerColors(answerIndex) {
+        var i = Math.max(0, Math.min(answerIndex, POLL_OPTION_BG.length - 1));
+        var bg = POLL_OPTION_BG[i] || '#6c757d';
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        var topBar = document.getElementById('backGlobalStatus');
+        if (fr) fr.style.setProperty('background', bg, 'important');
+        if (nameWrap) nameWrap.style.setProperty('background', bg, 'important');
+        if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+        if (topBar) {
+            topBar.style.setProperty('background', bg, 'important');
+            topBar.style.setProperty('border-bottom-color', 'transparent', 'important');
+        }
+        var pollFs = document.getElementById('backPollFullscreen');
+        if (pollFs) pollFs.style.setProperty('background', bg, 'important');
+        var pq = document.getElementById('backPollQuestion');
+        if (pq) {
+            pq.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+            pq.style.setProperty('border-bottom-color', 'rgba(0,0,0,0.12)', 'important');
+        }
+        var pd = document.getElementById('backPollSubmitted');
+        if (pd) pd.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+        scheduleFitFrontName();
+    }
+
+    function pollIsAnonymous(p) {
+        return p && (p.is_anonymous === true || p.is_anonymous === 1 || p.is_anonymous === '1' || String(p.is_anonymous).toLowerCase() === 'true');
+    }
+
+    var HAND_RAISE_FRONT_BG = '#ff9800';
+    var THUMBS_UP_FRONT_BG = '#198754';
+    var THUMBS_DOWN_FRONT_BG = '#dc3545';
+
+    function applyHandRaiseFrontTint() {
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) fr.style.setProperty('background', HAND_RAISE_FRONT_BG, 'important');
+        if (nameWrap) nameWrap.style.setProperty('background', HAND_RAISE_FRONT_BG, 'important');
+        if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+        scheduleFitFrontName();
+    }
+
+    function applyThumbFrontTint(type) {
+        var bg = (type === 'thumbs_down') ? THUMBS_DOWN_FRONT_BG : THUMBS_UP_FRONT_BG;
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) fr.style.setProperty('background', bg, 'important');
+        if (nameWrap) nameWrap.style.setProperty('background', bg, 'important');
+        if (nameEl) nameEl.style.setProperty('color', STUDENT_DISPLAY_TEXT, 'important');
+        scheduleFitFrontName();
+    }
+
+    function syncFrontInteractionTint(handActive, thumbsUpActive, thumbsDownActive) {
+        if (thumbsDownActive) {
+            applyThumbFrontTint('thumbs_down');
+            return;
+        }
+        if (thumbsUpActive) {
+            applyThumbFrontTint('thumbs_up');
+            return;
+        }
+        if (handActive) {
+            applyHandRaiseFrontTint();
+            return;
+        }
+        clearFrontNameplateInline();
+    }
+
+    /** Front only — white nameplate (used when hand lowered or prof clears hands) */
+    function clearFrontNameplateInline() {
+        var fr = document.getElementById('npFront');
+        var nameWrap = document.getElementById('frontNameWrap');
+        var nameEl = document.getElementById('frontStudentName');
+        if (fr) {
+            fr.style.removeProperty('background');
+            fr.style.removeProperty('background-color');
+        }
+        if (nameWrap) {
+            nameWrap.style.removeProperty('background');
+            nameWrap.style.removeProperty('background-color');
+        }
+        if (nameEl) {
+            nameEl.style.removeProperty('color');
+            nameEl.style.removeProperty('transform');
+            nameEl.style.removeProperty('transform-origin');
+        }
+        scheduleFitFrontName();
+    }
+
+    function showBackPollFullscreen(data) {
+        hideBackQuizUI();
+        currentQuizRun = null;
+        document.getElementById('backPollQuestion').textContent = data.question || 'Poll';
+        var optsEl = document.getElementById('backPollOptions');
+        var sub = document.getElementById('backPollSubmitted');
+        sub.classList.add('panel-hidden');
+        sub.textContent = '';
+        optsEl.classList.remove('panel-hidden');
+        optsEl.innerHTML = '';
+        (data.options || []).forEach(function (opt, i) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'poll-opt-btn';
+            b.style.backgroundColor = POLL_OPTION_BG[i] || '#6c757d';
+            b.style.color = POLL_OPTION_BTN_FG[i] || '#ffffff';
+            b.textContent = opt;
+            b.addEventListener('click', function () { submitPoll(i); });
+            optsEl.appendChild(b);
+        });
+        document.getElementById('backPollFullscreen').classList.remove('panel-hidden');
+    }
+
+    function setState(name) {
+        root.className = 'np-root state-' + name;
+    }
+
+    function isHomeState() {
+        return root.className.indexOf('state-home') >= 0;
+    }
+
+    function fmtPct(n) {
+        var x = Number(n);
+        if (!Number.isFinite(x)) x = 0;
+        return x.toFixed(2) + '%';
+    }
+
+    function pctForBar(n) {
+        var x = Number(n);
+        if (!Number.isFinite(x)) x = 0;
+        return Math.max(0, Math.min(100, x));
+    }
+
+    var GRADES_WEEKLY_HINTS = {
+        attendance: 'Each row is one graded class meeting. The bar is 100% when you were present, 0% when absent.',
+        participation: 'Each row is your participation score for that class meeting (same rules as the course gradebook).',
+        instructor_participation: 'Daily instructor participation score matched to each class meeting date.',
+        peer_participation: 'Daily peer participation score matched to each class meeting date.',
+        poll: 'Your score on graded polls that occurred during that class meeting.',
+        quiz: 'Quiz rows show only class meetings where quizzes were given, with the quiz name and your grade.',
+        overall: 'Approximate combined score for that meeting using the same weights as your overall grade.'
+    };
+
+    function formatMeetingDate(iso) {
+        if (!iso) return '—';
+        var s = String(iso).trim();
+        var hasZone = /[zZ]$/.test(s) || /[+-]\d{2}:?\d{2}$/.test(s);
+        if (!hasZone && /^\d{4}-\d{2}-\d{2}T/.test(s)) s = s + 'Z';
+        var ms = Date.parse(s);
+        if (!Number.isFinite(ms)) return '—';
+        return new Date(ms).toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+
+    function weeklyDetailLabel(detail) {
+        var m = {
+            excused: 'Excused',
+            absent: 'Absent',
+            not_attended: 'Not in session',
+            no_record: 'No grade recorded',
+            no_polls: 'No graded polls',
+            no_quizzes: 'No quizzes'
+        };
+        return m[detail] || (detail ? String(detail).replace(/_/g, ' ') : '');
+    }
+
+    function renderGradesWeeklyRows(weeks, category) {
+        var wrap = document.getElementById('gradesWeeklyList');
+        if (!wrap) return;
+        if (!weeks || !weeks.length) {
+            wrap.innerHTML = '<div class="grades-weekly-empty">No graded class meetings yet.</div>';
+            return;
+        }
+        if (category === 'quiz') {
+            wrap.innerHTML = weeks.map(function (w) {
+                var dateLabel = formatMeetingDate(w.session_start);
+                var quizLabel = (w.quiz_label && String(w.quiz_label).trim())
+                    ? String(w.quiz_label).trim()
+                    : ('Quiz ' + String(w.quiz_index || ''));
+                return (
+                    '<div class="grades-weekly-row">' +
+                    '<div class="grades-weekly-date">' + escapeHtml(dateLabel) + '</div>' +
+                    '<div class="grades-weekly-detail">' + escapeHtml(quizLabel) + ' · ' + fmtPct(w.value) + '</div>' +
+                    '</div>'
+                );
+            }).join('');
+            return;
+        }
+        wrap.innerHTML = weeks.map(function (w) {
+            var label = formatMeetingDate(w.session_start);
+            if (w.value != null && Number.isFinite(Number(w.value))) {
+                var pct = pctForBar(w.value);
+                var pctStr = fmtPct(w.value);
+                return (
+                    '<div class="grades-weekly-row">' +
+                    '<div class="grades-weekly-date">' + escapeHtml(label) + '</div>' +
+                    '<div class="grades-weekly-meter">' +
+                    '<div class="grades-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '">' +
+                    '<div class="grades-bar-fill" style="width:' + pct + '%"></div>' +
+                    '</div>' +
+                    '<span class="grades-pct">' + pctStr + '</span>' +
+                    '</div></div>'
+                );
+            }
+            var dlab = weeklyDetailLabel(w.detail);
+            return (
+                '<div class="grades-weekly-row">' +
+                '<div class="grades-weekly-date">' + escapeHtml(label) + '</div>' +
+                '<div class="grades-weekly-detail">' + escapeHtml(dlab || '—') + '</div>' +
+                '</div>'
+            );
+        }).join('');
+    }
+
+    async function openGradesWeeklyModal(category, titleLabel) {
+        if (!currentClassId) return;
+        var modalEl = document.getElementById('gradesWeeklyModal');
+        var loadEl = document.getElementById('gradesWeeklyLoading');
+        var errEl = document.getElementById('gradesWeeklyError');
+        var listEl = document.getElementById('gradesWeeklyList');
+        var hintEl = document.getElementById('gradesWeeklyModalHint');
+        var titleEl = document.getElementById('gradesWeeklyModalTitle');
+        if (!modalEl || !loadEl || !listEl) return;
+        if (titleEl) titleEl.textContent = (titleLabel || category) + ' — by class meeting';
+        if (hintEl) hintEl.textContent = GRADES_WEEKLY_HINTS[category] || '';
+        loadEl.classList.remove('panel-hidden');
+        if (errEl) { errEl.classList.add('panel-hidden'); errEl.textContent = ''; }
+        listEl.classList.add('panel-hidden');
+        listEl.innerHTML = '';
+        if (typeof bootstrap !== 'undefined') {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+        try {
+            var res = await studentFetch(
+                '/api/student/gradebook/' + currentClassId + '/weekly?category=' + encodeURIComponent(category),
+                {}
+            );
+            var data = await res.json();
+            loadEl.classList.add('panel-hidden');
+            if (!data.success) {
+                if (errEl) {
+                    errEl.textContent = data.error || 'Could not load breakdown.';
+                    errEl.classList.remove('panel-hidden');
+                }
+                return;
+            }
+            renderGradesWeeklyRows(data.weeks || [], category);
+            listEl.classList.remove('panel-hidden');
+        } catch (e) {
+            console.error(e);
+            loadEl.classList.add('panel-hidden');
+            if (errEl) {
+                errEl.textContent = 'Could not load breakdown.';
+                errEl.classList.remove('panel-hidden');
+            }
+        }
+    }
+
+    function renderStudentGradesTable(g) {
+        var tbody = document.getElementById('gradesTableBody');
+        if (!tbody || !g) return;
+        var rows = [
+            ['attendance', 'Attendance', g.attendance_grade],
+            ['participation', 'Participation', g.participation_grade],
+            ['instructor_participation', 'Instructor Participation', g.instructor_participation],
+            ['peer_participation', 'Peer Participation', g.peer_participation],
+            ['poll', 'Poll', g.poll_grade],
+            ['quiz', 'Quiz', g.quiz_grade],
+            ['overall', 'Overall', g.overall_grade]
+        ];
+        tbody.innerHTML = rows.map(function (r) {
+            var cat = r[0];
+            var label = r[1];
+            var val = r[2];
+            var w = pctForBar(val);
+            var pctLabel = fmtPct(val);
+            var titleAttr = escapeHtml(label);
+            var ariaLab = escapeHtml(label + ', view by class meeting');
+            var clickable = cat !== 'overall';
+            var thClass = clickable ? 'grades-cat-heading' : '';
+            var tabIndex = clickable ? '0' : '-1';
+            var roleAttr = clickable ? 'button' : 'rowheader';
+            var dataCategoryAttr = clickable ? cat : '';
+            var dataTitleAttr = clickable ? titleAttr : '';
+            var ariaLabelAttr = clickable ? ariaLab : escapeHtml(label);
+            return (
+                '<tr><th scope="row" class="' + thClass + '" tabindex="' + tabIndex + '" role="' + roleAttr + '" data-category="' + dataCategoryAttr + '" data-title="' + dataTitleAttr + '" aria-label="' + ariaLabelAttr + '">' + label + '</th><td>' +
+                '<div class="grades-meter">' +
+                '<div class="grades-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + w + '" aria-label="' + label + ': ' + pctLabel + '">' +
+                '<div class="grades-bar-fill" style="width:' + w + '%"></div>' +
+                '</div>' +
+                '<span class="grades-pct">' + pctLabel + '</span>' +
+                '</div></td></tr>'
+            );
+        }).join('');
+    }
+
+    (function setupGradesCategoryClicks() {
+        var tbody = document.getElementById('gradesTableBody');
+        if (!tbody) return;
+        function activateFromTh(th) {
+            if (!th || !th.classList.contains('grades-cat-heading')) return;
+            var cat = th.getAttribute('data-category');
+            if (!cat || cat === 'overall') return;
+            var ttl = th.getAttribute('data-title') || '';
+            if (cat) openGradesWeeklyModal(cat, ttl);
+        }
+        tbody.addEventListener('click', function (e) {
+            var th = e.target.closest('.grades-cat-heading');
+            if (th) activateFromTh(th);
+        });
+        tbody.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var th = e.target.closest('.grades-cat-heading');
+            if (th) {
+                e.preventDefault();
+                activateFromTh(th);
+            }
+        });
+    })();
+
+    function stopStudentLiveUpdates() {
+        if (homeListPollTimer) {
+            clearInterval(homeListPollTimer);
+            homeListPollTimer = null;
+        }
+    }
+
+    function startStudentLiveUpdates() {
+        stopStudentLiveUpdates();
+        homeListPollTimer = setInterval(async function () {
+            if (!isHomeState() || !currentStudent) return;
+            const next = await loadClasses();
+            if (!isHomeState()) return;
+            myClasses = next;
+            renderClassCards();
+            requestJoinStudentEnrollments();
+        }, 5000);
+    }
+
+    function requestJoinStudentEnrollments() {
+        if (socket && socket.connected) {
+            var tok = getStudentToken();
+            try { socket.emit('join_student_enrollments', tok ? { token: tok } : {}); } catch (e) {}
+        }
+    }
+
+    function syncBackStatusBarVisibility() {
+        var login = document.getElementById('backLogin');
+        var home = document.getElementById('backHome');
+        var sess = document.getElementById('backSession');
+        var grades = document.getElementById('backGrades');
+        var settings = document.getElementById('backSettings');
+        var bar = document.getElementById('backGlobalStatus');
+        if (!bar || !login || !home || !sess) return;
+        var gradesVisible = grades && !grades.classList.contains('panel-hidden');
+        var settingsVisible = settings && !settings.classList.contains('panel-hidden');
+        var show = !login.classList.contains('panel-hidden') || !home.classList.contains('panel-hidden') || !sess.classList.contains('panel-hidden') || gradesVisible || settingsVisible;
+        bar.classList.toggle('panel-hidden', !show);
+    }
+
+    function wake() {
+        disconnectSocket();
+        setState('login');
+        document.getElementById('frontLoginBlank').classList.remove('panel-hidden');
+        document.getElementById('backLogin').classList.remove('panel-hidden');
+        document.getElementById('frontNameWrap').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        var bg = document.getElementById('backGrades');
+        if (bg) bg.classList.add('panel-hidden');
+        var bs = document.getElementById('backSettings');
+        if (bs) bs.classList.add('panel-hidden');
+        syncBackStatusBarVisibility();
+    }
+
+    document.getElementById('sleepFront').addEventListener('pointerdown', wake);
+    document.getElementById('sleepBack').addEventListener('pointerdown', wake);
+
+    function displayName(showFirstOnly) {
+        if (!currentStudent) return '';
+        const first = (currentStudent.preferred_name || currentStudent.first_name || '').trim();
+        const last = (currentStudent.last_name || '').trim();
+        if (!showFirstOnly) {
+            return (first + ' ' + last).trim();
+        }
+        var fromMeta = null;
+        if (currentClassMeta && currentClassMeta.first_name_only_display) {
+            fromMeta = String(currentClassMeta.first_name_only_display).trim();
+        }
+        if (!fromMeta && myClasses && currentClassId != null) {
+            var row = myClasses.find(function (x) { return Number(x.id) === Number(currentClassId); });
+            if (row && row.first_name_only_display) {
+                fromMeta = String(row.first_name_only_display).trim();
+            }
+        }
+        if (fromMeta) {
+            return fromMeta;
+        }
+        return first;
+    }
+
+    function fitFrontNameToScreen() {
+        const wrap = document.getElementById('frontNameWrap');
+        const el = document.getElementById('frontStudentName');
+        if (!wrap || !el || wrap.classList.contains('panel-hidden') || !el.textContent.trim()) return;
+        el.style.transform = '';
+        el.style.transformOrigin = '';
+        const cs = window.getComputedStyle(wrap);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const maxW = Math.max(32, wrap.clientWidth - padX);
+        const maxH = Math.max(32, wrap.clientHeight - padY);
+        el.style.width = '100%';
+        el.style.maxWidth = maxW + 'px';
+        el.style.lineHeight = '1.05';
+        el.style.whiteSpace = 'nowrap'; // Always single line
+        let lo = 12;
+        let hi = Math.min(maxH * 0.9, 900); // Cap by height — single line only
+        let best = lo;
+        for (let i = 0; i < 40; i++) {
+            if (hi - lo < 0.35) break;
+            const mid = (lo + hi) / 2;
+            el.style.fontSize = mid + 'px';
+            // Only check width — height check removed to prevent multi-line fallback
+            if (el.scrollWidth <= maxW + 1) {
+                best = mid;
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        el.style.fontSize = best + 'px';
+        if (el.scrollWidth > maxW + 1) {
+            const s = maxW / el.scrollWidth;
+            el.style.transformOrigin = 'center center';
+            el.style.transform = 'scale(' + s + ')';
+        }
+    }
+
+    function scheduleFitFrontName() {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(fitFrontNameToScreen);
+        });
+    }
+
+    function updateFrontName() {
+        const el = document.getElementById('frontStudentName');
+        if (!currentStudent) {
+            el.textContent = '';
+            el.style.fontSize = '';
+            el.style.transform = '';
+            el.style.transformOrigin = '';
+            return;
+        }
+        if (currentClassMeta && typeof currentClassMeta.show_first_name_only === 'boolean') {
+            el.textContent = displayName(currentClassMeta.show_first_name_only);
+        } else {
+            const allFirst = myClasses.length && myClasses.every(c => c.show_first_name_only);
+            if (allFirst) {
+                const displays = myClasses.map(c => (c.first_name_only_display || '').trim()).filter(Boolean);
+                if (displays.length === myClasses.length) {
+                    const uniq = [...new Set(displays)];
+                    el.textContent = uniq.length === 1 ? displays[0] : displays.reduce((a, b) => (a.length >= b.length ? a : b));
+                } else {
+                    el.textContent = displayName(true);
+                }
+            } else {
+                el.textContent = displayName(false);
+            }
+        }
+        scheduleFitFrontName();
+    }
+
+    function applyStudentDarkMode(enabled) {
+        document.body.classList.toggle('theme-dark', !!enabled);
+    }
+
+    function clearSettingsStatus() {
+        var s = document.getElementById('settingsStatus');
+        if (!s) return;
+        s.textContent = '';
+        s.className = 'settings-status text-muted';
+    }
+
+    async function loadStudentSettingsForm() {
+        clearSettingsStatus();
+        var res = await studentFetch('/api/student/settings', {});
+        var data = await res.json();
+        if (!data.success || !data.settings) {
+            throw new Error(data.error || 'Could not load settings');
+        }
+        document.getElementById('settingsEmail').value = data.settings.email || '';
+        document.getElementById('settingsPreferredName').value = data.settings.preferred_name || '';
+        document.getElementById('settingsDarkMode').checked = !!data.settings.dark_mode;
+        document.getElementById('settingsCurrentPassword').value = '';
+        document.getElementById('settingsNewPassword').value = '';
+        document.getElementById('settingsConfirmPassword').value = '';
+    }
+
+    async function openStudentSettings() {
+        stopStudentLiveUpdates();
+        setState('home');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        var bg = document.getElementById('backGrades');
+        if (bg) bg.classList.add('panel-hidden');
+        var bs = document.getElementById('backSettings');
+        if (bs) bs.classList.remove('panel-hidden');
+        syncBackStatusBarVisibility();
+        try {
+            await loadStudentSettingsForm();
+        } catch (e) {
+            var s = document.getElementById('settingsStatus');
+            if (s) {
+                s.textContent = 'Could not load settings.';
+                s.className = 'settings-status text-danger';
+            }
+        }
+    }
+
+    window.addEventListener('resize', function () {
+        if (!document.getElementById('frontNameWrap').classList.contains('panel-hidden')) {
+            scheduleFitFrontName();
+        }
+    });
+
+    document.getElementById('studentLoginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const err = document.getElementById('loginError');
+        err.style.display = 'none';
+        const identifier = document.getElementById('loginIdentifier').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        try {
+            const res = await fetch('/api/student/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ identifier, password })
+            });
+            const data = await res.json();
+            if (data.success && data.needs_password) {
+                if (data.token) setStudentToken(data.token);
+                currentStudent = data.student;
+                applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
+                document.getElementById('loginPassword').value = '';
+                new bootstrap.Modal(document.getElementById('createPasswordModal')).show();
+                return;
+            }
+            if (data.success && data.student) {
+                if (data.token) setStudentToken(data.token);
+                currentStudent = data.student;
+                applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
+                await enterHome();
+                return;
+            }
+            err.textContent = data.error || 'Login failed';
+            err.style.display = 'block';
+        } catch (x) {
+            err.textContent = 'Connection error. Try again.';
+            err.style.display = 'block';
+        }
+    });
+
+    document.getElementById('btnSubmitPassword').addEventListener('click', async function () {
+        const pw = document.getElementById('newPassword').value;
+        const pw2 = document.getElementById('newPasswordConfirm').value;
+        const errEl = document.getElementById('createPwError');
+        errEl.style.display = 'none';
+        if (pw.length < 6) {
+            errEl.textContent = 'Password must be at least 6 characters.';
+            errEl.style.display = 'block';
+            return;
+        }
+        if (pw !== pw2) {
+            errEl.textContent = 'Passwords do not match.';
+            errEl.style.display = 'block';
+            return;
+        }
+        const res = await studentFetch('/api/student/set_password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw, confirm_password: pw2 })
+        });
+        const data = await res.json();
+        if (data.success && data.student) {
+            if (data.token) setStudentToken(data.token);
+            bootstrap.Modal.getInstance(document.getElementById('createPasswordModal')).hide();
+            currentStudent = Object.assign({}, currentStudent, data.student);
+            applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newPasswordConfirm').value = '';
+            await enterHome();
+        } else {
+            errEl.textContent = data.error || 'Failed to save password';
+            errEl.style.display = 'block';
+        }
+    });
+
+    async function loadClasses() {
+        const res = await studentFetch('/api/student/classes', {});
+        if (res.status === 401) {
+            clearStudentToken();
+            wake();
+            document.getElementById('loginError').textContent = 'Session expired. Please log in again.';
+            document.getElementById('loginError').style.display = 'block';
+            return [];
+        }
+        const data = await res.json();
+        if (data.success === false) return [];
+        return Array.isArray(data) ? data : [];
+    }
+
+    /** Reload class flags + first_name_only_display after roster/settings change. */
+    function refreshStudentClassListMeta() {
+        return loadClasses().then(function (next) {
+            if (!next || !next.length) return;
+            myClasses = next;
+            if (currentClassId != null && currentClassMeta) {
+                var row = myClasses.find(function (x) { return Number(x.id) === Number(currentClassId); });
+                if (row) {
+                    Object.assign(currentClassMeta, row);
+                }
+            }
+        });
+    }
+
+    /** Update live/idle flag from Socket.IO (no HTTP) for instant UI like in-class reactions. */
+    function patchMyClassActive(classId, isActive) {
+        if (!myClasses || !myClasses.length) return false;
+        const id = Number(classId);
+        for (var i = 0; i < myClasses.length; i++) {
+            if (Number(myClasses[i].id) === id) {
+                myClasses[i].is_active = isActive;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function renderClassCards() {
+        const row = document.getElementById('classCardsRow');
+        const empty = document.getElementById('emptyClassesMsg');
+        row.innerHTML = '';
+        if (!myClasses.length) {
+            empty.classList.remove('panel-hidden');
+            return;
+        }
+        empty.classList.add('panel-hidden');
+        myClasses.forEach(c => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4';
+            const live = !!c.is_active;
+            const badge = live
+                ? '<span class="status-badge active">Active</span>'
+                : '<span class="status-badge inactive">Inactive</span>';
+            const cardCls = 'card class-card' + (live ? '' : ' class-card-inactive');
+            col.innerHTML = `
+                <div class="${cardCls}" data-class-id="${c.id}">
+                    <div class="card-body">
+                        <div class="card-header-row" style="flex:1;">
+                            <div class="card-photo-placeholder">
+                                <i class="bi bi-globe2"></i>
+                            </div>
+                            <h5 class="card-title">${escapeHtml(c.name)}</h5>
+                        </div>
+                        <div style="margin-top:auto;">
+                            <p class="class-code">${escapeHtml(c.class_code)}</p>
+                            ${badge}
+                        </div>
+                    </div>
+                </div>`;
+            col.querySelector('.class-card').addEventListener('click', () => joinClassSession(c));
+            row.appendChild(col);
+        });
+    }
+
+    function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    async function enterHome() {
+        myClasses = await loadClasses();
+        setState('home');
+        document.getElementById('frontLoginBlank').classList.add('panel-hidden');
+        document.getElementById('backLogin').classList.add('panel-hidden');
+        document.getElementById('frontNameWrap').classList.remove('panel-hidden');
+        document.getElementById('backHome').classList.remove('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        var bgEl = document.getElementById('backGrades');
+        if (bgEl) bgEl.classList.add('panel-hidden');
+        var bsEl = document.getElementById('backSettings');
+        if (bsEl) bsEl.classList.add('panel-hidden');
+        currentClassId = null;
+        currentClassMeta = null;
+        applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
+        updateFrontName();
+        renderClassCards();
+        await ensureStudentSocketReady();
+        requestJoinStudentEnrollments();
+        startStudentLiveUpdates();
+        syncBackStatusBarVisibility();
+    }
+
+    async function joinClassSession(c) {
+        const res = await studentFetch('/api/student/join_class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ class_id: c.id })
+        });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || 'Could not join class');
+            return;
+        }
+        if (data.view_mode === 'grades') {
+            currentClassId = c.id;
+            currentClassMeta = Object.assign({}, c);
+            if (typeof data.show_first_name_only === 'boolean') {
+                currentClassMeta.show_first_name_only = data.show_first_name_only;
+            }
+            if (data.first_name_only_display != null && data.first_name_only_display !== '') {
+                currentClassMeta.first_name_only_display = data.first_name_only_display;
+            }
+            stopStudentLiveUpdates();
+            await ensureStudentSocketReady();
+            requestJoinStudentEnrollments();
+            setState('grades');
+            document.getElementById('backHome').classList.add('panel-hidden');
+            document.getElementById('backSession').classList.add('panel-hidden');
+            var bs = document.getElementById('backSettings');
+            if (bs) bs.classList.add('panel-hidden');
+            var bg = document.getElementById('backGrades');
+            if (bg) bg.classList.remove('panel-hidden');
+            document.getElementById('gradesClassName').textContent = c.name || '';
+            document.getElementById('gradesClassCode').textContent = c.class_code || '';
+            var gl = document.getElementById('gradesLoading');
+            var ge = document.getElementById('gradesError');
+            var gc = document.getElementById('gradesContent');
+            if (gl) gl.classList.remove('panel-hidden');
+            if (ge) { ge.classList.add('panel-hidden'); ge.textContent = ''; }
+            if (gc) gc.classList.add('panel-hidden');
+            updateFrontName();
+            syncBackStatusBarVisibility();
+            try {
+                var gr = await studentFetch('/api/student/gradebook/' + c.id, {});
+                var gd = await gr.json();
+                if (gl) gl.classList.add('panel-hidden');
+                if (!gd.success || !gd.grades) {
+                    if (ge) {
+                        ge.textContent = (gd && gd.error) ? gd.error : 'Could not load grades.';
+                        ge.classList.remove('panel-hidden');
+                    }
+                    return;
+                }
+                renderStudentGradesTable(gd.grades);
+                if (gc) gc.classList.remove('panel-hidden');
+            } catch (err) {
+                console.error(err);
+                if (gl) gl.classList.add('panel-hidden');
+                if (ge) {
+                    ge.textContent = 'Could not load grades.';
+                    ge.classList.remove('panel-hidden');
+                }
+            }
+            return;
+        }
+        currentClassId = c.id;
+        currentClassMeta = { ...c };
+        if (typeof data.show_first_name_only === 'boolean') {
+            currentClassMeta.show_first_name_only = data.show_first_name_only;
+        }
+        if (data.first_name_only_display != null && data.first_name_only_display !== '') {
+            currentClassMeta.first_name_only_display = data.first_name_only_display;
+        }
+        stopStudentLiveUpdates();
+        await ensureStudentSocketReady();
+        try {
+            var tok = getStudentToken();
+            socket.emit('join_class', tok ? { class_id: c.id, token: tok } : { class_id: c.id });
+        } catch (e) {
+            socket.emit('join_class', { class_id: c.id });
+        }
+        setState('session');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.remove('panel-hidden');
+        var bsLive = document.getElementById('backSettings');
+        if (bsLive) bsLive.classList.add('panel-hidden');
+        document.getElementById('sessionClassName').textContent = c.name;
+        document.getElementById('sessionClassCode').textContent = c.class_code;
+        applyQuietParticipationUI();
+        updateFrontName();
+        if (data.active_quiz && Array.isArray(data.active_quiz.questions) && data.active_quiz.questions.length) {
+            currentPoll = null;
+            hideBackPollUI();
+            showBackQuizFullscreen(data.active_quiz);
+        } else if (data.active_poll && Array.isArray(data.active_poll.options) && data.active_poll.options.length) {
+            currentPoll = data.active_poll;
+            resetDefaultFrontPlate();
+            showBackPollFullscreen(data.active_poll);
+        } else {
+            currentPoll = null;
+            hideBackPollUI();
+            hideBackQuizUI();
+            resetDefaultFrontPlate();
+        }
+        refreshInteractionState();
+        syncBackStatusBarVisibility();
+    }
+
+    function applyQuietParticipationUI() {
+        var row = document.getElementById('sessionParticipationControls');
+        if (!row) return;
+        if (currentClassMeta && currentClassMeta.quiet_mode) {
+            row.classList.add('panel-hidden');
+        } else {
+            row.classList.remove('panel-hidden');
+        }
+    }
+
+    function initStudentSocketIfNeeded() {
+        if (socket) {
+            if (socket.connected) requestJoinStudentEnrollments();
+            return;
+        }
+        // WebSocket only — avoids Engine.IO long-polling delivery delays (can be 10s+ between polls).
+        socket = io({
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionDelay: 500,
+            reconnectionDelayMax: 4000,
+            timeout: 15000
+        });
+        socket.on('connect', function () {
+            requestJoinStudentEnrollments();
+        });
+        socket.on('settings_updated', function (d) {
+            if (!d || d.class_id == null || d.class_id === undefined) return;
+            var cid = Number(d.class_id);
+            for (var i = 0; i < myClasses.length; i++) {
+                if (Number(myClasses[i].id) === cid) {
+                    if (typeof d.show_first_name_only === 'boolean') {
+                        myClasses[i].show_first_name_only = d.show_first_name_only;
+                    }
+                    if (typeof d.quiet_mode === 'boolean') {
+                        myClasses[i].quiet_mode = d.quiet_mode;
+                    }
+                    break;
+                }
+            }
+            if (currentClassId != null && Number(currentClassId) === cid && currentClassMeta) {
+                if (typeof d.show_first_name_only === 'boolean') {
+                    currentClassMeta.show_first_name_only = d.show_first_name_only;
+                }
+                if (typeof d.quiet_mode === 'boolean') {
+                    currentClassMeta.quiet_mode = d.quiet_mode;
+                }
+                applyQuietParticipationUI();
+            }
+            if (currentStudent) {
+                refreshStudentClassListMeta().then(function () {
+                    updateFrontName();
+                });
+            }
+        });
+        socket.on('poll_started', function (data) {
+            if (!data || !currentClassId) return;
+            hideBackQuizUI();
+            currentQuizRun = null;
+            currentPoll = data;
+            resetDefaultFrontPlate();
+            showBackPollFullscreen(data);
+        });
+        socket.on('quiz_started', function (data) {
+            if (!data || !currentClassId || String(data.class_id) !== String(currentClassId)) return;
+            showBackQuizFullscreen(data);
+        });
+        socket.on('quiz_stopped', function (data) {
+            if (!data || !currentClassId || String(data.class_id) !== String(currentClassId)) return;
+            hideBackQuizUI();
+            resetDefaultFrontPlate();
+            refreshInteractionState();
+        });
+        socket.on('poll_stopped', function (data) {
+            clearPollResultsDismissTimer();
+            currentPoll = null;
+            if (
+                data &&
+                data.results &&
+                currentClassId != null &&
+                data.class_id != null &&
+                String(data.class_id) === String(currentClassId)
+            ) {
+                showBriefPollResults(data.results);
+                return;
+            }
+            hideBackPollUI();
+            resetDefaultFrontPlate();
+            refreshInteractionState();
+        });
+        socket.on('poll_responses_cleared', function (d) {
+            if (!d || d.poll_id == null || !currentClassId || !currentPoll) return;
+            if (Number(d.poll_id) !== Number(currentPoll.poll_id)) return;
+            resetDefaultFrontPlate();
+            showBackPollFullscreen(currentPoll);
+            refreshInteractionState();
+        });
+        socket.on('all_hands_cleared', function (d) {
+            if (!currentClassId || !d || String(d.class_id) !== String(currentClassId)) return;
+            var handBtn = document.getElementById('btnHand');
+            if (handBtn && handBtn.classList.contains('active')) {
+                handBtn.classList.remove('active');
+                syncFrontInteractionTint(false, document.getElementById('btnThumbUp').classList.contains('active'), document.getElementById('btnThumbDown').classList.contains('active'));
+            }
+        });
+        socket.on('hand_raise_dismissed', function (d) {
+            if (!currentClassId || !d || String(d.class_id) !== String(currentClassId)) return;
+            if (!currentStudent || Number(d.student_id) !== Number(currentStudent.id)) return;
+            var handBtn = document.getElementById('btnHand');
+            if (handBtn && handBtn.classList.contains('active')) {
+                handBtn.classList.remove('active');
+                syncFrontInteractionTint(false, document.getElementById('btnThumbUp').classList.contains('active'), document.getElementById('btnThumbDown').classList.contains('active'));
+            }
+        });
+        socket.on('thumbs_reactions_cleared', function (d) {
+            if (!currentClassId || !d || String(d.class_id) !== String(currentClassId)) return;
+            clearThumbAutoOffTimer();
+            refreshInteractionState();
+        });
+
+        socket.on('peer_participation_grade_request', function (d) {
+            if (!d || currentClassId == null || Number(d.class_id) !== Number(currentClassId)) return;
+            if (!currentStudent) return;
+            if (Number(d.subject_student_id) === Number(currentStudent.id)) return;
+            openPeerParticipationModal(d);
+        });
+
+        socket.on('class_started', function (d) {
+            if (!isHomeState() || !d || d.class_id == null) return;
+            if (!patchMyClassActive(d.class_id, true)) {
+                loadClasses().then(function (next) {
+                    if (!isHomeState()) return;
+                    myClasses = next;
+                    renderClassCards();
+                });
+            } else {
+                renderClassCards();
+            }
+            requestJoinStudentEnrollments();
+        });
+
+        // Professor ended class (in session) or live status changed (My Classes)
+        socket.on('class_stopped', function (d) {
+            if (currentClassId && d && String(d.class_id) === String(currentClassId)) {
+                clearPollResultsDismissTimer();
+                flushThumbsBeforeLeave();
+                patchMyClassActive(d.class_id, false);
+                currentClassId = null;
+                currentClassMeta = null;
+                currentPoll = null;
+                hideBackPollUI();
+                hideBackQuizUI();
+                resetDefaultFrontPlate();
+                setState('home');
+                document.getElementById('backSession').classList.add('panel-hidden');
+                var bgStop = document.getElementById('backGrades');
+                if (bgStop) bgStop.classList.add('panel-hidden');
+                document.getElementById('backHome').classList.remove('panel-hidden');
+                updateFrontName();
+                renderClassCards();
+                requestJoinStudentEnrollments();
+                startStudentLiveUpdates();
+                loadClasses().then(function (next) {
+                    if (!isHomeState()) return;
+                    myClasses = next;
+                    renderClassCards();
+                });
+                syncBackStatusBarVisibility();
+                return;
+            }
+            if (!isHomeState() || !d || d.class_id == null) return;
+            if (!patchMyClassActive(d.class_id, false)) {
+                loadClasses().then(function (next) {
+                    if (!isHomeState()) return;
+                    myClasses = next;
+                    renderClassCards();
+                });
+            } else {
+                renderClassCards();
+            }
+            requestJoinStudentEnrollments();
+        });
+    }
+
+    function ensureStudentSocketReady() {
+        return new Promise(function (resolve) {
+            initStudentSocketIfNeeded();
+            if (socket.connected) {
+                requestJoinStudentEnrollments();
+                resolve();
+                return;
+            }
+            socket.once('connect', function () {
+                requestJoinStudentEnrollments();
+                resolve();
+            });
+        });
+    }
+
+    function disconnectSocket() {
+        stopStudentLiveUpdates();
+        if (socket) {
+            try { socket.disconnect(); } catch (e) {}
+            socket = null;
+        }
+    }
+
+    async function submitPoll(answerIndex) {
+        if (!currentPoll || !currentClassId) return;
+        var pollSnapshot = currentPoll;
+        var res = await studentFetch('/api/student/poll_response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ poll_id: pollSnapshot.poll_id, answer: answerIndex })
+        });
+        var data = await res.json();
+        if (data.success) {
+            document.querySelectorAll('#backPollOptions .poll-opt-btn').forEach(function (b) { b.disabled = true; });
+            document.getElementById('backPollOptions').classList.add('panel-hidden');
+            var sub = document.getElementById('backPollSubmitted');
+            sub.textContent = 'Response recorded.';
+            sub.classList.remove('panel-hidden');
+            if (pollIsAnonymous(pollSnapshot)) {
+                resetDefaultFrontPlate();
+            } else {
+                // Colour matches the option the student selected (same index as poll buttons / faculty chart)
+                applyNonAnonymousAnswerColors(answerIndex);
+            }
+        } else {
+            var err = (data.error || '').toLowerCase();
+            if (err.indexOf('already') !== -1) {
+                document.querySelectorAll('#backPollOptions .poll-opt-btn').forEach(function (b) { b.disabled = true; });
+                document.getElementById('backPollOptions').classList.add('panel-hidden');
+                document.getElementById('backPollSubmitted').textContent = 'You already responded.';
+                document.getElementById('backPollSubmitted').classList.remove('panel-hidden');
+                resetDefaultFrontPlate();
+            } else {
+                alert(data.error || 'Could not submit');
+            }
+        }
+    }
+
+    var thumbAutoOffTimer = null;
+    var THUMB_ACTIVE_MS = 10000;
+
+    function clearThumbAutoOffTimer() {
+        if (thumbAutoOffTimer) {
+            clearTimeout(thumbAutoOffTimer);
+            thumbAutoOffTimer = null;
+        }
+    }
+
+    function applyThumbsUI(thumbsUpActive, thumbsDownActive) {
+        document.getElementById('btnThumbUp').classList.toggle('active', !!thumbsUpActive);
+        document.getElementById('btnThumbDown').classList.toggle('active', !!thumbsDownActive);
+    }
+
+    function scheduleThumbAutoOff(type) {
+        clearThumbAutoOffTimer();
+        thumbAutoOffTimer = setTimeout(function () {
+            thumbAutoOffTimer = null;
+            sendThumbsAutoOff(type);
+        }, THUMB_ACTIVE_MS);
+    }
+
+    async function sendThumbsAutoOff(type) {
+        if (!currentClassId || (type !== 'thumbs_up' && type !== 'thumbs_down')) return;
+        try {
+            const res = await studentFetch('/api/student/interaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ class_id: currentClassId, type: type, action: 'auto_off' })
+            });
+            const data = await res.json();
+            if (data.success && typeof data.thumbs_up_active === 'boolean') {
+                applyThumbsUI(data.thumbs_up_active, data.thumbs_down_active);
+                syncFrontInteractionTint(document.getElementById('btnHand').classList.contains('active'), data.thumbs_up_active, data.thumbs_down_active);
+            }
+        } catch (e) {}
+    }
+
+    async function refreshInteractionState() {
+        if (!currentClassId) return;
+        try {
+            const res = await studentFetch('/api/student/interaction_state/' + currentClassId, {});
+            const d = await res.json();
+            if (d.success) {
+                document.getElementById('btnHand').classList.toggle('active', d.hand_raise_active);
+                applyThumbsUI(d.thumbs_up_active, d.thumbs_down_active);
+                syncFrontInteractionTint(d.hand_raise_active, d.thumbs_up_active, d.thumbs_down_active);
+                clearThumbAutoOffTimer();
+                if (d.thumbs_up_active) {
+                    scheduleThumbAutoOff('thumbs_up');
+                } else if (d.thumbs_down_active) {
+                    scheduleThumbAutoOff('thumbs_down');
+                }
+            }
+        } catch (e) {}
+    }
+
+    async function sendInteraction(type) {
+        if (!currentClassId) return;
+        if (currentClassMeta && currentClassMeta.quiet_mode) return;
+        if (type === 'thumbs_up' || type === 'thumbs_down') {
+            clearThumbAutoOffTimer();
+        }
+        const res = await studentFetch('/api/student/interaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ class_id: currentClassId, type })
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (type === 'hand_raise') {
+                document.getElementById('btnHand').classList.toggle('active', data.is_active);
+                syncFrontInteractionTint(
+                    data.is_active,
+                    document.getElementById('btnThumbUp').classList.contains('active'),
+                    document.getElementById('btnThumbDown').classList.contains('active')
+                );
+            }
+            if (type === 'thumbs_up' || type === 'thumbs_down') {
+                if (typeof data.thumbs_up_active === 'boolean') {
+                    applyThumbsUI(data.thumbs_up_active, data.thumbs_down_active);
+                    syncFrontInteractionTint(document.getElementById('btnHand').classList.contains('active'), data.thumbs_up_active, data.thumbs_down_active);
+                    if (data.thumbs_up_active) {
+                        scheduleThumbAutoOff('thumbs_up');
+                    } else if (data.thumbs_down_active) {
+                        scheduleThumbAutoOff('thumbs_down');
+                    }
+                }
+            }
+        } else {
+            alert(data.error || 'Action failed');
+        }
+    }
+
+    document.getElementById('btnHand').addEventListener('click', () => sendInteraction('hand_raise'));
+    document.getElementById('btnThumbUp').addEventListener('click', () => sendInteraction('thumbs_up'));
+    document.getElementById('btnThumbDown').addEventListener('click', () => sendInteraction('thumbs_down'));
+
+    function flushThumbsBeforeLeave() {
+        clearThumbAutoOffTimer();
+        if (!currentClassId) return;
+        var up = document.getElementById('btnThumbUp').classList.contains('active');
+        var dn = document.getElementById('btnThumbDown').classList.contains('active');
+        if (up) sendThumbsAutoOff('thumbs_up');
+        if (dn) sendThumbsAutoOff('thumbs_down');
+    }
+
+    document.getElementById('btnSessionHome').addEventListener('click', async function () {
+        flushThumbsBeforeLeave();
+        if (currentClassId) {
+            await studentFetch('/api/student/leave_class', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ class_id: currentClassId })
+            });
+            if (socket) socket.emit('leave_class', { class_id: currentClassId });
+        }
+        currentClassId = null;
+        currentClassMeta = null;
+        currentPoll = null;
+        hideBackPollUI();
+        resetDefaultFrontPlate();
+        myClasses = await loadClasses();
+        setState('home');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.remove('panel-hidden');
+        var bs = document.getElementById('backSettings');
+        if (bs) bs.classList.add('panel-hidden');
+        updateFrontName();
+        renderClassCards();
+        await ensureStudentSocketReady();
+        requestJoinStudentEnrollments();
+        startStudentLiveUpdates();
+        syncBackStatusBarVisibility();
+    });
+
+    async function doLogout(withClass) {
+        flushThumbsBeforeLeave();
+        try {
+            await studentFetch('/api/student/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(withClass && currentClassId ? { class_id: currentClassId } : {})
+            });
+        } finally {
+            clearStudentToken();
+        }
+        if (socket && currentClassId) try { socket.emit('leave_class', { class_id: currentClassId }); } catch (e) {}
+        disconnectSocket();
+        hideBackPollUI();
+        resetDefaultFrontPlate();
+        var pmEl = document.getElementById('peerParticipationModal');
+        if (pmEl) {
+            var pmi = bootstrap.Modal.getInstance(pmEl);
+            if (pmi) pmi.hide();
+        }
+        hidePeerParticipationBackdrop();
+        currentStudent = null;
+        currentClassId = null;
+        currentClassMeta = null;
+        myClasses = [];
+        currentPoll = null;
+        document.getElementById('loginIdentifier').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('frontNameWrap').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.add('panel-hidden');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        var bgl = document.getElementById('backGrades');
+        if (bgl) bgl.classList.add('panel-hidden');
+        var bsl = document.getElementById('backSettings');
+        if (bsl) bsl.classList.add('panel-hidden');
+        document.getElementById('frontLoginBlank').classList.add('panel-hidden');
+        document.getElementById('backLogin').classList.add('panel-hidden');
+        applyStudentDarkMode(false);
+        setState('sleep');
+        syncBackStatusBarVisibility();
+    }
+
+    document.getElementById('btnLogoutHome').addEventListener('click', () => doLogout(false));
+    document.getElementById('btnSettingsHome').addEventListener('click', async function () {
+        await openStudentSettings();
+    });
+    document.getElementById('btnSessionLogout').addEventListener('click', () => doLogout(true));
+
+    document.getElementById('btnGradesHome').addEventListener('click', async function () {
+        currentClassId = null;
+        currentClassMeta = null;
+        var bgr = document.getElementById('backGrades');
+        if (bgr) bgr.classList.add('panel-hidden');
+        myClasses = await loadClasses();
+        setState('home');
+        document.getElementById('backSession').classList.add('panel-hidden');
+        document.getElementById('backHome').classList.remove('panel-hidden');
+        updateFrontName();
+        renderClassCards();
+        await ensureStudentSocketReady();
+        requestJoinStudentEnrollments();
+        startStudentLiveUpdates();
+        syncBackStatusBarVisibility();
+    });
+    document.getElementById('btnGradesLogout').addEventListener('click', () => doLogout(false));
+    document.getElementById('btnSettingsBackHome').addEventListener('click', async function () {
+        await enterHome();
+    });
+    document.getElementById('btnSettingsLogout').addEventListener('click', () => doLogout(false));
+
+    document.getElementById('studentSettingsForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var status = document.getElementById('settingsStatus');
+        if (status) {
+            status.textContent = 'Saving...';
+            status.className = 'settings-status text-muted';
+        }
+        try {
+            var payload = {
+                email: document.getElementById('settingsEmail').value.trim(),
+                preferred_name: document.getElementById('settingsPreferredName').value.trim(),
+                dark_mode: document.getElementById('settingsDarkMode').checked,
+                current_password: document.getElementById('settingsCurrentPassword').value,
+                new_password: document.getElementById('settingsNewPassword').value,
+                confirm_new_password: document.getElementById('settingsConfirmPassword').value
+            };
+            var res = await studentFetch('/api/student/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            var data = await res.json();
+            if (!data.success) {
+                if (status) {
+                    status.textContent = data.error || 'Could not save settings.';
+                    status.className = 'settings-status text-danger';
+                }
+                return;
+            }
+            if (data.student) {
+                currentStudent = Object.assign({}, currentStudent || {}, data.student);
+            }
+            applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
+            updateFrontName();
+            document.getElementById('settingsCurrentPassword').value = '';
+            document.getElementById('settingsNewPassword').value = '';
+            document.getElementById('settingsConfirmPassword').value = '';
+            if (status) {
+                status.textContent = data.message || 'Settings saved.';
+                status.className = 'settings-status text-success';
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Could not save settings.';
+                status.className = 'settings-status text-danger';
+            }
+        }
+    });
+
+    function showPeerParticipationBackdrop() {
+        var dim = document.getElementById('peerParticipationDim');
+        if (dim) {
+            dim.classList.remove('panel-hidden');
+            dim.setAttribute('aria-hidden', 'false');
+        }
+    }
+    function hidePeerParticipationBackdrop() {
+        var dim = document.getElementById('peerParticipationDim');
+        if (dim) {
+            dim.classList.add('panel-hidden');
+            dim.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    function openPeerParticipationModal(d) {
+        peerParticipationPending = { round_id: d.round_id, class_id: d.class_id };
+        selectedPeerRating = null;
+        var line = document.getElementById('peerParticipationSubjectLine');
+        if (line) {
+            line.textContent = 'How would you rate ' + (d.subject_display_name || 'this classmate') + "'s participation?";
+        }
+        var err = document.getElementById('peerParticipationError');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        document.querySelectorAll('#peerParticipationScale .peer-rating-btn').forEach(function (b) { b.classList.remove('active'); });
+        var sub = document.getElementById('btnPeerParticipationSubmit');
+        if (sub) sub.disabled = true;
+        var el = document.getElementById('peerParticipationModal');
+        if (el) {
+            showPeerParticipationBackdrop();
+            /* Backdrop stays on student-facing #npBack only (not full dual-monitor viewport). */
+            bootstrap.Modal.getOrCreateInstance(el, { backdrop: false, keyboard: true }).show();
+        }
+    }
+
+    async function submitPeerParticipationRating() {
+        var err = document.getElementById('peerParticipationError');
+        if (err) { err.style.display = 'none'; }
+        if (!peerParticipationPending || selectedPeerRating === null) return;
+        try {
+            var res = await studentFetch('/api/student/peer_participation_grade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    class_id: peerParticipationPending.class_id,
+                    round_id: peerParticipationPending.round_id,
+                    rating: selectedPeerRating
+                })
+            });
+            var data = await res.json();
+            if (!data.success) {
+                if (err) {
+                    err.textContent = data.error || 'Could not submit';
+                    err.style.display = 'block';
+                }
+                return;
+            }
+            peerParticipationPending = null;
+            selectedPeerRating = null;
+            var modalEl = document.getElementById('peerParticipationModal');
+            var inst = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+            if (inst) inst.hide();
+        } catch (x) {
+            if (err) {
+                err.textContent = 'Connection error. Try again.';
+                err.style.display = 'block';
+            }
+        }
+    }
+
+    function setupPeerParticipationModal() {
+        var pm = document.getElementById('peerParticipationModal');
+        if (pm) {
+            pm.addEventListener('hidden.bs.modal', function () {
+                hidePeerParticipationBackdrop();
+            });
+        }
+        var scale = document.getElementById('peerParticipationScale');
+        if (!scale) return;
+        scale.addEventListener('click', function (e) {
+            var t = e.target.closest('.peer-rating-btn');
+            if (!t) return;
+            var r = parseInt(t.getAttribute('data-rating'), 10);
+            if (isNaN(r)) return;
+            selectedPeerRating = r;
+            scale.querySelectorAll('.peer-rating-btn').forEach(function (b) { b.classList.toggle('active', b === t); });
+            var sub = document.getElementById('btnPeerParticipationSubmit');
+            if (sub) sub.disabled = false;
+        });
+        var subBtn = document.getElementById('btnPeerParticipationSubmit');
+        if (subBtn) subBtn.addEventListener('click', function () { submitPeerParticipationRating(); });
+    }
+    setupPeerParticipationModal();
+
+    function tickClock() {
+        const now = new Date();
+        const t = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
+        const el = document.getElementById('sessionTime');
+        if (el) el.textContent = t;
+    }
+    setInterval(tickClock, 1000);
+    tickClock();
+
+    function updateSessionBatteryUI(level, charging) {
+        var wrap = document.getElementById('sessionBattery');
+        var pctEl = document.getElementById('sessionBatteryPct');
+        var fillEl = document.getElementById('sessionBatteryFill');
+        var bolt = document.getElementById('sessionBatteryCharging');
+        if (!pctEl) return;
+        var p = Math.round((level != null ? level : 1) * 100);
+        p = Math.max(0, Math.min(100, p));
+        pctEl.textContent = String(p);
+        if (fillEl) fillEl.style.width = p + '%';
+        if (bolt) {
+            bolt.classList.toggle('panel-hidden', !charging);
+            bolt.setAttribute('aria-hidden', charging ? 'false' : 'true');
+        }
+        if (wrap) {
+            wrap.classList.toggle('session-battery-low', p <= 15 && !charging);
+            wrap.title = charging ? 'Charging · ' + p : 'Battery · ' + p;
+            wrap.setAttribute('aria-label', 'Battery ' + p + (charging ? ', charging' : ''));
+        }
+    }
+    if (navigator.getBattery) {
+        navigator.getBattery().then(function (b) {
+            function upd() { updateSessionBatteryUI(b.level, b.charging); }
+            b.addEventListener('levelchange', upd);
+            b.addEventListener('chargingchange', upd);
+            upd();
+        });
+    } else {
+        updateSessionBatteryUI(1, false);
+    }
+
+    (async function initSession() {
+        try {
+            const r = await studentFetch('/api/student/current', {});
+            const d = await r.json();
+            if (r.status === 401) {
+                clearStudentToken();
+                return;
+            }
+            if (d.success && d.student) {
+                currentStudent = d.student;
+                applyStudentDarkMode(!!(currentStudent && currentStudent.dark_mode));
+                myClasses = await loadClasses();
+                setState('home');
+                document.getElementById('frontLoginBlank').classList.add('panel-hidden');
+                document.getElementById('backLogin').classList.add('panel-hidden');
+                document.getElementById('frontNameWrap').classList.remove('panel-hidden');
+                document.getElementById('backHome').classList.remove('panel-hidden');
+                document.getElementById('backSession').classList.add('panel-hidden');
+                var bgInit = document.getElementById('backGrades');
+                if (bgInit) bgInit.classList.add('panel-hidden');
+                var bsInit = document.getElementById('backSettings');
+                if (bsInit) bsInit.classList.add('panel-hidden');
+                updateFrontName();
+                renderClassCards();
+                await ensureStudentSocketReady();
+                requestJoinStudentEnrollments();
+                startStudentLiveUpdates();
+                syncBackStatusBarVisibility();
+            }
+        } catch (e) {}
+    })();
+})();
+</script>
+</body>
+</html>

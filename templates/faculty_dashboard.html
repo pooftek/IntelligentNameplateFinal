@@ -1,0 +1,2103 @@
+{% extends "base.html" %}
+
+{% block title %}Comet — Live: {{ class_obj.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        background: #FFFFFF !important;
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .fac-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .fac-header {
+        flex-shrink: 0;
+        padding: 2rem 3rem 1.25rem;
+    }
+
+    .fac-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .fac-header-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .fac-header-icon {
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        color: #0B1E33;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+
+    .responsive-title {
+        font-family: 'Inter', sans-serif;
+        font-size: clamp(2.5rem, 6.25vw, 3.75rem);
+        font-weight: 600;
+        color: #0B1E33;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .fac-header-buttons {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+    }
+
+    .fac-live-badge {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 500;
+        color: #57C5E4;
+        letter-spacing: 0.08em;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-right: 2.5rem;
+    }
+
+    .fac-live-dot {
+        width: 13px;
+        height: 13px;
+        background-color: #57C5E4;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .btn-return {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #0B1E33 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .btn-return:hover {
+        background-color: #162e4d !important;
+        color: #FFFFFF !important;
+    }
+
+    .btn-end-class {
+        border-radius: 9999px;
+        padding: 0.6rem 1.4rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .btn-end-class:hover {
+        background-color: #3BA8C8 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* ── Tab Navigation ── */
+    .fac-tabs {
+        flex-shrink: 0;
+        padding: 0 3rem 0.75rem;
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+    }
+
+    .tab-pill {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: #9ca3af;
+        background: none;
+        border: none;
+        padding: 0.45rem 1.25rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+        line-height: 1.4;
+    }
+
+    .tab-pill.active {
+        background-color: #0B1E33;
+        color: #FFFFFF;
+    }
+
+    .tab-pill:not(.active):hover {
+        color: #6b7280;
+    }
+
+    /* ── Content Area ── */
+    .fac-content {
+        flex: 1;
+        min-height: 0;
+        padding: 0 3rem 0.75rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fac-tab-pane {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Dashboard Grid ── */
+    .fac-dashboard-grid {
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+        grid-template-rows: 1fr 2fr;
+        gap: clamp(8px, 1.5vw, 20px);
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* ── Section Cards ── */
+    .fac-section-card {
+        background-color: #0B1E33;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 8px 24px rgba(11,30,51,0.22);
+        padding: clamp(0.75rem, 1.5vh, 1.25rem) clamp(0.75rem, 1.5vw, 1.25rem);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .fac-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.6rem;
+        flex-shrink: 0;
+    }
+
+    .fac-section-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #9ca3af;
+        margin: 0;
+    }
+
+    /* Grid placement */
+    .fac-live-metrics-card { grid-column: 1; grid-row: 1; }
+    .fac-poll-card          { grid-column: 1; grid-row: 2; overflow: hidden; }
+    .fac-hands-raised-card  { grid-column: 2; grid-row: 1 / -1; }
+
+    /* ── Pill Buttons (cards) ── */
+    .btn-clear {
+        background-color: #040E1A !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px;
+        padding: 0.22rem 0.85rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 400;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1.5;
+    }
+
+    .btn-clear:hover { background-color: #091525 !important; }
+
+    .btn-start-poll {
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px;
+        padding: 0.22rem 0.85rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1.5;
+    }
+
+    .btn-start-poll:hover { background-color: #3BA8C8 !important; }
+
+    .btn-stop-poll {
+        background-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px;
+        padding: 0.22rem 0.85rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1.5;
+    }
+
+    .btn-stop-poll:hover { background-color: #3BA8C8 !important; }
+
+    /* ── Live Metrics ── */
+    .live-metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 0.75rem;
+        flex: 1;
+        min-height: 0;
+        padding-bottom: 0.5rem;
+        align-items: stretch;
+    }
+
+    .live-metric-item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 0.75rem 0.5rem;
+        border-radius: 10px;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .live-metric-item.attendance,
+    .live-metric-item.unique-participation {
+        background: transparent;
+    }
+
+    .live-metric-item.thumbs-up   { background-color: #57C5E4; }
+    .live-metric-item.thumbs-down { background-color: #040E1A; }
+
+    .live-metric-value {
+        font-size: clamp(2rem, 5vh, 4rem);
+        font-weight: 700;
+        color: #FFFFFF;
+        margin-bottom: 0.2rem;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .live-metric-label {
+        font-size: clamp(0.65rem, 1.2vh, 0.9rem);
+        font-weight: 500;
+        color: #9ca3af;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .live-metric-item.thumbs-up .live-metric-label,
+    .live-metric-item.thumbs-down .live-metric-label {
+        color: #FFFFFF;
+    }
+
+    /* ── Poll ── */
+    .poll-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.6rem;
+        flex-shrink: 0;
+    }
+
+    .poll-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .poll-header-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .poll-vote-display {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .poll-vote-value {
+        font-size: clamp(2rem, 5vh, 4rem);
+        font-weight: 700;
+        color: #FFFFFF;
+        line-height: 1;
+        margin-bottom: 0.2rem;
+    }
+
+    .poll-vote-label {
+        font-size: clamp(0.65rem, 1.2vh, 0.9rem);
+        font-weight: 500;
+        color: #9ca3af;
+    }
+
+    .poll-results-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .poll-table {
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .poll-table th {
+        background-color: rgba(255, 255, 255, 0.08);
+        padding: 0.5rem 0.75rem;
+        font-weight: 600;
+        color: #FFFFFF;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+    }
+
+    .poll-table th.text-left { text-align: left; }
+
+    .poll-table td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        text-align: center;
+        color: #FFFFFF;
+    }
+
+    .poll-table td.text-left { text-align: left; }
+
+    .poll-option-green { color: #28a745 !important; }
+    .poll-option-red   { color: #dc3545 !important; }
+    .poll-option-c     { color: #ffc107 !important; }
+    .poll-option-d     { color: #007bff !important; }
+
+    .poll-chart-container {
+        height: 100%;
+        width: 100%;
+        position: relative;
+        pointer-events: none;
+    }
+
+    .poll-chart-container canvas { pointer-events: none; }
+
+    /* ── Hands Raised ── */
+    .hands-raised-list {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    .hands-raised-list::-webkit-scrollbar { width: 6px; }
+    .hands-raised-list::-webkit-scrollbar-track { background: transparent; }
+    .hands-raised-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+
+    .hands-raised-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.6rem;
+        margin-bottom: 0.4rem;
+        background-color: rgba(255, 255, 255, 0.06);
+        border-radius: 8px;
+    }
+
+    .hands-raised-item .hand-icon {
+        margin-right: 0.6rem;
+        color: #9ca3af;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .hands-raised-item .hand-icon .hand-raised-icon {
+        width: 1em;
+        height: 1em;
+        display: block;
+    }
+
+    .hands-raised-item .hands-raised-name-btn {
+        flex: 1;
+        text-align: left;
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        color: #FFFFFF;
+        font-size: 0.875rem;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+
+    .hands-raised-item .hands-raised-name-btn:hover {
+        text-decoration: underline;
+        color: #e5e7eb;
+    }
+
+    /* Attendance tab: names are plain spans (not buttons like raised-hands) */
+    .hands-raised-item .student-name {
+        color: #FFFFFF;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .hands-raised-item .student-number {
+        color: #9ca3af;
+        font-size: 0.8rem;
+    }
+
+    .hands-raised-grade-btn {
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.65rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(87, 197, 228, 0.45);
+        background: rgba(87, 197, 228, 0.12);
+        color: #7dd3fc;
+        cursor: pointer;
+    }
+
+    .hands-raised-grade-btn:hover {
+        background: rgba(87, 197, 228, 0.22);
+        color: #e0f2fe;
+    }
+
+    /* ── Empty States ── */
+    .fac-empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        color: #9ca3af;
+        font-style: italic;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    /* Quarter-down positioning for list empty states */
+    .hands-raised-list .fac-empty-state,
+    .fac-attendance-grid .fac-empty-state {
+        align-items: flex-start;
+        padding-top: 25%;
+    }
+
+    /* ── Attendance Tab ── */
+    .fac-attendance-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: clamp(8px, 1.5vw, 20px);
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* ── Settings Tab ── */
+    /* ── Settings Tab Card ── */
+    .fac-settings-card {
+        background-color: #FFFFFF;
+        border: 1px solid #e5e7eb;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 8px 24px rgba(11,30,51,0.08);
+        padding: 0 1.5rem;
+        max-width: 520px;
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fac-settings-title {
+        text-align: center;
+        font-weight: 700;
+        font-size: 2.5rem;
+        color: #0B1E33;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .fac-settings-form {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .fac-settings-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0.5rem 0;
+    }
+
+    .fac-settings-section-bordered {
+        border-top: 2px solid #e5e7eb;
+    }
+
+    .fac-settings-save-section {
+        align-items: center;
+    }
+
+    .fac-settings-section-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #0B1E33;
+        margin: 0 0 1rem;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .fac-settings-card .form-check {
+        margin-bottom: 0.85rem;
+    }
+
+    .fac-settings-card .form-check:last-child {
+        margin-bottom: 0;
+    }
+
+    .fac-settings-card .form-check-label {
+        color: #0B1E33;
+        font-weight: 400;
+        font-size: 1.15rem;
+    }
+
+    .fac-settings-card .form-check-input {
+        background-color: #e5e7eb;
+        border-color: #d1d5db;
+        cursor: pointer;
+        width: 2.5em;
+        height: 1.35em;
+        margin-top: 0.2em;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .fac-settings-card .form-check-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+    }
+
+    .btn-live-settings-save {
+        border-radius: 9999px;
+        background-color: #57C5E4;
+        color: #FFFFFF;
+        border: none;
+        font-weight: 600;
+        font-size: 1rem;
+        min-width: 130px;
+        height: 40px;
+        padding: 0 1.5rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-live-settings-save:hover { background-color: #3BA8C8; }
+
+    /* ── Branding ── */
+    .fac-branding {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 1.5rem 0 1.25rem;
+    }
+
+    .fac-branding img {
+        height: 34px;
+        width: auto;
+    }
+
+    /* suppress tooltip on title */
+    #facTitle.truncated-text[title]:hover::after,
+    #facTitle.truncated-text[title]:hover::before {
+        display: none !important;
+    }
+
+    /* ── Poll Modal ── */
+    #createPollModal .modal-header {
+        justify-content: center;
+        border-bottom: 1px solid #e5e7eb;
+        position: relative;
+    }
+    #createPollModal .modal-title {
+        flex: 1;
+        text-align: center;
+        font-weight: 700;
+        color: #0B1E33;
+        font-family: 'Inter', sans-serif;
+    }
+    #createPollModal .btn-close {
+        position: absolute;
+        right: 1rem;
+    }
+    #createPollModal .modal-footer {
+        justify-content: center;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 1.25rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    #createPollModal .modal-footer .btn {
+        min-width: 130px;
+        height: 40px;
+        border-radius: 9999px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #createPollModal .btn-primary {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+    }
+    #createPollModal .btn-primary:hover {
+        background-color: #3BA8C8 !important;
+        border-color: #3BA8C8 !important;
+    }
+    #participationGradeModal .modal-footer {
+        justify-content: center;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        padding-bottom: 1.25rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    #participationGradeModal .modal-footer .btn {
+        min-width: 6.5rem;
+        border-radius: 9999px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+    }
+    #participationGradeModal .btn-primary {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+    }
+    #participationGradeModal .btn-primary:hover {
+        background-color: #3BA8C8 !important;
+        border-color: #3BA8C8 !important;
+    }
+    #participationGradeModal .btn-light {
+        background-color: #e5e7eb !important;
+        color: #374151 !important;
+    }
+    #participationGradeScale .peer-rating-btn {
+        min-width: 3rem;
+        padding: 0.45rem 0.3rem;
+        font-weight: 700;
+        border-radius: 10px;
+        line-height: 1.15;
+    }
+    #participationGradeScale .peer-rating-btn small {
+        display: block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        opacity: 0.85;
+    }
+    #participationGradeScale .peer-rating-btn.active {
+        background: #57C5E4;
+        border-color: #3BA8C8 !important;
+        color: #0D1628;
+    }
+
+    #createPollModal .btn-light {
+        background-color: #e5e7eb !important;
+        color: #374151 !important;
+        border-color: #e5e7eb !important;
+    }
+    #createPollModal .form-label,
+    #createPollModal .form-check-label {
+        font-family: 'Inter', sans-serif;
+        font-weight: 400;
+        color: #0B1E33;
+    }
+    #createPollModal .form-control {
+        font-family: 'Inter', sans-serif;
+        color: #0B1E33;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+    }
+    #createPollModal .form-control:focus {
+        border-color: #57C5E4;
+        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+        outline: none;
+    }
+    #createPollModal .form-check-input:checked {
+        background-color: #57C5E4 !important;
+        border-color: #57C5E4 !important;
+    }
+    #dashboardContent {
+        opacity: 1;
+        transition: opacity 0.35s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fac-container">
+
+    <div class="fac-header">
+        <div class="fac-header-inner">
+            <div class="fac-header-title-group">
+                <i class="bi bi-globe2 fac-header-icon"></i>
+                <h1 class="responsive-title" id="facTitle">{{ class_obj.name }}</h1>
+            </div>
+            <div class="fac-header-buttons">
+                <div class="fac-live-badge">
+                    LIVE <span class="fac-live-dot"></span>
+                </div>
+                <button type="button" class="btn-return" onclick="window.location.href='/classroom/{{ class_obj.id }}'">
+                    <i class="bi bi-arrow-left-circle-fill"></i> Return
+                </button>
+                <button class="btn-end-class" onclick="stopClass()">
+                    <i class="bi bi-stop-circle-fill"></i> End Class
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="fac-tabs">
+        <button class="tab-pill active" onclick="showTab('dashboard', this)">Dashboard</button>
+        <button class="tab-pill" onclick="showTab('attendance', this)">Attendance</button>
+        <button class="tab-pill" onclick="showTab('quiz', this)">Quiz</button>
+        <button class="tab-pill" onclick="showTab('settings', this)">Settings</button>
+    </div>
+
+    <div class="fac-content">
+
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="fac-tab-pane">
+            <div id="dashboardContent" class="fac-tab-pane">
+                <div class="fac-empty-state">Orbiting...</div>
+            </div>
+        </div>
+
+        <!-- Attendance Tab -->
+        <div id="attendanceTab" class="fac-tab-pane" style="display: none;">
+            <div id="attendanceContent" class="fac-tab-pane">
+                <div class="fac-attendance-grid">
+                    <div class="fac-section-card">
+                        <div class="fac-section-header">
+                            <span class="fac-section-title">Present Students</span>
+                        </div>
+                        <div class="hands-raised-list" id="presentStudentsList">
+                            <div class="fac-empty-state">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="fac-section-card">
+                        <div class="fac-section-header">
+                            <span class="fac-section-title">Absent Students</span>
+                        </div>
+                        <div class="hands-raised-list" id="absentStudentsList">
+                            <div class="fac-empty-state">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Tab -->
+        <div id="quizTab" class="fac-tab-pane" style="display: none;">
+            <div id="quizContent" class="fac-tab-pane" style="align-items:center;">
+                <div class="fac-settings-card" id="quizCard" style="max-width: 42rem; width: 100%;">
+                    <h4 class="fac-settings-title">In-Class Quizzes</h4>
+                    <p class="text-muted small mb-3">Upload questions from Excel (Template matches Class Data grading slots). Start a Quiz while the class session is active; students receive all questions at once with the time limit you set (in minutes).</p>
+                    <div id="quizPlanLockNotice" class="mb-3" role="status"></div>
+                    <p class="mb-2"><a class="btn btn-outline-secondary btn-sm" href="/api/quiz_template.xlsx" target="_blank" rel="noopener">Download Excel Template</a></p>
+                    <form id="quizUploadForm" class="fac-settings-form mb-4">
+                        <div class="fac-settings-section fac-settings-section-bordered" id="quizUploadFieldsSection">
+                            <p class="fac-settings-section-title">Upload Quiz</p>
+                            <label class="form-label">Excel file (.xlsx)</label>
+                            <input type="file" class="form-control mb-2" id="quizFileInput" name="file" accept=".xlsx,.xls" required>
+                            <label class="form-label" for="quizUploadIndex">Quiz Slot (1 = first Quiz in grading plan)</label>
+                            <input type="number" class="form-control mb-2" id="quizUploadIndex" name="quiz_index" min="1" value="1" required>
+                            <label class="form-label" for="quizUploadTitle">Title</label>
+                            <input type="text" class="form-control mb-2" id="quizUploadTitle" name="title" placeholder="e.g. Week 3 check-in">
+                            <label class="form-label" for="quizUploadTime">Time Limit (minutes)</label>
+                            <input type="number" class="form-control mb-2" id="quizUploadTime" name="time_limit_minutes" value="5" min="1" max="1440" step="1">
+                            <button type="submit" class="btn-tron-pill" id="quizUploadSubmitBtn">Upload Quiz</button>
+                        </div>
+                    </form>
+                    <div id="quizTabMessage" class="mb-3"></div>
+                    <div class="fac-settings-section">
+                        <p class="fac-settings-section-title">Your Quizzes</p>
+                        <div id="quizListContainer" class="fac-empty-state">Open this tab to load Quizzes.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="fac-tab-pane" style="display: none;">
+            <div id="settingsContent" class="fac-tab-pane" style="align-items:center;">
+                <div class="fac-settings-card" id="settingsCard">
+                    <form id="liveSettingsForm" class="fac-settings-form">
+
+                        <div class="fac-settings-section fac-settings-save-section">
+                            <h4 class="fac-settings-title">Class Settings</h4>
+                        </div>
+
+                        <div class="fac-settings-section fac-settings-section-bordered">
+                            <p class="fac-settings-section-title">Display Preferences</p>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="liveShowFirstNameOnly">
+                                <label class="form-check-label" for="liveShowFirstNameOnly">Show First Name Only</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="liveQuietMode">
+                                <label class="form-check-label" for="liveQuietMode">Quiet Mode</label>
+                            </div>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="liveDarkMode">
+                                <label class="form-check-label" for="liveDarkMode">Dark Mode</label>
+                            </div>
+                            <p class="text-muted small mb-0 mt-1">Dark Mode uses a dark navy theme for professor menus and panels (saved to your account).</p>
+                        </div>
+
+                        <div class="fac-settings-section fac-settings-section-bordered">
+                            <p class="fac-settings-section-title">Attendance Settings</p>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="liveExcludeFromGrading">
+                                <label class="form-check-label" for="liveExcludeFromGrading">Exclude This Session from Grading</label>
+                            </div>
+                        </div>
+
+                        <div class="fac-settings-section fac-settings-section-bordered fac-settings-save-section">
+                            <button type="button" class="btn-live-settings-save" onclick="saveLiveSettings()">Save Settings</button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="fac-branding">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
+    </div>
+
+</div>
+
+<!-- Create Poll Modal -->
+<div class="modal fade" id="createPollModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-std settings-modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Poll/Quiz</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPollForm">
+                    <p class="settings-section-title">Question</p>
+                    <div class="mb-3">
+                        <label for="preUploadedPollSetSelect" class="form-label">Poll Set (optional)</label>
+                        <select class="form-select" id="preUploadedPollSetSelect">
+                            <option value="">All Sets</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="preUploadedPollSelect" class="form-label">Pre-Uploaded Poll Question (optional)</label>
+                        <select class="form-select" id="preUploadedPollSelect">
+                            <option value="">New Poll</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pollQuestion" class="form-label">Question Text</label>
+                        <input type="text" class="form-control" id="pollQuestion" required>
+                    </div>
+                    <hr class="settings-divider">
+                    <p class="settings-section-title">Options</p>
+                    <div class="mb-3">
+                        <label class="form-label">Number of Options</label>
+                        <select class="form-select mb-2" id="numOptions" onchange="updatePollOptions()">
+                            <option value="2">2 Options</option>
+                            <option value="3">3 Options</option>
+                            <option value="4" selected>4 Options</option>
+                            <option value="5">5 Options</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="pollOptionsContainer">
+                        <input type="text" class="form-control mb-2" id="option1" placeholder="Option A" required oninput="updateCorrectAnswerDropdown()">
+                        <input type="text" class="form-control mb-2" id="option2" placeholder="Option B" required oninput="updateCorrectAnswerDropdown()">
+                        <input type="text" class="form-control mb-2" id="option3" placeholder="Option C" required oninput="updateCorrectAnswerDropdown()">
+                        <input type="text" class="form-control mb-2" id="option4" placeholder="Option D" required oninput="updateCorrectAnswerDropdown()">
+                    </div>
+                    <div class="mb-3">
+                        <label for="correctAnswer" class="form-label">Correct Answer (optional, for Quiz)</label>
+                        <select class="form-select" id="correctAnswer">
+                            <option value="">No correct answer</option>
+                            <option value="0">Option A</option>
+                            <option value="1">Option B</option>
+                            <option value="2">Option C</option>
+                            <option value="3">Option D</option>
+                        </select>
+                    </div>
+                    <hr class="settings-divider">
+                    <p class="settings-section-title">Settings</p>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="isGraded">
+                        <label class="form-check-label" for="isGraded">Graded (Counts toward student grades)</label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="isAnonymous">
+                        <label class="form-check-label" for="isAnonymous">Anonymous Mode</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="showResultsWhenStopped" checked>
+                        <label class="form-check-label" for="showResultsWhenStopped">Display Poll Results</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createPoll()">Start Poll</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructor participation grade (0–4 mapped to %); peers notified via Socket.IO -->
+<div class="modal fade" id="participationGradeModal" tabindex="-1" aria-labelledby="participationGradeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="participationGradeModalLabel">Grade Participation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Choose 0–4. Each level maps to a percentage: 0 = 0%, 1 = 25%, 2 = 50%, 3 = 75%, 4 = 100%.</p>
+                <div class="d-flex flex-wrap gap-2 justify-content-center mb-2" id="participationGradeScale" role="group" aria-label="Instructor participation rating">
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="0">0<small>0%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="1">1<small>25%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="2">2<small>50%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="3">3<small>75%</small></button>
+                    <button type="button" class="btn btn-outline-secondary peer-rating-btn" data-rating="4">4<small>100%</small></button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnParticipationGradeSubmit" onclick="submitParticipationInstructorGrade()" disabled>Submit and Notify Class</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+const HAND_RAISED_ICON_HTML = `{% include 'partials/hand_raised_icon.html' %}`.trim();
+const socket = io();
+const classId = {{ class_obj.id }};
+const classDataGradingUrl = {{ url_for('class_data', class_id=class_obj.id)|tojson }};
+let pollChart = null;
+let preUploadedPollBank = [];
+let preUploadedPollSets = [];
+
+socket.on('connect', () => {
+    socket.emit('join_class', {class_id: classId});
+    loadDashboard();
+    setInterval(loadDashboard, 2000);
+});
+
+socket.on('student_joined', () => {
+    loadDashboard();
+    loadAttendance();
+});
+
+socket.on('student_interaction', () => { loadDashboard(); });
+socket.on('poll_started', () => { loadDashboard(); loadQuizzesTabIfVisible(); });
+socket.on('poll_stopped', () => { loadDashboard(); loadQuizzesTabIfVisible(); });
+socket.on('poll_response', () => { loadDashboard(); });
+socket.on('quiz_started', () => { loadDashboard(); loadQuizzesTabIfVisible(); });
+socket.on('quiz_stopped', () => { loadDashboard(); loadQuizzesTabIfVisible(); });
+
+socket.on('settings_updated', () => {
+    if (document.getElementById('settingsTab').style.display !== 'none') {
+        loadLiveSettings();
+    }
+});
+
+// Tab switching
+function showTab(tabName, btn) {
+    document.querySelectorAll('.tab-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('dashboardTab').style.display  = tabName === 'dashboard'  ? 'flex' : 'none';
+    document.getElementById('attendanceTab').style.display = tabName === 'attendance' ? 'flex' : 'none';
+    document.getElementById('quizTab').style.display       = tabName === 'quiz'       ? 'flex' : 'none';
+    document.getElementById('settingsTab').style.display   = tabName === 'settings'   ? 'flex' : 'none';
+
+    if (tabName === 'attendance') loadAttendance();
+    else if (tabName === 'quiz') loadQuizzesTab();
+    else if (tabName === 'settings') loadLiveSettings();
+}
+
+function formatQuizTimeMinutes(totalSec) {
+    const s = Math.max(0, Number(totalSec) || 0);
+    if (s === 0) return '—';
+    if (s % 60 === 0) return String(s / 60) + ' min';
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    if (m === 0) return r + ' s';
+    return m + ' min ' + r + ' s';
+}
+
+function loadQuizzesTabIfVisible() {
+    const el = document.getElementById('quizTab');
+    if (el && el.style.display !== 'none') loadQuizzesTab();
+}
+
+function applyQuizPlanLockUI(quizCountTarget) {
+    // null/undefined: grading weights not loaded — leave controls enabled; server still enforces.
+    if (quizCountTarget === null || quizCountTarget === undefined) {
+        const notice = document.getElementById('quizPlanLockNotice');
+        const section = document.getElementById('quizUploadFieldsSection');
+        ['quizFileInput', 'quizUploadIndex', 'quizUploadTitle', 'quizUploadTime', 'quizUploadSubmitBtn'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = false;
+            if (id === 'quizUploadSubmitBtn') {
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
+            }
+        });
+        if (section) {
+            section.style.opacity = '1';
+            section.setAttribute('aria-disabled', 'false');
+        }
+        if (notice) notice.innerHTML = '';
+        return true;
+    }
+    const n = Number(quizCountTarget);
+    const canCreate = Number.isFinite(n) && n >= 1;
+    const notice = document.getElementById('quizPlanLockNotice');
+    const section = document.getElementById('quizUploadFieldsSection');
+    const ids = ['quizFileInput', 'quizUploadIndex', 'quizUploadTitle', 'quizUploadTime', 'quizUploadSubmitBtn'];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = !canCreate;
+        if (id === 'quizUploadSubmitBtn') {
+            el.style.opacity = canCreate ? '1' : '0.5';
+            el.style.cursor = canCreate ? 'pointer' : 'not-allowed';
+        }
+    });
+    if (section) {
+        section.style.opacity = canCreate ? '1' : '0.55';
+        section.setAttribute('aria-disabled', canCreate ? 'false' : 'true');
+    }
+    if (notice) {
+        if (canCreate) {
+            notice.innerHTML = '';
+        } else {
+            notice.innerHTML =
+                '<div class="alert alert-secondary mb-0">' +
+                '<strong>Quiz setup locked.</strong> In <a href="' +
+                escapeFacHtml(classDataGradingUrl) +
+                '">Class Data</a>, open the <strong>Grading</strong> tab and set ' +
+                '<strong>Number of Quizzes</strong> to at least 1 (and save). Then return here to upload and run Quizzes.' +
+                '</div>';
+        }
+    }
+    return canCreate;
+}
+
+async function loadQuizzesTab() {
+    const container = document.getElementById('quizListContainer');
+    if (!container) return;
+    container.textContent = 'Loading...';
+    try {
+        const [gwRes, qRes, dashRes] = await Promise.all([
+            fetch(`/api/grading_weights/${classId}`),
+            fetch(`/api/quizzes/${classId}`),
+            fetch(`/api/live_dashboard/${classId}`),
+        ]);
+        let canCreate;
+        if (!gwRes.ok) {
+            canCreate = applyQuizPlanLockUI(null);
+        } else {
+            const gw = await gwRes.json();
+            const qtc = gw.quiz_count_target != null ? gw.quiz_count_target : 0;
+            canCreate = applyQuizPlanLockUI(qtc);
+        }
+
+        const qData = await qRes.json();
+        const dash = await dashRes.json();
+        if (!qData.success) {
+            container.innerHTML = '<span class="text-danger">Could not load Quizzes.</span>';
+            return;
+        }
+        const activeRunId = dash.active_quiz && dash.active_quiz.quiz_run_id;
+        const quizzes = qData.quizzes || [];
+        if (quizzes.length === 0) {
+            container.innerHTML = '<p class="text-muted mb-0">No Quizzes uploaded yet.</p>';
+            return;
+        }
+        let html = '<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Quiz Slot</th><th>Title</th><th>Questions</th><th>Time Limit</th><th></th></tr></thead><tbody>';
+        quizzes.forEach((qz) => {
+            const isLive = activeRunId && dash.active_quiz && Number(dash.active_quiz.quiz_id) === Number(qz.id);
+            html += `<tr><td>${escapeFacHtml(String(qz.quiz_index))}</td><td>${escapeFacHtml(qz.title)}</td><td>${qz.question_count}</td><td>${escapeFacHtml(formatQuizTimeMinutes(qz.time_limit_seconds))}</td><td>`;
+            if (isLive) {
+                html += `<button type="button" class="btn btn-sm btn-outline-danger" onclick="stopFacultyQuizRun(${activeRunId})">End Quiz</button>`;
+            } else if (canCreate) {
+                html += `<button type="button" class="btn btn-sm btn-primary" onclick="startFacultyQuiz(${qz.id})">Start</button>`;
+            } else {
+                html += '<button type="button" class="btn btn-sm btn-primary" disabled title="Set number of Quizzes in Class Data → Grading first">Start</button>';
+            }
+            html += '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<span class="text-danger">Error loading Quizzes.</span>';
+    }
+}
+
+function escapeFacHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+async function startFacultyQuiz(quizId) {
+    try {
+        const res = await fetch(`/api/quiz/${quizId}/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || 'Could not start Quiz');
+            return;
+        }
+        loadDashboard();
+        loadQuizzesTab();
+    } catch (e) {
+        console.error(e);
+        alert('Could not start Quiz');
+    }
+}
+
+async function stopFacultyQuizRun(runId) {
+    try {
+        const res = await fetch(`/api/quiz_run/${runId}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || 'Could not end Quiz');
+            return;
+        }
+        loadDashboard();
+        loadQuizzesTab();
+    } catch (e) {
+        console.error(e);
+        alert('Could not end Quiz');
+    }
+}
+
+(function initQuizUploadForm() {
+    const form = document.getElementById('quizUploadForm');
+    if (!form) return;
+    form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const submitBtn = document.getElementById('quizUploadSubmitBtn');
+        if (submitBtn && submitBtn.disabled) {
+            return;
+        }
+        const msg = document.getElementById('quizTabMessage');
+        const fd = new FormData();
+        const fileEl = document.getElementById('quizFileInput');
+        if (!fileEl.files || !fileEl.files[0]) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning">Choose a file.</div>';
+            return;
+        }
+        fd.append('file', fileEl.files[0]);
+        fd.append('quiz_index', document.getElementById('quizUploadIndex').value);
+        fd.append('title', document.getElementById('quizUploadTitle').value || '');
+        const minEl = document.getElementById('quizUploadTime');
+        let mins = parseFloat(minEl && minEl.value);
+        if (!Number.isFinite(mins) || mins < 1) mins = 5;
+        if (mins > 1440) mins = 1440;
+        fd.append('time_limit_minutes', String(mins));
+        if (msg) msg.innerHTML = '<div class="text-muted">Uploading…</div>';
+        try {
+            const res = await fetch(`/api/quiz_upload/${classId}`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!data.success) {
+                const err = (data.errors && data.errors.length) ? data.errors.join(' ') : (data.error || 'Upload failed');
+                if (msg) msg.innerHTML = '<div class="alert alert-danger">' + escapeFacHtml(err) + '</div>';
+                return;
+            }
+            if (msg) msg.innerHTML = '<div class="alert alert-success">Saved ' + data.added + ' question(s).</div>';
+            fileEl.value = '';
+            loadQuizzesTab();
+        } catch (e) {
+            console.error(e);
+            if (msg) msg.innerHTML = '<div class="alert alert-danger">Upload failed.</div>';
+        }
+    });
+})();
+
+// Load Dashboard
+async function loadDashboard() {
+    try {
+        const response = await fetch(`/api/live_dashboard/${classId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            const dc = document.getElementById('dashboardContent');
+            dc.innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
+            requestAnimationFrame(() => { dc.style.opacity = '1'; });
+            return;
+        }
+
+        let html = '<div class="fac-dashboard-grid">';
+
+        // ── Live Metrics Card (top-left) ──
+        html += '<div class="fac-section-card fac-live-metrics-card">';
+        html += '<div class="fac-section-header">';
+        html += '<span class="fac-section-title">Live Metrics</span>';
+        html += `<button class="btn-clear" onclick="clearLiveMetrics(${classId})">Clear</button>`;
+        html += '</div>';
+        html += '<div class="live-metrics-grid">';
+
+        const attendancePercent = data.total_students > 0
+            ? Math.round((data.present_students || 0) / data.total_students * 100)
+            : 0;
+
+        html += '<div class="live-metric-item attendance">';
+        html += `<div class="live-metric-value">${attendancePercent}%</div>`;
+        html += '<div class="live-metric-label">Attendance</div>';
+        html += '</div>';
+
+        html += '<div class="live-metric-item unique-participation">';
+        html += `<div class="live-metric-value">${data.unique_participants || 0}</div>`;
+        html += '<div class="live-metric-label">Unique Participation</div>';
+        html += '</div>';
+
+        html += '<div class="live-metric-item thumbs-up">';
+        html += `<div class="live-metric-value">${data.thumbs_up_count || 0}</div>`;
+        html += '<div class="live-metric-label">Thumbs Up</div>';
+        html += '</div>';
+
+        html += '<div class="live-metric-item thumbs-down">';
+        html += `<div class="live-metric-value">${data.thumbs_down_count || 0}</div>`;
+        html += '<div class="live-metric-label">Thumbs Down</div>';
+        html += '</div>';
+
+        html += '</div>'; // live-metrics-grid
+        html += '</div>'; // live-metrics card
+
+        // ── Poll Data Card (bottom-left, 2× height) ──
+        html += '<div class="fac-section-card fac-poll-card">';
+        html += '<div class="fac-section-header">';
+        html += '<div class="poll-header-left">';
+        html += '<span class="fac-section-title">Poll Data</span>';
+        html += '</div>';
+
+        if (data.active_quiz) {
+            html += '<div class="poll-header-buttons">';
+            html += `<button class="btn-stop-poll" onclick="stopFacultyQuizRun(${data.active_quiz.quiz_run_id})">End Quiz</button>`;
+            html += '</div>';
+        } else if (data.active_poll) {
+            html += '<div class="poll-header-buttons">';
+            html += `<button class="btn-clear" onclick="clearPollData(${data.active_poll.poll_id})">Clear Data</button>`;
+            html += `<button class="btn-stop-poll" onclick="stopPoll(${data.active_poll.poll_id})">Stop Poll</button>`;
+            html += '</div>';
+        } else {
+            html += '<button class="btn-start-poll" onclick="showCreatePollModal()">Start Poll</button>';
+        }
+        html += '</div>'; // section-header
+
+        if (data.active_quiz) {
+            const qt = escapeFacHtml(data.active_quiz.title || 'Quiz');
+            const nq = (data.active_quiz.questions && data.active_quiz.questions.length) ? data.active_quiz.questions.length : 0;
+            html += `<div class="fac-empty-state" style="text-align:left;">Live Quiz: <strong>${qt}</strong> (${nq} questions). Students see the same deadline. Use the Quiz tab to upload more definitions.</div>`;
+        } else if (data.active_poll) {
+            html += '<div id="pollResultsContainer" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>';
+        } else {
+            html += '<div class="fac-empty-state">No active poll or Quiz. Start a poll here or use the Quiz tab for multi-question Quizzes.</div>';
+        }
+        html += '</div>'; // poll card
+
+        // ── Raised Hands Card (right, full height) ──
+        html += '<div class="fac-section-card fac-hands-raised-card">';
+        html += '<div class="fac-section-header">';
+        html += '<span class="fac-section-title">Raised Hands</span>';
+        html += `<button class="btn-clear" onclick="clearHandsRaised(${classId})">Clear</button>`;
+        html += '</div>';
+        html += '<div class="hands-raised-list">';
+        if (data.hands_raised && data.hands_raised.length > 0) {
+            data.hands_raised.forEach((item, index) => {
+                const studentName = data.show_first_name_only
+                    ? (item.display_name || `${item.preferred_name || item.first_name} ${item.last_name}`.trim())
+                    : `${item.preferred_name || item.first_name} ${item.last_name}`;
+                html += `<div class="hands-raised-item">
+                    <span class="hand-icon">${HAND_RAISED_ICON_HTML}</span>
+                    <button type="button" class="hands-raised-name-btn" onclick="dismissHandRaise(${item.student_id})" title="Remove from queue after they participate">${index + 1}. ${studentName}</button>
+                    <button type="button" class="hands-raised-grade-btn" onclick="beginParticipationGrade(${item.student_id})">Grade</button>
+                </div>`;
+            });
+        } else {
+            html += '<div class="fac-empty-state">No hands raised</div>';
+        }
+        html += '</div>'; // hands-raised-list
+        html += '</div>'; // hands-raised card
+
+        html += '</div>'; // fac-dashboard-grid
+
+        const dc = document.getElementById('dashboardContent');
+        dc.innerHTML = html;
+        requestAnimationFrame(() => { dc.style.opacity = '1'; });
+
+        if (data.active_poll && data.poll_results && !data.active_quiz) {
+            updatePollResults(data.poll_results, data.present_students);
+        } else {
+            if (pollChart) { pollChart.destroy(); pollChart = null; }
+        }
+
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        const dc = document.getElementById('dashboardContent');
+        dc.innerHTML = '<div class="fac-empty-state text-danger">Error loading dashboard</div>';
+        requestAnimationFrame(() => { dc.style.opacity = '1'; });
+    }
+}
+
+// Update Poll Results
+function updatePollResults(data, presentStudents) {
+    try {
+        if (!data || !data.success) return;
+
+        const container = document.getElementById('pollResultsContainer');
+        if (!container) return;
+
+        let resultsContainer = container.querySelector('.poll-results-container');
+        let tableBody = container.querySelector('.poll-table tbody');
+        const ctx = document.getElementById('pollChart');
+
+        if (!resultsContainer || !tableBody) {
+            let html = '<div class="poll-results-container">';
+
+            const votePercent = presentStudents > 0 ? Math.min(100, Math.round(data.total_responses / presentStudents * 100)) : 0;
+
+            html += '<div style="display:flex;flex-direction:column;overflow:hidden;">';
+            html += '<div style="overflow-y:auto;flex:1;">';
+            html += '<table class="poll-table">';
+            html += '<thead><tr><th class="text-left">Answer</th><th>Responses</th><th>%</th></tr></thead>';
+            html += '<tbody>';
+
+            const optionColors = ['poll-option-green', 'poll-option-red', 'poll-option-c', 'poll-option-d'];
+            data.options.forEach((option, index) => {
+                const count = data.option_counts[index] || 0;
+                const percentage = data.total_responses > 0 ? (count / data.total_responses * 100) : 0;
+                const colorClass = optionColors[index] || '';
+                html += `<tr data-option-index="${index}">
+                    <td class="${colorClass} text-left"><strong>${option}</strong></td>
+                    <td class="text-center poll-response-count">${count}</td>
+                    <td class="text-center poll-response-percent">${percentage.toFixed(0)}%</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            html += '</div>';
+            html += `<div class="poll-vote-display"><div class="poll-vote-value">${votePercent}%</div><div class="poll-vote-label">vote percentage</div></div>`;
+            html += '</div>';
+
+            html += '<div><div class="poll-chart-container"><canvas id="pollChart"></canvas></div></div>';
+            html += '</div>';
+
+            container.innerHTML = html;
+
+            resultsContainer = container.querySelector('.poll-results-container');
+            tableBody = container.querySelector('.poll-table tbody');
+
+            const newCtx = document.getElementById('pollChart');
+            if (newCtx) {
+                const chartColors = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
+                pollChart = new Chart(newCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.options,
+                        datasets: [{
+                            label: 'Responses',
+                            data: data.options.map((_, i) => data.option_counts[i] || 0),
+                            backgroundColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
+                            borderColor: data.options.map((_, i) => chartColors[i] || '#6c757d'),
+                            borderWidth: 0,
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        onHover: (event) => { event.native.target.style.cursor = 'default'; },
+                        transitions: { active: { animation: { duration: 0 } } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, color: '#9ca3af' },
+                                grid: { color: 'rgba(255,255,255,0.08)' }
+                            },
+                            x: {
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: 'rgba(255,255,255,0.08)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    }
+                });
+            }
+        } else {
+            const optionColors = ['poll-option-green', 'poll-option-red', 'poll-option-c', 'poll-option-d'];
+            data.options.forEach((option, index) => {
+                const count = data.option_counts[index] || 0;
+                const percentage = data.total_responses > 0 ? (count / data.total_responses * 100) : 0;
+
+                const row = tableBody.querySelector(`tr[data-option-index="${index}"]`);
+                if (row) {
+                    const answerCell = row.querySelector('td:first-child strong');
+                    if (answerCell && answerCell.textContent !== option) answerCell.textContent = option;
+
+                    const countCell = row.querySelector('.poll-response-count');
+                    if (countCell) countCell.textContent = count;
+
+                    const percentCell = row.querySelector('.poll-response-percent');
+                    if (percentCell) percentCell.textContent = `${percentage.toFixed(0)}%`;
+                }
+            });
+
+            if (pollChart && ctx) {
+                const chartColors = ['#28a745', '#dc3545', '#ffc107', '#007bff', '#6c757d'];
+                pollChart.data.labels = data.options;
+                pollChart.data.datasets[0].data = data.options.map((_, i) => data.option_counts[i] || 0);
+                pollChart.data.datasets[0].backgroundColor = data.options.map((_, i) => chartColors[i] || '#6c757d');
+                pollChart.data.datasets[0].borderColor = data.options.map((_, i) => chartColors[i] || '#6c757d');
+                pollChart.update('none');
+                if (pollChart.options) {
+                    pollChart.options.interaction = { intersect: false, mode: 'index' };
+                    if (pollChart.options.plugins) pollChart.options.plugins.tooltip = { enabled: false };
+                }
+            }
+        }
+
+        const votePercentage = presentStudents > 0 ? Math.min(100, Math.round(data.total_responses / presentStudents * 100)) : 0;
+        const voteValueElement = document.querySelector('.poll-vote-value');
+        if (voteValueElement) {
+            voteValueElement.textContent = `${votePercentage}%`;
+        }
+
+    } catch (error) {
+        console.error('Error updating poll results:', error);
+    }
+}
+
+// Load Poll Results (backward compat)
+async function loadPollResults(pollId, presentStudents, options) {
+    try {
+        const response = await fetch(`/api/poll_results/${pollId}`);
+        const data = await response.json();
+        if (!data.success) return;
+        updatePollResults(data, presentStudents);
+    } catch (error) {
+        console.error('Error loading poll results:', error);
+    }
+}
+
+// Load Attendance
+async function loadAttendance() {
+    try {
+        const response = await fetch(`/api/live_attendance/${classId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            document.getElementById('presentStudentsList').innerHTML = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
+            document.getElementById('absentStudentsList').innerHTML  = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
+            return;
+        }
+
+        const presentStudentsList = document.getElementById('presentStudentsList');
+        if (presentStudentsList) {
+            const presentStudents = data.present_students || [];
+            if (presentStudents.length > 0) {
+                let html = '';
+                presentStudents.forEach(student => {
+                    html += `<div class="hands-raised-item">
+                        <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
+                    </div>`;
+                });
+                presentStudentsList.innerHTML = html;
+            } else {
+                presentStudentsList.innerHTML = '<div class="fac-empty-state">No students present</div>';
+            }
+        }
+
+        const absentStudentsList = document.getElementById('absentStudentsList');
+        if (absentStudentsList) {
+            const absentStudents = data.absent_students || [];
+            if (absentStudents.length > 0) {
+                let html = '';
+                absentStudents.forEach(student => {
+                    html += `<div class="hands-raised-item">
+                        <span class="student-name">${student.preferred_name || student.first_name} ${student.last_name}</span>
+                    </div>`;
+                });
+                absentStudentsList.innerHTML = html;
+            } else {
+                absentStudentsList.innerHTML = '<div class="fac-empty-state">All students are present</div>';
+            }
+        }
+
+    } catch (error) {
+        console.error('Error loading attendance:', error);
+        const presentList = document.getElementById('presentStudentsList');
+        const absentList  = document.getElementById('absentStudentsList');
+        if (presentList) presentList.innerHTML = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
+        if (absentList)  absentList.innerHTML  = '<div class="fac-empty-state text-danger">Error loading attendance</div>';
+    }
+}
+
+// Load Live Settings
+async function loadLiveSettings() {
+    try {
+        const response = await fetch(`/api/live_preferences/${classId}`);
+        const data = await response.json();
+
+        if (!data.success) { console.error('Error loading settings:', data.error); return; }
+
+        document.getElementById('liveShowFirstNameOnly').checked = data.show_first_name_only || false;
+        document.getElementById('liveQuietMode').checked         = data.quiet_mode || false;
+        document.getElementById('liveExcludeFromGrading').checked = data.exclude_from_grading || false;
+
+        const prefResp = await fetch('/api/preferences');
+        const prefData = await prefResp.json();
+        const dm = document.getElementById('liveDarkMode');
+        if (dm && prefData.success) {
+            dm.checked = !!prefData.dark_mode;
+        }
+
+    } catch (error) {
+        console.error('Error loading live settings:', error);
+    }
+}
+
+// Save Live Settings
+async function saveLiveSettings() {
+    try {
+        const data = {
+            show_first_name_only: document.getElementById('liveShowFirstNameOnly').checked,
+            quiet_mode:           document.getElementById('liveQuietMode').checked,
+            exclude_from_grading: document.getElementById('liveExcludeFromGrading').checked
+        };
+
+        const response = await fetch(`/api/update_settings/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            const darkEl = document.getElementById('liveDarkMode');
+            if (darkEl) {
+                const prefRes = await fetch('/api/preferences', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dark_mode: darkEl.checked }),
+                });
+                const prefResult = await prefRes.json();
+                if (prefResult.success && typeof prefResult.dark_mode === 'boolean') {
+                    document.body.classList.toggle('theme-dark', prefResult.dark_mode);
+                }
+            }
+            showToast('Settings saved successfully.');
+            loadDashboard();
+        } else {
+            showToast(result.error || 'Failed to save settings', 'danger');
+        }
+    } catch (error) {
+        console.error('Error saving live settings:', error);
+        showToast('Failed to save settings', 'danger');
+    }
+}
+
+// Update poll options
+function updatePollOptions() {
+    const numOptions = parseInt(document.getElementById('numOptions').value);
+    const container = document.getElementById('pollOptionsContainer');
+    const correctAnswerSelect = document.getElementById('correctAnswer');
+
+    container.innerHTML = '<label class="form-label">Options</label>';
+    correctAnswerSelect.innerHTML = '<option value="">No correct answer</option>';
+
+    const optionLabels = ['A', 'B', 'C', 'D', 'E'];
+    for (let i = 1; i <= numOptions; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control mb-2';
+        input.id = `option${i}`;
+        input.placeholder = `Option ${optionLabels[i-1]}`;
+        if (i <= 2) input.required = true;
+        input.addEventListener('input', updateCorrectAnswerDropdown);
+        container.appendChild(input);
+
+        const option = document.createElement('option');
+        option.value = i - 1;
+        option.textContent = `Option ${optionLabels[i-1]}`;
+        option.id = `correctAnswerOption${i-1}`;
+        correctAnswerSelect.appendChild(option);
+    }
+}
+
+// Update correct answer dropdown
+function updateCorrectAnswerDropdown() {
+    const correctAnswerSelect = document.getElementById('correctAnswer');
+    const numOptions = parseInt(document.getElementById('numOptions').value);
+    const optionLabels = ['A', 'B', 'C', 'D', 'E'];
+
+    const noAnswerOption = correctAnswerSelect.querySelector('option[value=""]');
+    correctAnswerSelect.innerHTML = '';
+    if (noAnswerOption) {
+        correctAnswerSelect.appendChild(noAnswerOption);
+    } else {
+        const noAnswer = document.createElement('option');
+        noAnswer.value = '';
+        noAnswer.textContent = 'No correct answer';
+        correctAnswerSelect.appendChild(noAnswer);
+    }
+
+    for (let i = 1; i <= numOptions; i++) {
+        const input = document.getElementById(`option${i}`);
+        const optionText = input ? input.value.trim() : '';
+        const displayText = optionText || `Option ${optionLabels[i-1]}`;
+
+        const option = document.createElement('option');
+        option.value = i - 1;
+        option.textContent = displayText;
+        option.id = `correctAnswerOption${i-1}`;
+        correctAnswerSelect.appendChild(option);
+    }
+}
+
+function clearPreUploadedPollSelection() {
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (sel) sel.value = '';
+}
+
+function populatePreUploadedPollQuestionSelect() {
+    const setSel = document.getElementById('preUploadedPollSetSelect');
+    const qSel = document.getElementById('preUploadedPollSelect');
+    if (!qSel) return;
+    const setId = setSel ? Number(setSel.value || 0) : 0;
+    qSel.innerHTML = '<option value="">New Poll</option>';
+    preUploadedPollBank
+        .filter((row) => !setId || Number(row.set_id) === setId)
+        .forEach((row) => {
+            const opt = document.createElement('option');
+            opt.value = String(row.id);
+            const setLabel = row.set_name ? '[' + row.set_name + '] ' : '';
+            opt.textContent = setLabel + '#' + row.poll_index + ' - ' + (row.title || 'Poll') + ': ' + (row.question || '');
+            qSel.appendChild(opt);
+        });
+}
+
+function resetPollModalFieldsToDefault() {
+    const q = document.getElementById('pollQuestion');
+    if (q) q.value = '';
+    const n = document.getElementById('numOptions');
+    if (n) n.value = '4';
+    updatePollOptions();
+    updateCorrectAnswerDropdown();
+    const correct = document.getElementById('correctAnswer');
+    if (correct) correct.value = '';
+}
+
+function applySelectedPreUploadedPoll() {
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (!sel) return;
+    const id = Number(sel.value || 0);
+    if (!id) {
+        resetPollModalFieldsToDefault();
+        return;
+    }
+    const row = preUploadedPollBank.find((x) => Number(x.id) === id);
+    if (!row) return;
+    const options = Array.isArray(row.options) ? row.options : [];
+    if (!options.length) return;
+    const question = document.getElementById('pollQuestion');
+    if (question) question.value = row.question || '';
+    const n = document.getElementById('numOptions');
+    if (n) n.value = String(Math.max(2, Math.min(5, options.length)));
+    updatePollOptions();
+    const len = parseInt(document.getElementById('numOptions').value, 10);
+    for (let i = 1; i <= len; i++) {
+        const inp = document.getElementById(`option${i}`);
+        if (inp) inp.value = options[i - 1] || '';
+    }
+    updateCorrectAnswerDropdown();
+    const correct = document.getElementById('correctAnswer');
+    if (correct) {
+        const ca = row.correct_answer;
+        correct.value = (ca === null || ca === undefined || Number(ca) < 0 || Number(ca) >= len) ? '' : String(ca);
+    }
+}
+
+async function loadPreUploadedPollBankForModal() {
+    const setSel = document.getElementById('preUploadedPollSetSelect');
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (!sel || !setSel) return;
+    setSel.innerHTML = '<option value="">All Sets</option>';
+    try {
+        const res = await fetch(`/api/poll_bank/${classId}`);
+        const data = await res.json();
+        if (!data.success) return;
+        preUploadedPollBank = data.poll_bank || [];
+        preUploadedPollSets = data.poll_sets || [];
+        preUploadedPollSets.forEach((s) => {
+            const opt = document.createElement('option');
+            opt.value = String(s.id);
+            opt.textContent = s.name;
+            setSel.appendChild(opt);
+        });
+        setSel.value = '';
+        populatePreUploadedPollQuestionSelect();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// Create Poll
+async function createPoll() {
+    const question = document.getElementById('pollQuestion').value;
+    const numOptions = parseInt(document.getElementById('numOptions').value);
+    const options = [];
+
+    for (let i = 1; i <= numOptions; i++) {
+        const value = document.getElementById(`option${i}`).value.trim();
+        if (value) options.push(value);
+    }
+
+    if (options.length < 2) {
+        showToast('Please provide at least 2 options.', 'warning');
+        return;
+    }
+
+    const optionsLower = options.map(opt => opt.toLowerCase().trim());
+    if (new Set(optionsLower).size !== options.length) {
+        showToast('Duplicate options are not allowed. Please ensure each option is unique.', 'warning');
+        return;
+    }
+
+    const correctAnswer = document.getElementById('correctAnswer').value;
+    const isGraded = document.getElementById('isGraded').checked;
+    const isAnonymous = document.getElementById('isAnonymous').checked;
+    const showResultsWhenStopped = document.getElementById('showResultsWhenStopped').checked;
+
+    const response = await fetch(`/api/create_poll/${classId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            question,
+            options,
+            correct_answer: correctAnswer ? parseInt(correctAnswer) : null,
+            is_graded: isGraded,
+            is_anonymous: isAnonymous,
+            show_results_when_stopped: showResultsWhenStopped
+        })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('createPollModal')).hide();
+        loadDashboard();
+    } else {
+        showToast(data.error || 'Failed to create poll', 'danger');
+    }
+}
+
+// Stop Poll
+async function stopPoll(pollId) {
+    const response = await fetch(`/api/stop_poll/${pollId}`, {method: 'POST'});
+    const data = await response.json();
+    if (data.success) loadDashboard();
+}
+
+// Clear Live Metrics
+async function clearLiveMetrics(classId) {
+    if (!await showConfirm('Clear all live metrics (thumbs up, thumbs down, and participation counts)?')) return;
+
+    try {
+        await fetch(`/api/reset_thumbs_up/${classId}`, {method: 'POST'});
+        await fetch(`/api/reset_thumbs_down/${classId}`, {method: 'POST'});
+        loadDashboard();
+    } catch (error) {
+        console.error('Error clearing live metrics:', error);
+        showToast('Failed to clear live metrics', 'danger');
+    }
+}
+
+let participationGradeRoundId = null;
+let selectedParticipationInstructorRating = null;
+
+(function setupParticipationGradeModalDismiss() {
+    const el = document.getElementById('participationGradeModal');
+    if (!el) return;
+    el.addEventListener('hidden.bs.modal', async function () {
+        if (participationGradeRoundId == null) return;
+        const rid = participationGradeRoundId;
+        participationGradeRoundId = null;
+        try {
+            const response = await fetch('/api/participation_grade/cancel', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ class_id: classId, round_id: rid })
+            });
+            const d = await response.json();
+            if (d.success) loadDashboard();
+            else if (d.error) showToast(d.error, 'warning');
+        } catch (e) {
+            console.error('participation_grade/cancel:', e);
+        }
+    });
+})();
+
+async function beginParticipationGrade(subjectStudentId) {
+    try {
+        const response = await fetch('/api/participation_grade/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ class_id: classId, subject_student_id: subjectStudentId })
+        });
+        const data = await response.json();
+        if (!data.success) {
+            showToast(data.error || 'Could not start grading', 'danger');
+            return;
+        }
+        participationGradeRoundId = data.round_id;
+        selectedParticipationInstructorRating = null;
+        const scale = document.getElementById('participationGradeScale');
+        if (scale) {
+            scale.querySelectorAll('.peer-rating-btn').forEach(function (b) { b.classList.remove('active'); });
+        }
+        const submitBtn = document.getElementById('btnParticipationGradeSubmit');
+        if (submitBtn) submitBtn.disabled = true;
+        const modalEl = document.getElementById('participationGradeModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    } catch (error) {
+        console.error('participation_grade/start:', error);
+        showToast('Could not start grading', 'danger');
+    }
+}
+
+async function submitParticipationInstructorGrade() {
+    if (selectedParticipationInstructorRating == null) {
+        showToast('Select a rating from 0 to 4.', 'warning');
+        return;
+    }
+    const score = selectedParticipationInstructorRating * 25;
+    if (participationGradeRoundId == null) {
+        showToast('No active grading round. Close and try again.', 'danger');
+        return;
+    }
+    try {
+        const response = await fetch('/api/participation_grade/instructor', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ class_id: classId, round_id: participationGradeRoundId, score })
+        });
+        const data = await response.json();
+        if (!data.success) {
+            showToast(data.error || 'Could not save instructor grade', 'danger');
+            return;
+        }
+        participationGradeRoundId = null;
+        const modalEl = document.getElementById('participationGradeModal');
+        const mi = bootstrap.Modal.getInstance(modalEl);
+        if (mi) mi.hide();
+        selectedParticipationInstructorRating = null;
+        showToast('Peer grading sent to students.', 'success');
+        loadDashboard();
+    } catch (error) {
+        console.error('participation_grade/instructor:', error);
+        showToast('Could not save instructor grade', 'danger');
+    }
+}
+
+(function setupParticipationGradeScale() {
+    const scale = document.getElementById('participationGradeScale');
+    if (!scale) return;
+    scale.addEventListener('click', function (e) {
+        const btn = e.target.closest('.peer-rating-btn');
+        if (!btn) return;
+        const rating = parseInt(btn.getAttribute('data-rating'), 10);
+        if (Number.isNaN(rating) || rating < 0 || rating > 4) return;
+        selectedParticipationInstructorRating = rating;
+        scale.querySelectorAll('.peer-rating-btn').forEach(function (b) {
+            b.classList.toggle('active', b === btn);
+        });
+        const submitBtn = document.getElementById('btnParticipationGradeSubmit');
+        if (submitBtn) submitBtn.disabled = false;
+    });
+})();
+
+// Remove one student from the raised-hands queue (list re-numbers on refresh)
+async function dismissHandRaise(studentId) {
+    try {
+        const response = await fetch(`/api/dismiss_hand_raise/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ student_id: studentId })
+        });
+        const data = await response.json();
+        if (data.success) {
+            loadDashboard();
+        } else {
+            showToast(data.error || 'Could not remove student from queue', 'danger');
+        }
+    } catch (error) {
+        console.error('Error dismissing hand raise:', error);
+        showToast('Could not remove student from queue', 'danger');
+    }
+}
+
+// Clear Hands Raised
+async function clearHandsRaised(classId) {
+    if (!confirm('Are you sure you want to clear all raised hands?')) return;
+
+    try {
+        const response = await fetch(`/api/clear_hands_raised/${classId}`, {method: 'POST'});
+        const data = await response.json();
+        if (data.success) {
+            loadDashboard();
+        } else {
+            showToast(data.error || 'Failed to clear hands raised', 'danger');
+        }
+    } catch (error) {
+        console.error('Error clearing hands raised:', error);
+        showToast('Failed to clear hands raised', 'danger');
+    }
+}
+
+// Clear Poll Data
+async function clearPollData(pollId) {
+    const confirmed = await showConfirm('Are you sure you want to clear all poll responses? This cannot be undone.');
+    if (!confirmed) return;
+    try {
+        const response = await fetch(`/api/clear_poll_responses/${pollId}`, {method: 'POST'});
+        const data = await response.json();
+        if (data.success) {
+            showToast('Poll responses cleared.');
+            loadDashboard();
+        } else {
+            showToast(data.error || 'Failed to clear poll data', 'danger');
+        }
+    } catch (error) {
+        console.error('Error clearing poll data:', error);
+        showToast('Failed to clear poll data', 'danger');
+    }
+}
+
+// Show create poll modal
+function showCreatePollModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createPollModal'));
+    modal.show();
+    clearPreUploadedPollSelection();
+    resetPollModalFieldsToDefault();
+    setTimeout(function () {
+        loadPreUploadedPollBankForModal();
+        updateCorrectAnswerDropdown();
+    }, 100);
+}
+
+(function initPreUploadedPollSelect() {
+    const sel = document.getElementById('preUploadedPollSelect');
+    if (!sel) return;
+    sel.addEventListener('change', applySelectedPreUploadedPoll);
+})();
+
+(function initPreUploadedPollSetSelect() {
+    const setSel = document.getElementById('preUploadedPollSetSelect');
+    if (!setSel) return;
+    setSel.addEventListener('change', function () {
+        clearPreUploadedPollSelection();
+        populatePreUploadedPollQuestionSelect();
+    });
+})();
+
+async function stopClass() {
+    if (!await showConfirm('Are you sure you want to end the class?')) return;
+    const response = await fetch(`/api/stop_class/${classId}`, {method: 'POST'});
+    const data = await response.json();
+    if (data.success) {
+        window.location.href = `/classroom/${classId}`;
+    }
+}
+
+// Size settings card to align with Settings tab pill edges
+function alignSettingsCard() {
+    const settingsBtn = document.querySelector('.fac-tabs .tab-pill:nth-child(3)');
+    const content = document.querySelector('.fac-content');
+    const card = document.getElementById('settingsCard');
+    if (!settingsBtn || !content || !card) return;
+
+    const tabRect = settingsBtn.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+    const leftOffset = tabRect.left - contentRect.left;
+    const cardWidth = contentRect.width - 2 * leftOffset;
+
+    if (cardWidth > 100) {
+        card.style.width = cardWidth + 'px';
+    }
+}
+
+window.addEventListener('load', alignSettingsCard);
+window.addEventListener('resize', alignSettingsCard);
+</script>
+{% endblock %}
