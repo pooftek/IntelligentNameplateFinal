@@ -3,14 +3,18 @@
 {% block title %}Comet — Live: {{ class_obj.name }}{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     body {
-        background: #FFFFFF !important;
         height: 100vh;
         overflow: hidden;
         margin: 0;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
+    }
+    body:not(.theme-dark) {
+        background:
+            radial-gradient(78% 52% at 50% 40%, rgba(255,255,255,0.60), transparent 70%),
+            linear-gradient(180deg, #e8ebef 0%, #eff2f5 48%, #f6f8fa 60%, #e8ebef 100%) fixed !important;
+        color: var(--comet-navy);
     }
 
     .fac-container {
@@ -33,11 +37,20 @@
     }
 
     .fac-header-title-group {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        min-width: 0;
         flex: 1;
+        min-width: 0;
+    }
+
+    /* thin bottom footer logo (fixed 100vh grid → always at the bottom) */
+    .fac-branding {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 0.5rem 0 0.5rem;
+    }
+    .fac-branding img {
+        height: 14px;
+        width: auto;
+        filter: drop-shadow(0 10px 24px rgba(13, 22, 40, 0.16));
     }
 
     .fac-header-icon {
@@ -47,16 +60,27 @@
         line-height: 1;
     }
 
+    .fac-eyebrow {
+        font-family: var(--font-family-base);
+        color: var(--comet-blue);
+        font-weight: 800;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        margin: 0 0 0.15rem;
+    }
+
     .responsive-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: clamp(2.5rem, 6.25vw, 3.75rem);
-        font-weight: 600;
-        color: #0B1E33;
+        font-weight: 700;
+        color: var(--comet-navy);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
         line-height: 1.2;
+        text-shadow: 0 2px 10px rgba(13, 22, 40, 0.18);
     }
 
     .fac-header-buttons {
@@ -66,7 +90,7 @@
     }
 
     .fac-live-badge {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 1.6rem;
         font-weight: 500;
         color: #57C5E4;
@@ -85,13 +109,14 @@
         display: inline-block;
     }
 
+    /* blue pill — Return (nav) */
     .btn-return {
         border-radius: 9999px;
-        padding: 0.6rem 1.4rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        font-size: 1rem;
-        background-color: #0B1E33 !important;
+        padding: 0.55rem 1.25rem;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        font-size: 0.95rem;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         display: inline-flex;
@@ -99,20 +124,27 @@
         gap: 0.4rem;
         white-space: nowrap;
         text-decoration: none;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.22),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
 
     .btn-return:hover {
-        background-color: #162e4d !important;
         color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 22px rgba(13, 22, 40, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
     }
 
+    /* red pill — End Class (stop live session) */
     .btn-end-class {
         border-radius: 9999px;
-        padding: 0.6rem 1.4rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        font-size: 1rem;
-        background-color: #57C5E4 !important;
+        padding: 0.55rem 1.25rem;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        font-size: 0.95rem;
+        background: linear-gradient(180deg, #e5645d 0%, #c9463f 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         display: inline-flex;
@@ -120,11 +152,17 @@
         gap: 0.4rem;
         white-space: nowrap;
         cursor: pointer;
+        box-shadow: 0 6px 16px rgba(15, 30, 51, 0.14),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
 
     .btn-end-class:hover {
-        background-color: #3BA8C8 !important;
         color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: 0 10px 22px rgba(15, 30, 51, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
     }
 
     /* ── Tab Navigation ── */
@@ -136,28 +174,42 @@
         align-items: center;
     }
 
+    /* 3D pill tabs — inactive quiet light pill, active blue pill */
     .tab-pill {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 1.25rem;
-        font-weight: 500;
-        color: #9ca3af;
-        background: none;
-        border: none;
+        font-weight: 700;
+        color: rgba(13, 22, 40, 0.55);
+        background: linear-gradient(180deg, #ffffff 0%, #eef1f5 100%);
+        border: 1px solid rgba(13, 22, 40, 0.10);
         padding: 0.45rem 1.25rem;
         border-radius: 9999px;
         cursor: pointer;
-        transition: background-color 0.2s, color 0.2s;
+        box-shadow: 0 4px 12px rgba(13, 22, 40, 0.08),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        transition: transform 0.15s, box-shadow 0.2s, filter 0.2s, color 0.2s;
         line-height: 1.4;
     }
 
     .tab-pill.active {
-        background-color: #0B1E33;
+        background: linear-gradient(180deg, #213755 0%, #0d1628 100%);
         color: #FFFFFF;
+        border-color: transparent;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.28);
     }
 
     .tab-pill:not(.active):hover {
-        color: #6b7280;
+        color: var(--comet-navy);
+        transform: translateY(-1px);
     }
+    body.theme-dark .tab-pill {
+        background: linear-gradient(180deg, #16283f 0%, #0a1626 100%);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.6);
+        box-shadow: none;
+    }
+    body.theme-dark .tab-pill:not(.active):hover { color: #FFFFFF; }
 
     /* ── Content Area ── */
     .fac-content {
@@ -188,13 +240,20 @@
     /* ── Section Cards ── */
     .fac-section-card {
         background-color: #0B1E33;
-        border-radius: var(--card-border-radius);
+        border-radius: 18px;
         box-shadow: 0 8px 24px rgba(11,30,51,0.22);
         padding: clamp(0.75rem, 1.5vh, 1.25rem) clamp(0.75rem, 1.5vw, 1.25rem);
         display: flex;
         flex-direction: column;
         min-height: 0;
         overflow: hidden;
+    }
+    /* studio navy tile — non-dark (theme-dark keeps the flat navy above) */
+    body:not(.theme-dark) .fac-section-card {
+        background: linear-gradient(180deg, var(--comet-navy-mid) 0%, var(--comet-dark) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 18px 40px rgba(13, 22, 40, 0.26),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .fac-section-header {
@@ -206,7 +265,7 @@
     }
 
     .fac-section-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 0.85rem;
         font-weight: 500;
         color: #9ca3af;
@@ -219,56 +278,89 @@
     .fac-hands-raised-card  { grid-column: 2; grid-row: 1 / -1; }
 
     /* ── Pill Buttons (cards) ── */
+    /* dark navy pill w/ fade — Clear */
     .btn-clear {
-        background-color: #040E1A !important;
+        background: linear-gradient(180deg, #16283f 0%, #040E1A 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         border-radius: 9999px;
         padding: 0.22rem 0.85rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base) !important;
         font-size: 0.8rem;
-        font-weight: 400;
+        font-weight: 700 !important;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         line-height: 1.5;
+        box-shadow: 0 4px 12px rgba(13, 22, 40, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        transition: transform 0.15s, filter 0.2s;
     }
 
-    .btn-clear:hover { background-color: #091525 !important; }
+    .btn-clear:hover { filter: brightness(1.4); transform: translateY(-1px); }
+
+    /* navy pill — template download */
+    .btn-outline-secondary {
+        background: linear-gradient(180deg, #213755 0%, #0d1628 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.22),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+    }
+    .btn-outline-secondary:hover,
+    .btn-outline-secondary:focus,
+    .btn-outline-secondary:active {
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+    }
 
     .btn-start-poll {
-        background-color: #57C5E4 !important;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         border-radius: 9999px;
         padding: 0.22rem 0.85rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base) !important;
         font-size: 0.8rem;
-        font-weight: 600;
+        font-weight: 700 !important;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        box-shadow: 0 4px 12px rgba(13, 22, 40, 0.25) !important;
+        transition: transform 0.15s, filter 0.2s;
     }
 
-    .btn-start-poll:hover { background-color: #3BA8C8 !important; }
+    .btn-start-poll:hover { color: #FFFFFF !important; font-family: var(--font-family-base) !important; font-weight: 700 !important; transform: translateY(-1px); filter: brightness(1.06); }
 
+    /* red pill — Stop Poll (destructive) */
     .btn-stop-poll {
-        background-color: #57C5E4 !important;
+        background: linear-gradient(180deg, #e5645d 0%, #c9463f 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         border-radius: 9999px;
         padding: 0.22rem 0.85rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base) !important;
         font-size: 0.8rem;
-        font-weight: 600;
+        font-weight: 700 !important;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        box-shadow: 0 4px 12px rgba(15, 30, 51, 0.14) !important;
+        transition: transform 0.15s, filter 0.2s;
     }
 
-    .btn-stop-poll:hover { background-color: #3BA8C8 !important; }
+    .btn-stop-poll:hover { color: #FFFFFF !important; font-family: var(--font-family-base) !important; font-weight: 700 !important; transform: translateY(-1px); filter: brightness(1.06); }
 
     /* ── Live Metrics ── */
     .live-metrics-grid {
@@ -297,8 +389,16 @@
         background: transparent;
     }
 
-    .live-metric-item.thumbs-up   { background-color: #57C5E4; }
-    .live-metric-item.thumbs-down { background-color: #040E1A; }
+    .live-metric-item.thumbs-up {
+        background: linear-gradient(180deg, #7ad4ef 0%, var(--comet-blue) 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                    0 10px 24px rgba(13, 22, 40, 0.3);
+    }
+    .live-metric-item.thumbs-down {
+        background: linear-gradient(180deg, #16283f 0%, #040E1A 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                    0 10px 24px rgba(13, 22, 40, 0.3);
+    }
 
     .live-metric-value {
         font-size: clamp(2rem, 5vh, 4rem);
@@ -381,9 +481,10 @@
     }
 
     .poll-table th {
-        background-color: rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
         padding: 0.5rem 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
         color: #FFFFFF;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         text-align: center;
@@ -531,11 +632,11 @@
     /* ── Settings Tab ── */
     /* ── Settings Tab Card ── */
     .fac-settings-card {
-        background-color: #FFFFFF;
-        border: 1px solid #e5e7eb;
-        border-radius: var(--card-border-radius);
-        box-shadow: 0 8px 24px rgba(11,30,51,0.08);
-        padding: 0 1.5rem;
+        background: #FFFFFF;
+        border: 1px solid rgba(13, 22, 40, 0.06);
+        border-radius: 22px;
+        box-shadow: 0 20px 44px rgba(13, 22, 40, 0.10);
+        padding: 1.75rem 1.75rem;
         max-width: 520px;
         width: 100%;
         flex: 1;
@@ -543,7 +644,12 @@
         overflow-y: auto;
         display: flex;
         flex-direction: column;
+        gap: 0.25rem;
     }
+    .fac-settings-card::-webkit-scrollbar { width: 10px; }
+    .fac-settings-card::-webkit-scrollbar-track { background: transparent; }
+    .fac-settings-card::-webkit-scrollbar-thumb { background: rgba(11,30,51,0.2); border-radius: 6px; }
+    .fac-settings-card::-webkit-scrollbar-thumb:hover { background: rgba(11,30,51,0.35); }
 
     .fac-settings-title {
         text-align: center;
@@ -551,7 +657,7 @@
         font-size: 2.5rem;
         color: #0B1E33;
         margin: 0;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
 
     .fac-settings-form {
@@ -569,7 +675,7 @@
     }
 
     .fac-settings-section-bordered {
-        border-top: 2px solid #e5e7eb;
+        border-top: none;
     }
 
     .fac-settings-save-section {
@@ -577,11 +683,13 @@
     }
 
     .fac-settings-section-title {
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #0B1E33;
+        font-weight: 800;
+        font-size: 0.8rem;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        color: var(--comet-blue);
         margin: 0 0 1rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
 
     .fac-settings-card .form-check {
@@ -614,12 +722,14 @@
         border-color: #57C5E4 !important;
     }
 
+    /* blue pill — Save Settings */
     .btn-live-settings-save {
         border-radius: 9999px;
-        background-color: #57C5E4;
-        color: #FFFFFF;
-        border: none;
-        font-weight: 600;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
         font-size: 1rem;
         min-width: 130px;
         height: 40px;
@@ -628,20 +738,46 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
 
-    .btn-live-settings-save:hover { background-color: #3BA8C8; }
-
-    /* ── Branding ── */
-    .fac-branding {
-        flex-shrink: 0;
-        text-align: center;
-        padding: 1.5rem 0 1.25rem;
+    .btn-live-settings-save:hover,
+    .btn-live-settings-save:focus,
+    .btn-live-settings-save:active {
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
     }
 
-    .fac-branding img {
-        height: 34px;
-        width: auto;
+
+    /* blue pill — Upload Quiz (btn-tron-pill; comet.css forces Inter/no-shadow) */
+    .btn-tron-pill {
+        border-radius: 9999px !important;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+    }
+    .btn-tron-pill:hover,
+    .btn-tron-pill:focus,
+    .btn-tron-pill:active {
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
     }
 
     /* suppress tooltip on title */
@@ -661,7 +797,7 @@
         text-align: center;
         font-weight: 700;
         color: #0B1E33;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
     #createPollModal .btn-close {
         position: absolute;
@@ -723,6 +859,100 @@
         background-color: #e5e7eb !important;
         color: #374151 !important;
     }
+
+    /* ── Studio / Apple white modal treatment — non-dark (matches dashboard modals) ── */
+    body:not(.theme-dark) #createPollModal .modal-content,
+    body:not(.theme-dark) #participationGradeModal .modal-content {
+        background: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
+        border: 1px solid rgba(13, 22, 40, 0.06);
+        border-radius: 22px;
+        box-shadow: 0 30px 70px rgba(13, 22, 40, 0.22);
+        overflow: hidden;
+    }
+    body:not(.theme-dark) #createPollModal .modal-header,
+    body:not(.theme-dark) #participationGradeModal .modal-header,
+    body:not(.theme-dark) #createPollModal .modal-footer,
+    body:not(.theme-dark) #participationGradeModal .modal-footer {
+        border: none;
+    }
+    body:not(.theme-dark) #createPollModal .modal-title,
+    body:not(.theme-dark) #participationGradeModal .modal-title {
+        font-family: var(--font-family-base);
+        font-weight: 700;
+        color: var(--comet-navy);
+    }
+    body:not(.theme-dark) #createPollModal .settings-section-title {
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--comet-blue);
+    }
+    body:not(.theme-dark) #createPollModal .form-label,
+    body:not(.theme-dark) #participationGradeModal .form-label {
+        color: rgba(13, 22, 40, 0.7);
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        font-size: 0.8rem;
+    }
+    body:not(.theme-dark) #createPollModal .form-control,
+    body:not(.theme-dark) #createPollModal .form-select,
+    body:not(.theme-dark) #participationGradeModal .form-control {
+        border: 1px solid rgba(13, 22, 40, 0.14);
+        border-radius: 12px;
+    }
+    body:not(.theme-dark) #createPollModal .form-control:focus,
+    body:not(.theme-dark) #createPollModal .form-select:focus,
+    body:not(.theme-dark) #participationGradeModal .form-control:focus {
+        border-color: var(--comet-blue);
+        box-shadow: 0 0 0 3px rgba(87, 197, 228, 0.2);
+    }
+    /* blue-pill primary */
+    body:not(.theme-dark) #createPollModal .btn-primary,
+    body:not(.theme-dark) #participationGradeModal .btn-primary {
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+    }
+    body:not(.theme-dark) #createPollModal .btn-primary:hover,
+    body:not(.theme-dark) #createPollModal .btn-primary:focus,
+    body:not(.theme-dark) #createPollModal .btn-primary:active,
+    body:not(.theme-dark) #participationGradeModal .btn-primary:hover,
+    body:not(.theme-dark) #participationGradeModal .btn-primary:focus,
+    body:not(.theme-dark) #participationGradeModal .btn-primary:active {
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        filter: brightness(1.06);
+        box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+    }
+    /* light-pill cancel */
+    body:not(.theme-dark) #createPollModal .btn-light,
+    body:not(.theme-dark) #participationGradeModal .btn-light {
+        background: linear-gradient(180deg, #ffffff 0%, #e6ebf1 100%) !important;
+        color: var(--comet-navy) !important;
+        border: 1px solid rgba(13, 22, 40, 0.12) !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 8px 22px rgba(13, 22, 40, 0.12),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
+    body:not(.theme-dark) #createPollModal .btn-light:hover,
+    body:not(.theme-dark) #participationGradeModal .btn-light:hover {
+        color: var(--comet-navy) !important;
+        border-color: rgba(87, 197, 228, 0.6) !important;
+        box-shadow: 0 12px 28px rgba(13, 22, 40, 0.18),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
+    .modal-backdrop.show {
+        -webkit-backdrop-filter: blur(3px);
+        backdrop-filter: blur(3px);
+    }
     #participationGradeScale .peer-rating-btn {
         min-width: 3rem;
         padding: 0.45rem 0.3rem;
@@ -749,12 +979,12 @@
     }
     #createPollModal .form-label,
     #createPollModal .form-check-label {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 400;
         color: #0B1E33;
     }
     #createPollModal .form-control {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         color: #0B1E33;
         border: 1px solid #d1d5db;
         border-radius: 8px;
@@ -781,7 +1011,7 @@
     <div class="fac-header">
         <div class="fac-header-inner">
             <div class="fac-header-title-group">
-                <i class="bi bi-globe2 fac-header-icon"></i>
+                <p class="fac-eyebrow">Live Class</p>
                 <h1 class="responsive-title" id="facTitle">{{ class_obj.name }}</h1>
             </div>
             <div class="fac-header-buttons">
@@ -916,9 +1146,8 @@
     </div>
 
     <div class="fac-branding">
-        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
     </div>
-
 </div>
 
 <!-- Create Poll Modal -->
@@ -948,7 +1177,7 @@
                         <label for="pollQuestion" class="form-label">Question Text</label>
                         <input type="text" class="form-control" id="pollQuestion" required>
                     </div>
-                    <hr class="settings-divider">
+                    <div class="mt-3"></div>
                     <p class="settings-section-title">Options</p>
                     <div class="mb-3">
                         <label class="form-label">Number of Options</label>
@@ -975,7 +1204,7 @@
                             <option value="3">Option D</option>
                         </select>
                     </div>
-                    <hr class="settings-divider">
+                    <div class="mt-3"></div>
                     <p class="settings-section-title">Settings</p>
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="isGraded">

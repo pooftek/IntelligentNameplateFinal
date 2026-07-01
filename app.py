@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 import re
+import hmac
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
@@ -82,6 +83,12 @@ _ALLOWED_EMAIL_DOMAINS = [
     for d in (os.environ.get('ALLOWED_EMAIL_DOMAINS') or '').split(',')
     if d.strip()
 ]
+
+# Access code that gates self-registration. When set, /register requires this
+# code before the signup form is accepted (keeps the app invisible to the public
+# while still allowing invited people to create accounts). Empty = no gate.
+# Disabled under TESTING so the E2E suite's registration flow isn't blocked.
+_REGISTER_GATE_PASSWORD = '' if _IS_TESTING else (os.environ.get('REGISTER_GATE_PASSWORD') or '').strip()
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -301,6 +308,61 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
         return False
 
 
+def _send_inquiry_notification(inquiry):
+    """Email a landing-page inquiry to the Comet inbox. The inquiry is already stored in the
+    DB, so a missing or broken SMTP config is logged but never fails the request."""
+    to_addr = (os.environ.get('INQUIRY_NOTIFY_EMAIL') or 'comet@cometinc.ca').strip()
+    subject = f"Comet — New inquiry from {inquiry.name}"
+    body = (
+        f"New inquiry submitted from the Comet landing page:\n\n"
+        f"  Name: {inquiry.name}\n"
+        f"  Email: {inquiry.email}\n"
+        f"  Organization: {inquiry.organization or '-'}\n"
+        f"  Role: {inquiry.role or '-'}\n\n"
+        f"Message:\n{inquiry.message or '-'}\n\n"
+        f"Received: {inquiry.created_at:%Y-%m-%d %H:%M} UTC\n"
+    )
+    mail_server = (os.environ.get('MAIL_SERVER') or '').strip()
+    from_addr = (os.environ.get('MAIL_FROM') or os.environ.get('MAIL_USERNAME') or 'noreply@localhost').strip()
+
+    if not mail_server:
+        app.logger.warning(
+            '[inquiry] No MAIL_SERVER in .env — notification NOT emailed to %s. '
+            'Inquiry id=%s is saved in the database.', to_addr, inquiry.id,
+        )
+        return False
+
+    port = int(os.environ.get('MAIL_PORT', '587'))
+    user = (os.environ.get('MAIL_USERNAME') or '').strip()
+    password = (os.environ.get('MAIL_PASSWORD') or '').strip()
+    msg = MIMEText(body, 'plain', 'utf-8')
+    msg['Subject'] = subject
+    msg['From'] = from_addr
+    msg['To'] = to_addr
+    msg['Reply-To'] = inquiry.email
+    try:
+        if port == 465:
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(mail_server, port, context=context) as smtp:
+                if user:
+                    smtp.login(user, password)
+                smtp.sendmail(from_addr, [to_addr], msg.as_string())
+        else:
+            context = ssl.create_default_context()
+            with smtplib.SMTP(mail_server, port) as smtp:
+                smtp.ehlo()
+                smtp.starttls(context=context)
+                smtp.ehlo()
+                if user:
+                    smtp.login(user, password)
+                smtp.sendmail(from_addr, [to_addr], msg.as_string())
+        app.logger.info('[inquiry] Notification emailed to %s for inquiry id=%s', to_addr, inquiry.id)
+        return True
+    except Exception as e:
+        app.logger.exception('[inquiry] Failed to email notification: %s', e)
+        return False
+
+
 # Database Models
 class Professor(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -441,6 +503,7 @@ class ProfessorPreferences(db.Model):
     default_show_first_name_only = db.Column(db.Boolean, default=False)
     default_quiet_mode = db.Column(db.Boolean, default=False)
     dark_mode = db.Column(db.Boolean, default=False)
+    theme = db.Column(db.String(16), default='light')  # 'light' | 'contrast' | 'dark'
     professor = db.relationship('Professor', backref=db.backref('preferences', uselist=False))
 
 class ClassSession(db.Model):
@@ -595,6 +658,17 @@ class PeerParticipationGrade(db.Model):
         foreign_keys=[grader_student_id],
         backref=db.backref('peer_grades_given', lazy=True),
     )
+
+
+class Inquiry(db.Model):
+    """Contact / pilot inquiry submitted from the public landing page."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    organization = db.Column(db.String(200), nullable=True)
+    role = db.Column(db.String(120), nullable=True)
+    message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
 # Composite / secondary indexes for hot filter paths.
@@ -1650,7 +1724,40 @@ def load_user(user_id):
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return render_template('landing.html')
+
+
+@app.route('/api/inquiry', methods=['POST'])
+@limiter.limit('5 per minute')
+def submit_inquiry():
+    """Public contact / pilot inquiry from the landing page. CSRF-protected via token."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    email = (data.get('email') or '').strip()
+    organization = (data.get('organization') or '').strip()
+    role = (data.get('role') or '').strip()
+    message = (data.get('message') or '').strip()
+
+    if not name or not email:
+        return jsonify({'success': False, 'error': 'Name and email are required.'}), 400
+    if (len(name) > 120 or len(email) > 255 or len(organization) > 200
+            or len(role) > 120 or len(message) > 2000):
+        return jsonify({'success': False, 'error': 'One or more fields are too long.'}), 400
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+
+    inquiry = Inquiry(
+        name=name,
+        email=email,
+        organization=organization or None,
+        role=role or None,
+        message=message or None,
+    )
+    db.session.add(inquiry)
+    db.session.commit()
+    _send_inquiry_notification(inquiry)
+    app.logger.info('[audit] inquiry submitted: email=%s org=%s ip=%s', email, organization, request.remote_addr)
+    return jsonify({'success': True})
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit('5 per minute', methods=['POST'])
@@ -1689,9 +1796,22 @@ def login():
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit('10 per minute', methods=['POST'])
 def register():
+    gate_ok = (not _REGISTER_GATE_PASSWORD) or (session.get('register_gate_ok') is True)
+
     if request.method == 'POST':
         data = request.get_json() if request.is_json else request.form.to_dict()
+
+        # Access-code gate: unlock the form before any account is created.
+        if not gate_ok:
+            supplied = data.get('gate_password') or ''
+            if supplied and hmac.compare_digest(str(supplied), _REGISTER_GATE_PASSWORD):
+                session['register_gate_ok'] = True
+                return jsonify({'success': True, 'gate': True})
+            app.logger.info('[audit] register gate fail: ip=%s', request.remote_addr)
+            return jsonify({'success': False, 'error': 'Incorrect access code'}), 403
+
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
@@ -1727,10 +1847,10 @@ def register():
         
         # Auto-login the new professor
         login_user(professor)
-        
+
         return jsonify({'success': True, 'redirect': url_for('dashboard')})
-    
-    return render_template('register.html')
+
+    return render_template('register.html', gate_required=not gate_ok)
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
@@ -1944,6 +2064,7 @@ def get_preferences():
         'show_first_name_only': prefs.default_show_first_name_only,
         'quiet_mode': prefs.default_quiet_mode,
         'dark_mode': bool(getattr(prefs, 'dark_mode', False)),
+        'theme': getattr(prefs, 'theme', None) or 'contrast',
     })
 
 @app.route('/api/preferences', methods=['POST'])
@@ -1959,26 +2080,34 @@ def save_preferences():
         prefs.default_show_first_name_only = bool(data['show_first_name_only'])
     if 'quiet_mode' in data:
         prefs.default_quiet_mode = bool(data['quiet_mode'])
-    if 'dark_mode' in data:
+    if 'theme' in data:
+        t = str(data['theme']).strip().lower()
+        if t not in ('light', 'contrast', 'dark'):
+            return jsonify({'success': False, 'error': 'Invalid theme.'}), 400
+        prefs.theme = t
+        prefs.dark_mode = (t == 'dark')
+    elif 'dark_mode' in data:
         prefs.dark_mode = bool(data['dark_mode'])
+        prefs.theme = 'dark' if prefs.dark_mode else 'contrast'
     db.session.commit()
     return jsonify({
         'success': True,
         'dark_mode': bool(getattr(prefs, 'dark_mode', False)),
+        'theme': getattr(prefs, 'theme', None) or 'contrast',
     })
 
 
 @app.context_processor
 def inject_ui_theme():
-    """Expose dark mode to templates for logged-in professors."""
+    """Expose the active UI theme (light|contrast|dark) to templates for logged-in professors."""
     try:
         if current_user.is_authenticated:
             prefs = ProfessorPreferences.query.filter_by(professor_id=current_user.id).first()
-            dark = bool(prefs and getattr(prefs, 'dark_mode', False))
-            return {'ui_dark_mode': dark}
+            theme = (getattr(prefs, 'theme', None) or 'contrast') if prefs else 'contrast'
+            return {'ui_theme': theme, 'ui_dark_mode': theme == 'dark'}
     except Exception:
         pass
-    return {'ui_dark_mode': False}
+    return {'ui_theme': 'contrast', 'ui_dark_mode': False}
 
 
 @app.route('/classroom/<int:class_id>')
@@ -6558,6 +6687,19 @@ def migrate_database():
                 except Exception as e:
                     db.session.rollback()
                     print(f"[ERROR] Error adding dark_mode to professor_preferences: {e}")
+            if 'theme' not in pp_columns:
+                try:
+                    db.session.execute(
+                        text("ALTER TABLE professor_preferences ADD COLUMN theme VARCHAR(16) DEFAULT 'light'")
+                    )
+                    db.session.execute(
+                        text("UPDATE professor_preferences SET theme = CASE WHEN dark_mode = 1 THEN 'dark' ELSE 'contrast' END")
+                    )
+                    db.session.commit()
+                    print("[OK] Added theme column to professor_preferences table")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error adding theme to professor_preferences: {e}")
 
         # Check if hand_raise table exists
         if 'hand_raise' not in table_names:

@@ -3,14 +3,18 @@
 {% block title %}Comet — Data: {{ class_obj.name }}{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     body {
-        background: #FFFFFF !important;
         height: 100vh;
         overflow: hidden;
         margin: 0;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
+    }
+    body:not(.theme-dark) {
+        background:
+            radial-gradient(78% 52% at 50% 40%, rgba(255,255,255,0.60), transparent 70%),
+            linear-gradient(180deg, #e8ebef 0%, #eff2f5 48%, #f6f8fa 60%, #e8ebef 100%) fixed !important;
+        color: var(--comet-navy);
     }
     .class-data-container {
         height: 100vh;
@@ -30,11 +34,8 @@
         gap: 1rem;
     }
     .class-data-header-title-group {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        min-width: 0;
         flex: 1;
+        min-width: 0;
     }
     .class-data-header-icon {
         font-size: clamp(1.5rem, 3vw, 2.5rem);
@@ -42,16 +43,26 @@
         flex-shrink: 0;
         line-height: 1;
     }
+    .class-data-eyebrow {
+        font-family: var(--font-family-base);
+        color: var(--comet-blue);
+        font-weight: 800;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        margin: 0 0 0.15rem;
+    }
     .responsive-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: clamp(2.5rem, 6.25vw, 3.75rem);
-        font-weight: 600;
-        color: #0B1E33;
+        font-weight: 700;
+        color: var(--comet-navy);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
         line-height: 1.2;
+        text-shadow: 0 2px 10px rgba(13, 22, 40, 0.18);
     }
     .class-data-header-actions {
         display: flex;
@@ -59,13 +70,14 @@
         gap: 0.6rem;
         flex-shrink: 0;
     }
+    /* blue pill — Return Home (nav) */
     .btn-return-home {
         border-radius: 9999px;
-        padding: 0.6rem 1.4rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        font-size: 1rem;
-        background-color: #57C5E4 !important;
+        padding: 0.55rem 1.25rem;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        font-size: 0.95rem;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         display: inline-flex;
@@ -74,10 +86,16 @@
         white-space: nowrap;
         flex-shrink: 0;
         text-decoration: none;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.22),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
     .btn-return-home:hover {
-        background-color: #3BA8C8 !important;
         color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 22px rgba(13, 22, 40, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
     }
 
     /* ── Tabs nav ── */
@@ -88,29 +106,66 @@
         gap: 0.5rem;
         margin-bottom: 0.75rem;
     }
+    /* 3D pill tabs — inactive quiet light pill, active blue pill */
     .tab-pill {
-        border: none;
+        border: 1px solid rgba(13, 22, 40, 0.10);
         border-radius: 9999px;
         padding: 0.5rem 1.5rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 1.5rem;
-        font-weight: 500;
+        font-weight: 700;
         cursor: pointer;
-        background: transparent;
-        color: #9ca3af;
-        transition: background 0.15s, color 0.15s;
+        background: linear-gradient(180deg, #ffffff 0%, #eef1f5 100%);
+        color: rgba(13, 22, 40, 0.55);
+        box-shadow: 0 4px 12px rgba(13, 22, 40, 0.08),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        transition: transform 0.15s, box-shadow 0.2s, filter 0.2s, color 0.2s;
     }
+    .tab-pill:not(.active):hover {
+        color: var(--comet-navy);
+        transform: translateY(-1px);
+    }
+    body.theme-dark .tab-pill {
+        background: linear-gradient(180deg, #16283f 0%, #0a1626 100%);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.6);
+        box-shadow: none;
+    }
+    body.theme-dark .tab-pill:not(.active):hover { color: #FFFFFF; }
     .tab-pill.active {
-        background-color: #0B1E33;
+        background: linear-gradient(180deg, #213755 0%, #0d1628 100%);
         color: #FFFFFF;
+        border-color: transparent;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.28);
     }
 
-    /* ── Content area ── */
+    /* navy pill — template download buttons */
+    .btn-outline-secondary {
+        background: linear-gradient(180deg, #213755 0%, #0d1628 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 9999px !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.22),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+    }
+    .btn-outline-secondary:hover,
+    .btn-outline-secondary:focus,
+    .btn-outline-secondary:active {
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+    }
+
+    /* ── Content area (full-width so panel scrollbars sit at the screen edge) ── */
     .class-data-content {
         flex: 1;
         min-height: 0;
         overflow: visible;
-        padding: 0 8rem;
+        padding: 0;
         display: flex;
         flex-direction: column;
     }
@@ -119,19 +174,19 @@
     .tab-panel { display: none; flex-direction: column; flex: 1; min-height: 0; gap: 1rem; overflow: hidden; }
     .tab-panel.active { display: flex; }
 
-    /* Tab panels that scroll as one unit (gradebook table, grading form, metrics) */
+    /* Scrollers span full width (scrollbar at edge); 8rem inner padding keeps shadows off the clip */
     #panelGradebook,
     #panelMetrics,
     #panelGrading,
     #panelQuiz {
         overflow-y: auto;
         overflow-x: hidden;
-        padding-bottom: 1.5rem;
+        padding: 0 8rem 0;
     }
     #panelGradebook::-webkit-scrollbar,
     #panelMetrics::-webkit-scrollbar,
     #panelGrading::-webkit-scrollbar,
-    #panelQuiz::-webkit-scrollbar { width: 8px; }
+    #panelQuiz::-webkit-scrollbar { width: 10px; }
     #panelGradebook::-webkit-scrollbar-track,
     #panelMetrics::-webkit-scrollbar-track,
     #panelGrading::-webkit-scrollbar-track,
@@ -141,20 +196,35 @@
     #panelGrading::-webkit-scrollbar-thumb,
     #panelQuiz::-webkit-scrollbar-thumb {
         background: rgba(11,30,51,0.2);
-        border-radius: 4px;
+        border-radius: 6px;
+    }
+    #panelGradebook::-webkit-scrollbar-thumb:hover,
+    #panelMetrics::-webkit-scrollbar-thumb:hover,
+    #panelGrading::-webkit-scrollbar-thumb:hover,
+    #panelQuiz::-webkit-scrollbar-thumb:hover { background: rgba(11,30,51,0.35); }
+    /* footer logo — at the end of each scroll panel */
+    .class-data-branding {
+        text-align: center;
+        padding: 1.5rem 0 0.5rem;
+        margin-top: auto;
+    }
+    .class-data-branding img {
+        height: 14px;
+        width: auto;
+        filter: drop-shadow(0 10px 24px rgba(13, 22, 40, 0.16));
     }
     .quiz-tab-card {
         background: #FFFFFF;
-        border: 1px solid #e5e7eb;
-        border-radius: var(--card-border-radius);
-        box-shadow: 0 4px 14px rgba(11,30,51,0.08);
+        border: 1px solid rgba(13, 22, 40, 0.06);
+        border-radius: 22px;
+        box-shadow: 0 20px 44px rgba(13, 22, 40, 0.10);
         max-width: 48rem;
         width: 100%;
         margin: 0 auto;
         padding: 1.5rem;
     }
     .quiz-tab-card .quiz-tab-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 1.35rem;
         font-weight: 700;
         color: #0B1E33;
@@ -177,13 +247,13 @@
         margin-bottom: 0;
     }
     #quizClassDataListContainer .table thead th {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 600;
         color: #0B1E33;
         background: #f1f5f9;
     }
     #pollClassDataListContainer .table thead th {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 600;
         color: #0B1E33;
         background: #f1f5f9;
@@ -200,7 +270,7 @@
         border: none;
         background: #f8fafc;
         color: #0B1E33;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 600;
         font-size: 0.95rem;
         text-align: left;
@@ -233,7 +303,7 @@
         padding: 0.2rem 0.65rem;
         font-size: 0.78rem;
         font-weight: 600;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
     #quizClassDataListContainer .quiz-status-badge.live {
         background: #57C5E4;
@@ -248,26 +318,39 @@
     .gradebook-toolbar {
         flex-shrink: 0;
     }
+    /* blue pill — gradebook actions (comet.css forces Inter/no-shadow on .btn-tron-pill) */
     .btn-tron-pill {
-        border-radius: 9999px;
-        background-color: #57C5E4;
+        border-radius: 9999px !important;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
         color: #FFFFFF !important;
         min-width: 130px;
         height: 40px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: none;
+        border: none !important;
         padding: 0 1.25rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
         font-size: 0.95rem;
         gap: 0.4rem;
         cursor: pointer;
-        transition: background 0.15s;
         text-decoration: none;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
-    .btn-tron-pill:hover { background-color: #3BA8C8; color: #FFFFFF; }
+    .btn-tron-pill:hover,
+    .btn-tron-pill:focus,
+    .btn-tron-pill:active {
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+    }
 
     /* ── Table ── */
     .table-container {
@@ -284,16 +367,17 @@
         box-shadow: none;
     }
     .data-table thead th {
-        background-color: #0B1E33;
+        background: linear-gradient(180deg, var(--comet-navy-mid) 0%, var(--comet-dark) 100%);
         color: white;
-        font-weight: 600;
+        font-weight: 700;
         border: none;
         padding: 0.65rem 0.75rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         text-align: center;
         position: sticky;
         top: 0;
         z-index: 10;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
     .data-table thead th:first-child { border-top-left-radius: 12px; }
     .data-table thead th:last-child  { border-top-right-radius: 12px; }
@@ -302,7 +386,7 @@
     .data-table tbody td {
         padding: 0.45rem 0.75rem;
         vertical-align: middle;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         color: #0B1E33;
         border: none;
         text-align: center;
@@ -347,7 +431,7 @@
         font-weight: 600;
         color: #6b7280;
         margin-bottom: 0.5rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
     .grading-quiz-section {
         margin-top: 0.25rem;
@@ -362,8 +446,9 @@
     .grading-quiz-section .form-group { margin-bottom: 0; }
     .grading-form-card {
         background: #FFFFFF;
-        border: 1px solid #e5e7eb;
-        border-radius: var(--card-border-radius);
+        border: 1px solid rgba(13, 22, 40, 0.06);
+        border-radius: 22px;
+        box-shadow: 0 20px 44px rgba(13, 22, 40, 0.10);
         padding: 1.5rem clamp(1rem, 4vw, 2.75rem);
         max-width: min(640px, 100%);
         width: 100%;
@@ -376,7 +461,7 @@
     }
     .grading-form-title {
         text-align: center;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 700;
         font-size: 1.4rem;
         color: #0B1E33;
@@ -387,11 +472,6 @@
         color: #6b7280;
         font-size: 0.85rem;
         margin-bottom: 1rem;
-    }
-    .grading-divider {
-        border: none;
-        border-top: 2px solid #e5e7eb;
-        margin: 0.9rem 0;
     }
     .grading-fields-grid {
         display: flex;
@@ -415,7 +495,7 @@
         min-width: 0;
     }
     .grading-form-card label {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 400;
         color: #0B1E33;
         font-size: 0.9rem;
@@ -429,7 +509,7 @@
         border: 1.5px solid #d1d5db;
         border-radius: 8px;
         padding: 0.45rem 0.65rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         color: #0B1E33;
         width: 5.5rem;
         min-width: 5.5rem;
@@ -446,7 +526,7 @@
         font-size: 0.75rem;
         color: #9ca3af;
         margin-top: 0.15rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
     .weight-total {
         background: #f8fafc;
@@ -482,24 +562,36 @@
         justify-content: center;
         gap: 0.75rem;
     }
+    /* light pill — Cancel */
     .btn-grading-cancel {
         border-radius: 9999px;
-        background-color: #e5e7eb;
-        color: #374151;
+        background: linear-gradient(180deg, #ffffff 0%, #e6ebf1 100%) !important;
+        color: var(--comet-navy) !important;
         min-width: 130px;
         height: 40px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: none;
+        border: 1px solid rgba(13, 22, 40, 0.12) !important;
         padding: 0 1.25rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
         font-size: 0.95rem;
         cursor: pointer;
-        transition: background 0.15s;
+        box-shadow: 0 8px 22px rgba(13, 22, 40, 0.12),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+        transition: transform 0.15s, box-shadow 0.2s, filter 0.2s, border-color 0.2s;
     }
-    .btn-grading-cancel:hover { background-color: #d1d5db; }
+    .btn-grading-cancel:hover,
+    .btn-grading-cancel:focus,
+    .btn-grading-cancel:active {
+        color: var(--comet-navy) !important;
+        transform: translateY(-1px);
+        filter: brightness(1.02);
+        border-color: rgba(87, 197, 228, 0.6) !important;
+        box-shadow: 0 12px 28px rgba(13, 22, 40, 0.18),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
     #gradingMessage { width: 100%; text-align: center; }
     #gradingMessage .alert { margin: 0; border-radius: 9999px; padding: 0.5rem 1.25rem; font-size: 0.9rem; }
 
@@ -516,20 +608,21 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background-color: #0B1E33;
+        background: linear-gradient(180deg, var(--comet-navy-mid) 0%, var(--comet-dark) 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
         cursor: pointer;
         gap: 1rem;
-        transition: background-color 0.15s;
+        transition: filter 0.15s;
     }
-    .session-banner-header:hover { background-color: #162e4d; }
+    .session-banner-header:hover { filter: brightness(1.12); }
     .session-banner.open .session-banner-header {
-        background-color: #040E1A;
+        background: linear-gradient(180deg, #0a1826 0%, #040E1A 100%);
     }
     .session-banner.open .session-banner-header:hover {
-        background-color: #071628;
+        filter: brightness(1.3);
     }
     .session-banner-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 1.05rem;
         font-weight: 600;
         color: #FFFFFF;
@@ -565,37 +658,41 @@
         border-bottom: 1.5px solid rgba(255,255,255,0.15);
     }
     .session-times {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 0.875rem;
         color: rgba(255,255,255,0.7);
         line-height: 1.6;
     }
     .session-times strong { color: #FFFFFF; }
+    /* red pill — Delete session (destructive) */
     .delete-session-btn {
-        background-color: #dc3545;
+        background: linear-gradient(180deg, #e5645d 0%, #c9463f 100%);
         color: white;
         border: none;
         border-radius: 9999px;
         padding: 0.4rem 1.1rem;
         font-size: 0.875rem;
-        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-family: var(--font-family-base);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        transition: background-color 0.15s;
+        box-shadow: 0 6px 16px rgba(15, 30, 51, 0.14),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        transition: transform 0.15s, filter 0.2s;
         flex-shrink: 0;
     }
-    .delete-session-btn:hover { background-color: #c82333; }
+    .delete-session-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
 
     /* Engagement metric cards */
     .metrics-section-title {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: rgba(255,255,255,0.5);
+        font-family: var(--font-family-base);
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--comet-blue);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 2.5px;
         margin-bottom: 0.75rem;
     }
     .metrics-grid {
@@ -604,22 +701,24 @@
         gap: 0.75rem;
         margin-bottom: 1.25rem;
     }
+    /* engagement = lighter navy fade */
     .metric-card {
-        background: rgba(255,255,255,0.08);
-        border: 1.5px solid rgba(255,255,255,0.15);
-        border-radius: 10px;
+        background: linear-gradient(180deg, #294a70 0%, #1d3557 100%);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 12px;
         padding: 0.9rem 1rem;
         text-align: center;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
     }
     .metric-value {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 1.75rem;
         font-weight: 700;
         color: #FFFFFF;
         line-height: 1.1;
     }
     .metric-label {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 0.78rem;
         color: rgba(255,255,255,0.55);
         margin-top: 0.25rem;
@@ -627,19 +726,21 @@
 
     /* Poll & Attendance collapsible rows */
     .collapsible-section { margin-top: 0.75rem; }
+    /* participation + poll dropdowns = darker than the session navy */
     .collapsible-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: #040E1A;
-        border-radius: 10px;
+        background: linear-gradient(180deg, #14263e 0%, #091524 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
         padding: 0.65rem 1rem;
         cursor: pointer;
         gap: 1rem;
-        transition: background 0.15s;
+        transition: filter 0.15s;
         margin-bottom: 0.4rem;
     }
-    .collapsible-header:hover { background: #071628; }
+    .collapsible-header:hover { filter: brightness(1.15); }
     .collapsible-header-left {
         display: flex;
         align-items: center;
@@ -648,7 +749,7 @@
         min-width: 0;
     }
     .collapsible-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 600;
         font-size: 0.95rem;
         color: #FFFFFF;
@@ -679,14 +780,28 @@
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
-        padding: 0.2rem 0.65rem;
+        padding: 0.2rem 0.7rem;
         border-radius: 9999px;
         font-size: 0.78rem;
-        font-weight: 600;
-        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-family: var(--font-family-base);
+        cursor: pointer;
+        border: none;
+        transition: transform 0.15s, filter 0.2s;
     }
-    .poll-badge.graded   { background-color: #57C5E4; color: #FFFFFF; }
-    .poll-badge.ungraded { background-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); }
+    /* blue pill w/ fade — Graded (clickable, toggles grading) */
+    .poll-badge.graded {
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%);
+        color: #FFFFFF;
+        box-shadow: 0 4px 12px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+    .poll-badge.ungraded {
+        background: rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.65);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .poll-badge:hover { transform: translateY(-1px); filter: brightness(1.06); }
 
     .grading-toggle {
         display: inline-flex;
@@ -698,7 +813,7 @@
         color: rgba(255,255,255,0.8);
         margin: 0;
         cursor: pointer;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
     .grading-toggle input[type="checkbox"] {
         width: 1.15rem;
@@ -712,18 +827,19 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: #040E1A;
+        background: linear-gradient(180deg, #16283f 0%, #0a1626 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
         border: none;
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 0.55rem 0.85rem;
         cursor: pointer;
         gap: 1rem;
         margin-bottom: 0.35rem;
-        transition: background 0.15s;
+        transition: filter 0.15s;
     }
-    .poll-item-header:hover { background: #071628; }
+    .poll-item-header:hover { filter: brightness(1.2); }
     .poll-item-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 500;
         font-size: 0.9rem;
         color: #FFFFFF;
@@ -745,7 +861,7 @@
         border-radius: 6px;
         font-size: 0.875rem;
         color: rgba(255,255,255,0.85);
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
 
     /* Attendance table inside metrics */
@@ -756,21 +872,16 @@
         margin-top: 0.5rem;
     }
     .attendance-table-container .data-table thead th {
-        background-color: #040E1A;
+        background: linear-gradient(180deg, #14263e 0%, #091524 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
     .attendance-table-container .data-table thead th:hover {
-        background-color: #071628;
+        filter: brightness(1.3);
     }
 
     /* ── Footer ── */
-    .class-data-branding {
-        flex-shrink: 0;
-        text-align: center;
-        padding: 1.5rem 0 1.25rem;
-    }
-    .class-data-branding img { height: 34px; width: auto; }
 
-    .loading { text-align: center; padding: 2rem; color: #6b7280; font-family: 'Inter', sans-serif; }
+    .loading { text-align: center; padding: 2rem; color: #6b7280; font-family: var(--font-family-base); }
 
     .gradebook-participation-th {
         text-align: center;
@@ -809,7 +920,7 @@
         background: rgba(255, 255, 255, 0.08);
     }
     #gradebookParticipationModal .modal-content {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         color: #0B1E33;
     }
     #gradebookParticipationModal .table thead th {
@@ -824,7 +935,7 @@
     .participation-rounds-empty {
         font-size: 0.875rem;
         color: rgba(255, 255, 255, 0.45);
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         padding: 0.35rem 0 0.5rem;
     }
     .participation-round-delete-btn {
@@ -879,8 +990,34 @@
         color: #3BA8C8;
     }
     #quizMetricsStudentDetailModal .modal-content {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         color: #0B1E33;
+    }
+
+    /* ── Studio white modal treatment — non-dark ── */
+    body:not(.theme-dark) #gradebookParticipationModal .modal-content,
+    body:not(.theme-dark) #quizMetricsStudentDetailModal .modal-content {
+        background: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
+        border: 1px solid rgba(13, 22, 40, 0.06);
+        border-radius: 22px;
+        box-shadow: 0 30px 70px rgba(13, 22, 40, 0.22);
+        overflow: hidden;
+    }
+    body:not(.theme-dark) #gradebookParticipationModal .modal-header,
+    body:not(.theme-dark) #quizMetricsStudentDetailModal .modal-header,
+    body:not(.theme-dark) #gradebookParticipationModal .modal-footer,
+    body:not(.theme-dark) #quizMetricsStudentDetailModal .modal-footer {
+        border: none;
+    }
+    body:not(.theme-dark) #gradebookParticipationModal .modal-title,
+    body:not(.theme-dark) #quizMetricsStudentDetailModal .modal-title {
+        font-family: var(--font-family-base);
+        font-weight: 700;
+        color: var(--comet-navy);
+    }
+    .modal-backdrop.show {
+        -webkit-backdrop-filter: blur(3px);
+        backdrop-filter: blur(3px);
     }
     #quizMetricsStudentDetailModal .table thead th {
         background: #f1f5f9;
@@ -920,7 +1057,10 @@
             padding: 1.7rem 4rem 1.1rem;
         }
         .class-data-tabs-nav,
-        .class-data-content {
+        #panelGradebook,
+        #panelMetrics,
+        #panelGrading,
+        #panelQuiz {
             padding-left: 4rem;
             padding-right: 4rem;
         }
@@ -947,7 +1087,10 @@
             padding: 1.3rem 2rem 1rem;
         }
         .class-data-tabs-nav,
-        .class-data-content {
+        #panelGradebook,
+        #panelMetrics,
+        #panelGrading,
+        #panelQuiz {
             padding-left: 2rem;
             padding-right: 2rem;
         }
@@ -987,7 +1130,10 @@
             justify-content: flex-start;
         }
         .class-data-tabs-nav,
-        .class-data-content {
+        #panelGradebook,
+        #panelMetrics,
+        #panelGrading,
+        #panelQuiz {
             padding-left: 1rem;
             padding-right: 1rem;
         }
@@ -1028,7 +1174,10 @@
             padding: 0.85rem 0.75rem 0.7rem;
         }
         .class-data-tabs-nav,
-        .class-data-content {
+        #panelGradebook,
+        #panelMetrics,
+        #panelGrading,
+        #panelQuiz {
             padding-left: 0.75rem;
             padding-right: 0.75rem;
         }
@@ -1139,7 +1288,7 @@
     <div class="class-data-header">
         <div class="class-data-header-inner">
             <div class="class-data-header-title-group">
-                <i class="bi bi-globe2 class-data-header-icon"></i>
+                <p class="class-data-eyebrow">Class Data</p>
                 <h1 class="responsive-title" id="classDataTitle">{{ class_obj.name }}</h1>
             </div>
             <div class="class-data-header-actions">
@@ -1171,6 +1320,7 @@
             <div id="gradebookContent">
                 <div class="loading">Loading gradebook data...</div>
             </div>
+            <div class="class-data-branding"><img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet"></div>
         </div>
 
         <!-- Grading Panel -->
@@ -1178,6 +1328,7 @@
             <div id="gradingContent">
                 <div class="loading">Loading grading weights...</div>
             </div>
+            <div class="class-data-branding"><img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet"></div>
         </div>
 
         <!-- Quiz Panel -->
@@ -1203,7 +1354,7 @@
                 <div id="quizClassDataMessage" class="mb-3"></div>
                 <p class="settings-section-title mb-2">Your Quizzes</p>
                 <div id="quizClassDataListContainer" class="text-muted">Open this tab to load quizzes.</div>
-                <hr class="settings-divider mt-4">
+                <div class="mt-4"></div>
                 <h4 class="quiz-tab-title">Pre-Uploaded Poll Questions</h4>
                 <p class="text-muted small mb-3">Upload poll questions ahead of class. These appear in the live Start Poll modal for quick selection and edit.</p>
                 <p class="mb-2"><a class="btn btn-outline-secondary btn-sm" href="/api/poll_template.xlsx" target="_blank" rel="noopener">Download Poll Template</a></p>
@@ -1220,6 +1371,7 @@
                 <p class="settings-section-title mb-2">Your Pre-Uploaded Poll Questions</p>
                 <div id="pollClassDataListContainer" class="text-muted">Open this tab to load poll questions.</div>
             </div>
+            <div class="class-data-branding"><img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet"></div>
         </div>
 
         <!-- Metrics Panel -->
@@ -1227,6 +1379,7 @@
             <div id="metricsContent">
                 <div class="loading">Loading class metrics...</div>
             </div>
+            <div class="class-data-branding"><img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet"></div>
         </div>
 
     </div><!-- /.class-data-content -->
@@ -1295,9 +1448,6 @@
     </div>
 
     <!-- Footer -->
-    <div class="class-data-branding">
-        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
-    </div>
 
 </div><!-- /.class-data-container -->
 {% endblock %}
@@ -1516,7 +1666,7 @@ async function loadGradingWeights() {
             <div class="grading-form-card">
                 <h4 class="grading-form-title">Grading Weights Configuration</h4>
                 <p class="grading-form-subtitle">Attendance, participation, poll, and Quiz must sum to 100%. The Quiz percentage is split evenly across the number of Quizzes you set. Participation combines instructor and peer scores; set how that participation portion is split below.</p>
-                <hr class="grading-divider">
+                <div class="mt-3"></div>
                 <form id="gradingWeightsForm">
                     <div class="grading-fields-grid">
                         <div class="form-group">
@@ -2074,7 +2224,7 @@ async function loadMetrics() {
                             <div class="poll-item-header" onclick="togglePoll('${pollItemId}')">
                                 <div class="poll-item-title">${poll.question}</div>
                                 <div class="poll-item-right" onclick="event.stopPropagation();">
-                                    <span class="poll-badge ${poll.is_graded ? 'graded' : 'ungraded'}" id="poll-badge-${poll.poll_id}">${poll.is_graded ? 'Graded' : 'Ungraded'}</span>
+                                    <span class="poll-badge ${poll.is_graded ? 'graded' : 'ungraded'}" id="poll-badge-${poll.poll_id}" onclick="event.stopPropagation(); document.getElementById('poll-toggle-${poll.poll_id}').click();">${poll.is_graded ? 'Graded' : 'Ungraded'}</span>
                                     <div class="grading-toggle">
                                         <input type="checkbox" id="poll-toggle-${poll.poll_id}" ${poll.is_graded ? 'checked' : ''} onchange="togglePollGrading(${poll.poll_id}, this.checked)">
                                         <label for="poll-toggle-${poll.poll_id}">Graded</label>
@@ -2090,14 +2240,14 @@ async function loadMetrics() {
                         const count = poll.option_counts[index] || 0;
                         html += `<div class="poll-option"><strong>${option}:</strong> ${count} ${count === 1 ? 'response' : 'responses'}</div>`;
                     });
-                    html += `<div style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-top:0.5rem;font-family:'Inter',sans-serif;">Total Responses: ${poll.total_responses}</div>
+                    html += `<div style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-top:0.5rem;font-family:var(--font-family-base);">Total Responses: ${poll.total_responses}</div>
                                 </div>
                             </div>
                         </div>`;
                 });
                 html += `</div></div>`;
             } else {
-                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;margin-bottom:0.75rem;">No polls conducted during this session.</div>';
+                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:var(--font-family-base);margin-bottom:0.75rem;">No polls conducted during this session.</div>';
             }
 
             // Quiz results (per-student scores for each run in this session window)
@@ -2121,7 +2271,7 @@ async function loadMetrics() {
                     html += `
                         <div style="margin-bottom: 1rem;">
                             <div class="poll-item-title" style="margin-bottom:0.25rem;">${title}</div>
-                            <div style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;font-family:'Inter',sans-serif;">Started: ${started}</div>
+                            <div style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;font-family:var(--font-family-base);">Started: ${started}</div>
                             <div class="participation-rounds-table-wrap">
                                 <table class="data-table participation-rounds-table quiz-results-metrics-table">
                                     <thead>
@@ -2166,7 +2316,7 @@ async function loadMetrics() {
                 });
                 html += `</div></div>`;
             } else {
-                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;margin-bottom:0.75rem;">No in-class quizzes during this session.</div>';
+                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:var(--font-family-base);margin-bottom:0.75rem;">No in-class quizzes during this session.</div>';
             }
 
             // Participation grades (individual grading rounds for this session date)
@@ -2210,7 +2360,7 @@ async function loadMetrics() {
                             <td style="font-size:0.85rem;">${started}</td>
                             <td class="participation-round-actions-cell">
                                 <div class="participation-round-actions">
-                                    <span class="poll-badge ${included ? 'graded' : 'ungraded'}" id="participation-round-badge-${pr.round_id}">${included ? 'Graded' : 'Excluded'}</span>
+                                    <span class="poll-badge ${included ? 'graded' : 'ungraded'}" id="participation-round-badge-${pr.round_id}" onclick="event.stopPropagation(); document.getElementById('participation-round-graded-${pr.round_id}').click();">${included ? 'Graded' : 'Excluded'}</span>
                                     <div class="grading-toggle" onclick="event.stopPropagation();">
                                         <input type="checkbox" id="participation-round-graded-${pr.round_id}" ${included ? 'checked' : ''} onchange="toggleParticipationRoundInclude(${pr.round_id}, this.checked)">
                                         <label for="participation-round-graded-${pr.round_id}">Graded</label>
@@ -2236,7 +2386,7 @@ async function loadMetrics() {
                                 <span class="collapsible-title">Attendance List</span>
                             </div>
                             <div class="collapsible-header-right" onclick="event.stopPropagation();">
-                                <span id="attendance-grade-badge-${session.session_id}" class="poll-badge ${excludeFromGrading ? 'ungraded' : 'graded'}">${excludeFromGrading ? 'Ungraded' : 'Graded'}</span>
+                                <span id="attendance-grade-badge-${session.session_id}" class="poll-badge ${excludeFromGrading ? 'ungraded' : 'graded'}" onclick="event.stopPropagation(); document.getElementById('attendance-toggle-${session.session_id}').click();">${excludeFromGrading ? 'Ungraded' : 'Graded'}</span>
                                 <div class="grading-toggle">
                                     <input type="checkbox" id="attendance-toggle-${session.session_id}" ${excludeFromGrading ? '' : 'checked'} onchange="toggleSessionAttendance(${session.session_id}, this.checked)">
                                     <label for="attendance-toggle-${session.session_id}">Graded</label>
@@ -2247,7 +2397,7 @@ async function loadMetrics() {
                             </div>
                         </div>
                         <div class="collapsible-content" id="${attendanceSectionId}">
-                            <p class="small mb-2" style="color:rgba(255,255,255,0.55);font-family:'Inter',sans-serif;">Excused absences are omitted from that student&rsquo;s attendance average (numerator and denominator) in the gradebook.</p>
+                            <p class="small mb-2" style="color:rgba(255,255,255,0.55);font-family:var(--font-family-base);">Excused absences are omitted from that student&rsquo;s attendance average (numerator and denominator) in the gradebook.</p>
                             <div class="attendance-table-container">
                                 <table class="data-table" id="attendance-table-${session.session_id}">
                                     <thead>
@@ -2291,7 +2441,7 @@ async function loadMetrics() {
                 });
                 html += `</tbody></table></div></div></div>`;
             } else {
-                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:\'Inter\',sans-serif;">No attendance records for this session.</div>';
+                html += '<div style="font-size:0.875rem;color:rgba(255,255,255,0.45);font-family:var(--font-family-base);">No attendance records for this session.</div>';
             }
 
             html += '</div></div>'; // close session-banner-content + session-banner

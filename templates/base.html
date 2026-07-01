@@ -4,6 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/comet_icon.svg') }}">
+    <script>
+    // Auto-attach the CSRF token to same-origin mutating fetches so the professor UI's
+    // plain fetch() calls satisfy CSRFProtect. Only adds the header (never Content-Type),
+    // so FormData uploads keep their multipart boundary. Idempotent + same-origin scoped.
+    (function () {
+      var meta = document.querySelector('meta[name="csrf-token"]');
+      var token = meta ? meta.content : '';
+      if (!token || !window.fetch) return;
+      var MUTATING = /^(POST|PUT|PATCH|DELETE)$/i;
+      var _fetch = window.fetch;
+      window.fetch = function (input, init) {
+        init = init || {};
+        var method = (init.method
+          || (input && typeof input !== 'string' && input.method)
+          || 'GET');
+        var sameOrigin = true;
+        try {
+          var u = new URL(typeof input === 'string' ? input : input.url, window.location.origin);
+          sameOrigin = (u.origin === window.location.origin);
+        } catch (e) { sameOrigin = true; }   // relative URLs → same origin
+        if (sameOrigin && MUTATING.test(method)) {
+          var headers = new Headers(init.headers
+            || (input && typeof input !== 'string' && input.headers) || {});
+          if (!headers.has('X-CSRFToken')) headers.set('X-CSRFToken', token);
+          init = Object.assign({}, init, { headers: headers });
+        }
+        return _fetch.call(this, input, init);
+      };
+    })();
+    </script>
     <title>{% block title %}Comet{% endblock %}</title>
     <link rel="preload" href="{{ url_for('static', filename='images/comet_logo.svg') }}" as="image" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -71,6 +102,19 @@
             pointer-events: none;
         }
 
+        /* Global footer brand mark */
+        .comet-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.85rem 1rem;
+        }
+        .comet-footer-logo {
+            height: 26px;
+            width: auto;
+            opacity: 0.8;
+        }
+
         /* Global scrollbar styling */
         ::-webkit-scrollbar { width: 12px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -84,20 +128,28 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="{% if ui_dark_mode %}theme-dark{% endif %}">
+<body class="theme-{{ ui_theme|default('contrast') }}">
     {% block content %}{% endblock %}
+
+    <footer class="comet-footer">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" class="comet-footer-logo">
+    </footer>
 
     <!-- Toast container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
 
     <!-- Confirm modal -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content" style="border-radius:14px; border:none;">
+        <div class="modal-dialog modal-dialog-centered modal-std">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Please confirm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body p-4 text-center" id="confirmModalMessage" style="font-family:var(--font-family-base); font-weight:600;"></div>
-                <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
-                    <button class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal" style="border-radius:9999px;">Cancel</button>
-                    <button class="btn btn-danger btn-sm px-4" id="confirmModalOk" style="border-radius:9999px;">Confirm</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmModalOk">Confirm</button>
                 </div>
             </div>
         </div>

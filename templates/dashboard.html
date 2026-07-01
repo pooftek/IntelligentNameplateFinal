@@ -3,15 +3,23 @@
 {% block title %}Comet — My Classes{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     body {
-        background: #FFFFFF !important;
         min-height: 100vh;
         margin: 0;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         overflow-x: hidden;
     }
+
+    /* ── Theme page backgrounds ── */
+    /* studio cyclorama — same canvas as landing.html; covers light + contrast (non-dark) */
+    body:not(.theme-dark) {
+        background:
+            radial-gradient(78% 52% at 50% 40%, rgba(255,255,255,0.60), transparent 70%),
+            linear-gradient(180deg, #e8ebef 0%, #eff2f5 48%, #f6f8fa 60%, #e8ebef 100%) fixed !important;
+        color: var(--comet-navy);
+    }
+    /* dark canvas inherited from comet.css body.theme-dark */
 
     .dashboard-container {
         min-height: 100vh;
@@ -30,26 +38,30 @@
         align-items: center;
     }
 
-    .header-logo {
-        height: 32px;
-        width: auto;
-        flex-shrink: 0;
+    .header-title-group {
+        flex: 1;
+        min-width: 0;
     }
 
-    .header-title-group {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
+    .dashboard-eyebrow {
+        font-family: var(--font-family-base);
+        color: var(--comet-blue);
+        font-weight: 800;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        margin: 0 0 0.25rem;
     }
 
     .responsive-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: clamp(2.5rem, 6.25vw, 3.75rem);
-        font-weight: 600;
-        color: #0B1E33;
+        font-weight: 700;
+        color: var(--comet-navy);
         white-space: nowrap;
         line-height: 1.2;
         margin: 0;
+        text-shadow: 0 2px 10px rgba(13, 22, 40, 0.18);
     }
 
     /* ── Header buttons ── */
@@ -63,59 +75,65 @@
 
     .header-buttons .btn {
         border-radius: 9999px;
-        padding: 0.6rem 1.4rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        font-size: 1rem;
+        padding: 0.55rem 1.25rem;
+        font-family: var(--font-family-base);
+        font-weight: 800;
+        font-size: 0.95rem;
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
         border: none;
         height: auto;
         white-space: nowrap;
+        transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
     }
 
-    .btn-add-class {
-        background-color: #0B1E33 !important;
-        color: #FFFFFF !important;
-    }
-    .btn-add-class:hover {
-        background-color: #162e4d !important;
-        color: #FFFFFF !important;
-    }
-
+    /* navy pills — landing .btn-members */
+    .btn-add-class,
     .btn-preferences {
-        background-color: #0B1E33 !important;
+        background: linear-gradient(180deg, #213755 0%, #0d1628 100%) !important;
         color: #FFFFFF !important;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.22),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.14);
     }
+    .btn-add-class:hover,
     .btn-preferences:hover {
-        background-color: #162e4d !important;
         color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 22px rgba(13, 22, 40, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.18);
     }
 
+    /* blue pill — matches login .btn-primary */
     .btn-logout {
-        background-color: #57C5E4 !important;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
         color: #FFFFFF !important;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
     .btn-logout:hover {
-        background-color: #3BA8C8 !important;
         color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24);
     }
 
     /* ── Card grid ── */
     .dashboard-content {
         flex: 1;
         overflow-x: hidden;
-        padding: 0.5rem 8rem 2rem;
+        padding: 0.5rem 8rem 0;
+        display: flex;
+        flex-direction: column;
     }
 
-    .dashboard-content::-webkit-scrollbar { width: 12px; }
-    .dashboard-content::-webkit-scrollbar-track { background: transparent; }
-    .dashboard-content::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 6px;
-    }
-    .dashboard-content::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    /* grading-grey scrollbar (page-wide; body scroll sits at the screen edge) */
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(11, 30, 51, 0.2); border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(11, 30, 51, 0.35); }
 
     .row > [class*='col-'] {
         display: flex;
@@ -142,6 +160,19 @@
     .class-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 30px rgba(11, 30, 51, 0.25) !important;
+    }
+
+    /* studio tile — non-dark only; theme-dark keeps the flat navy card above */
+    body:not(.theme-dark) .class-card {
+        background: linear-gradient(180deg, var(--comet-navy-mid) 0%, var(--comet-dark) 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 22px !important;
+        box-shadow: 0 20px 44px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    body:not(.theme-dark) .class-card:hover {
+        box-shadow: 0 28px 60px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
     }
 
     .class-card .card-body {
@@ -175,9 +206,9 @@
     }
 
     .class-card .card-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: clamp(1.2rem, 2.6vw, 1.65rem);
-        font-weight: 600;
+        font-weight: 700;
         color: #FFFFFF;
         margin: 0;
         line-height: 1.3;
@@ -188,7 +219,7 @@
     }
 
     .class-card .class-code {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: clamp(0.9rem, 1.8vw, 1.15rem);
         font-weight: 400;
         color: #7A99B5;
@@ -197,7 +228,7 @@
 
     /* ── Status badge — pill / tick-tik shape ── */
     .status-badge {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 0.75rem;
         padding: 0.22rem 0.85rem;
         border-radius: 9999px;
@@ -207,9 +238,10 @@
     }
 
     .status-badge.active {
-        background-color: #57C5E4;
+        background: linear-gradient(180deg, #6fd0ea 0%, var(--comet-blue) 100%);
         color: #FFFFFF;
         font-weight: 600;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
     }
 
     .status-badge.inactive {
@@ -218,30 +250,32 @@
         font-weight: 400;
     }
 
-    /* ── Bottom branding — sticky footer ── */
+    /* footer logo — lives at the end of the scroll content, no reserved height */
     .dashboard-branding {
         text-align: center;
-        padding: 1.5rem 0 1.25rem;
+        padding: 1.5rem 0 0.5rem;
+        margin-top: auto;
     }
-
     .dashboard-branding img {
-        height: 34px;
+        height: 14px;
         width: auto;
+        filter: drop-shadow(0 10px 24px rgba(13, 22, 40, 0.16));
     }
 
-    /* ── Modals ── */
+    /* ── Modals ── (base rules below double as the theme-dark fallback) ── */
     #addClassModal .modal-header,
     #preferencesModal .modal-header {
         justify-content: center;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;   /* dark recolors; non-dark removes below */
         position: relative;
     }
     #addClassModal .modal-title,
     #preferencesModal .modal-title {
         flex: 1;
         text-align: center;
+        font-family: var(--font-family-base);
         font-weight: 700;
-        color: #0B1E33;
+        color: var(--comet-navy);
     }
     #addClassModal .btn-close,
     #preferencesModal .btn-close {
@@ -254,7 +288,7 @@
         gap: 0.75rem;
         padding-top: 1rem;
         padding-bottom: 1.25rem;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid #e5e7eb;   /* dark recolors; non-dark removes below */
     }
     .modal-footer-btn {
         height: 40px;
@@ -282,30 +316,155 @@
         color: #374151 !important;
         border-color: #e5e7eb !important;
     }
+    #addClassModal .modal-content,
+    #preferencesModal .modal-content {
+        border-radius: 22px;
+    }
     #addClassModal .form-label,
     #preferencesModal .form-label,
     #addClassModal .form-check-label,
     #preferencesModal .form-check-label {
-        font-family: 'Inter', sans-serif;
-        font-weight: 400;
+        font-family: var(--font-family-base);
+        font-weight: 600;
+        letter-spacing: 0.2px;
         color: #0B1E33;
     }
     #addClassModal .form-control,
     #preferencesModal .form-control {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         color: #0B1E33;
         border: 1px solid #d1d5db;
-        border-radius: 8px;
+        border-radius: 12px;
+        padding: 0.6rem 0.85rem;
     }
     #addClassModal .form-control:focus,
     #preferencesModal .form-control:focus {
         border-color: #57C5E4;
-        box-shadow: 0 0 0 0.2rem rgba(87, 197, 228, 0.25);
+        box-shadow: 0 0 0 3px rgba(87, 197, 228, 0.2);
         outline: none;
     }
     #preferencesModal .form-check-input:checked {
         background-color: #57C5E4 !important;
         border-color: #57C5E4 !important;
+    }
+
+    /* ── Studio / Apple white treatment — non-dark only (theme-dark keeps the base rules) ── */
+    body:not(.theme-dark) #addClassModal .modal-content,
+    body:not(.theme-dark) #preferencesModal .modal-content {
+        background: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
+        border: 1px solid rgba(13, 22, 40, 0.06);
+        box-shadow: 0 30px 70px rgba(13, 22, 40, 0.22);
+        overflow: hidden;
+    }
+    body:not(.theme-dark) #addClassModal .modal-header,
+    body:not(.theme-dark) #preferencesModal .modal-header,
+    body:not(.theme-dark) #addClassModal .modal-footer,
+    body:not(.theme-dark) #preferencesModal .modal-footer {
+        border: none;
+    }
+    body:not(.theme-dark) #addClassModal .modal-header,
+    body:not(.theme-dark) #preferencesModal .modal-header {
+        padding-top: 1.4rem;
+    }
+    body:not(.theme-dark) #addClassModal .form-label,
+    body:not(.theme-dark) #preferencesModal .form-label,
+    body:not(.theme-dark) #addClassModal .form-check-label,
+    body:not(.theme-dark) #preferencesModal .form-check-label {
+        color: rgba(13, 22, 40, 0.7);
+        font-size: 0.8rem;
+    }
+    body:not(.theme-dark) #addClassModal .form-control,
+    body:not(.theme-dark) #preferencesModal .form-control {
+        border-color: rgba(13, 22, 40, 0.14);
+    }
+    /* section headers → eyebrow */
+    body:not(.theme-dark) #addClassModal .settings-section-title,
+    body:not(.theme-dark) #preferencesModal .settings-section-title {
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--comet-blue);
+    }
+    /* primary → light-blue pill, white text (matches login/logout; beats comet.css .modal-footer .btn) */
+    body:not(.theme-dark) #addClassModal .btn-primary,
+    body:not(.theme-dark) #preferencesModal .btn-primary {
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+    }
+    body:not(.theme-dark) #addClassModal .btn-primary:hover,
+    body:not(.theme-dark) #preferencesModal .btn-primary:hover,
+    body:not(.theme-dark) #addClassModal .btn-primary:focus,
+    body:not(.theme-dark) #preferencesModal .btn-primary:focus,
+    body:not(.theme-dark) #addClassModal .btn-primary:active,
+    body:not(.theme-dark) #preferencesModal .btn-primary:active {
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+    }
+    /* cancel → light pill */
+    body:not(.theme-dark) #addClassModal .btn-light,
+    body:not(.theme-dark) #preferencesModal .btn-light {
+        background: linear-gradient(180deg, #ffffff 0%, #e6ebf1 100%) !important;
+        color: var(--comet-navy) !important;
+        border: 1px solid rgba(13, 22, 40, 0.12) !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 8px 22px rgba(13, 22, 40, 0.12),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+        transition: transform 0.15s, box-shadow 0.2s, filter 0.2s, border-color 0.2s;
+    }
+    body:not(.theme-dark) #addClassModal .btn-light:hover,
+    body:not(.theme-dark) #preferencesModal .btn-light:hover,
+    body:not(.theme-dark) #addClassModal .btn-light:focus,
+    body:not(.theme-dark) #preferencesModal .btn-light:focus,
+    body:not(.theme-dark) #addClassModal .btn-light:active,
+    body:not(.theme-dark) #preferencesModal .btn-light:active {
+        color: var(--comet-navy) !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
+        transform: translateY(-1px);
+        filter: brightness(1.02);
+        border-color: rgba(87, 197, 228, 0.6) !important;
+        box-shadow: 0 12px 28px rgba(13, 22, 40, 0.18),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
+    /* "Account settings" link → navy pill, white text (new standard) */
+    body:not(.theme-dark) #preferencesModal .btn-outline-primary {
+        background: linear-gradient(180deg, #213755 0%, #0d1628 100%) !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.22),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+    }
+    body:not(.theme-dark) #preferencesModal .btn-outline-primary:hover,
+    body:not(.theme-dark) #preferencesModal .btn-outline-primary:focus,
+    body:not(.theme-dark) #preferencesModal .btn-outline-primary:active {
+        background: linear-gradient(180deg, #213755 0%, #0d1628 100%) !important;
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 22px rgba(13, 22, 40, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+    }
+
+    /* frosted backdrop */
+    .modal-backdrop.show {
+        -webkit-backdrop-filter: blur(3px);
+        backdrop-filter: blur(3px);
     }
 
     /* Dark mode: dashboard-specific modal (responsive-title + canvas from comet.css body.theme-dark) */
@@ -337,7 +496,10 @@
 <div class="dashboard-container">
     <div class="dashboard-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h1 class="responsive-title">My Classes</h1>
+            <div class="header-title-group">
+                <p class="dashboard-eyebrow">Dashboard</p>
+                <h1 class="responsive-title">My Classes</h1>
+            </div>
             <div class="header-buttons">
                 <button class="btn btn-add-class" onclick="showAddClassModal()">
                     <i class="bi bi-plus-circle-fill"></i> Add Class
@@ -378,10 +540,9 @@
             </div>
         </div>
 
-    </div>
-
-    <div class="dashboard-branding">
-        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
+        <div class="dashboard-branding">
+            <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
+        </div>
     </div>
 </div>
 
@@ -428,7 +589,7 @@
                     <span class="small text-muted">Update your login and profile</span>
                     <a href="{{ url_for('account_settings') }}" class="btn btn-sm btn-outline-primary" style="border-radius:9999px;">Account settings</a>
                 </div>
-                <hr class="settings-divider">
+                <div class="mt-4"></div>
                 <p class="settings-section-title">Display Preferences</p>
                 <form id="preferencesForm">
                     <div class="form-check form-switch mb-2">
@@ -469,9 +630,8 @@ async function addClass() {
     const name = document.getElementById('className').value;
     const code = document.getElementById('classCode').value;
 
-    const response = await fetch('/api/create_class', {
+    const response = await csrfFetch('/api/create_class', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({name, class_code: code})
     });
 
@@ -491,9 +651,8 @@ async function savePreferences() {
     };
     const btn = document.querySelector('#preferencesModal .btn-primary');
     await withLoading(btn, async () => {
-        const response = await fetch('/api/preferences', {
+        const response = await csrfFetch('/api/preferences', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         const result = await response.json();

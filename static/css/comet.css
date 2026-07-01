@@ -288,6 +288,68 @@ a.text-white:hover { color: var(--comet-blue) !important; }
   color: #374151 !important;
   border-color: #e5e7eb !important;
 }
+.modal-std .btn-danger {
+  background: linear-gradient(180deg, #e5645d 0%, #c9463f 100%) !important;
+  border: none !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(15, 30, 51, 0.14),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.modal-std .btn-danger:hover {
+  filter: brightness(1.06);
+  color: #FFFFFF !important;
+}
+
+/* ── Studio white treatment for the global confirm modal (matches form modals) ── */
+body:not(.theme-dark) #confirmModal .modal-content {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
+  border: 1px solid rgba(13, 22, 40, 0.06);
+  border-radius: 22px;
+  box-shadow: 0 30px 70px rgba(13, 22, 40, 0.22);
+  overflow: hidden;
+}
+body:not(.theme-dark) #confirmModal .modal-header,
+body:not(.theme-dark) #confirmModal .modal-footer {
+  border: none;
+}
+body:not(.theme-dark) #confirmModal .modal-title {
+  font-family: var(--font-family-base);
+  font-weight: 700;
+  color: var(--comet-navy);
+}
+body:not(.theme-dark) #confirmModal #confirmModalMessage {
+  font-family: var(--font-family-base);
+  color: rgba(13, 22, 40, 0.75);
+}
+/* red-pill confirm */
+body:not(.theme-dark) #confirmModal .btn-danger {
+  font-family: var(--font-family-base) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+              inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+body:not(.theme-dark) #confirmModal .btn-danger:hover {
+  box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+              inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+}
+/* light-pill cancel */
+body:not(.theme-dark) #confirmModal .btn-light {
+  background: linear-gradient(180deg, #ffffff 0%, #e6ebf1 100%) !important;
+  color: var(--comet-navy) !important;
+  border: 1px solid rgba(13, 22, 40, 0.12) !important;
+  font-family: var(--font-family-base) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 22px rgba(13, 22, 40, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+body:not(.theme-dark) #confirmModal .btn-light:hover {
+  color: var(--comet-navy) !important;
+  border-color: rgba(87, 197, 228, 0.6) !important;
+  box-shadow: 0 12px 28px rgba(13, 22, 40, 0.18),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
 .modal-std .form-label {
   color: #0B1E33;
   font-size: 0.875rem;

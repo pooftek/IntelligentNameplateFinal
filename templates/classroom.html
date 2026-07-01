@@ -3,14 +3,18 @@
 {% block title %}Comet — {{ class_obj.name }}{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     body {
-        background: #FFFFFF !important;
         height: 100vh;
         overflow: hidden;
         margin: 0;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
+    }
+    body:not(.theme-dark) {
+        background:
+            radial-gradient(78% 52% at 50% 40%, rgba(255,255,255,0.60), transparent 70%),
+            linear-gradient(180deg, #e8ebef 0%, #eff2f5 48%, #f6f8fa 60%, #e8ebef 100%) fixed !important;
+        color: var(--comet-navy);
     }
 
     .classroom-container {
@@ -32,11 +36,8 @@
     }
 
     .classroom-header-title-group {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        min-width: 0;
         flex: 1;
+        min-width: 0;
     }
 
     .classroom-header-icon {
@@ -46,25 +47,37 @@
         line-height: 1;
     }
 
+    .classroom-eyebrow {
+        font-family: var(--font-family-base);
+        color: var(--comet-blue);
+        font-weight: 800;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        margin: 0 0 0.15rem;
+    }
+
     .responsive-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: clamp(2.5rem, 6.25vw, 3.75rem);
-        font-weight: 600;
-        color: #0B1E33;
+        font-weight: 700;
+        color: var(--comet-navy);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
         line-height: 1.2;
+        text-shadow: 0 2px 10px rgba(13, 22, 40, 0.18);
     }
 
+    /* blue pill — Return Home (nav) */
     .btn-return-home {
         border-radius: 9999px;
-        padding: 0.6rem 1.4rem;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        font-size: 1rem;
-        background-color: #57C5E4 !important;
+        padding: 0.55rem 1.25rem;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        font-size: 0.95rem;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         display: inline-flex;
@@ -74,11 +87,17 @@
         flex-shrink: 0;
         text-decoration: none;
         cursor: pointer;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.22),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
 
     .btn-return-home:hover {
-        background-color: #3BA8C8 !important;
         color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 22px rgba(13, 22, 40, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
     }
 
     .classroom-content {
@@ -100,7 +119,7 @@
 
     .option-card {
         background-color: #0B1E33;
-        border-radius: var(--card-border-radius);
+        border-radius: 22px;
         cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
         box-shadow: 0 8px 24px rgba(11,30,51,0.22);
@@ -111,10 +130,21 @@
         position: relative;
         overflow: hidden;
     }
+    /* studio navy tile — non-dark (theme-dark keeps the flat navy above) */
+    body:not(.theme-dark) .option-card {
+        background: linear-gradient(180deg, var(--comet-navy-mid) 0%, var(--comet-dark) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 20px 44px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
 
     .option-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 30px rgba(11, 30, 51, 0.25);
+    }
+    body:not(.theme-dark) .option-card:hover {
+        box-shadow: 0 28px 60px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .option-card.static-card {
@@ -126,7 +156,7 @@
     }
 
     .option-card-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         color: #FFFFFF;
         font-size: clamp(1.35rem, 2.9vw, 2.15rem);
         font-weight: 600;
@@ -164,7 +194,7 @@
         font-size: clamp(2.8rem, 5.6vw, 4.2rem);
         font-weight: 500;
         line-height: 1;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-variant-numeric: tabular-nums;
     }
 
@@ -172,7 +202,7 @@
         color: #7A99B5;
         font-size: clamp(0.66rem, 0.95vw, 0.8rem);
         margin-top: 0.2rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
     }
 
     .card-body-layout {
@@ -199,19 +229,25 @@
         z-index: 1;
     }
 
+    /* 3D grade bars — gradient + top highlight + soft depth */
     .grade-range-bar {
         flex: 1;
         min-width: 0;
-        background: #D6D8DB;
+        background: linear-gradient(180deg, #eef1f4 0%, #cfd3d8 100%);
         border-radius: 6px 6px 4px 4px;
         transition: height 1.4s ease-out;
         height: 0;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
+                    0 6px 14px rgba(13, 22, 40, 0.22);
     }
 
     .grade-range-bar.highlight {
-        background: #57C5E4;
+        background: linear-gradient(180deg, #7ad4ef 0%, var(--comet-blue) 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                    0 8px 18px rgba(13, 22, 40, 0.28);
     }
 
+    /* 3D donut — soft drop shadow gives the ring depth */
     .attendance-donut {
         width: clamp(190px, 32vw, 255px);
         height: clamp(190px, 32vw, 255px);
@@ -221,14 +257,16 @@
         left: 33.33%;
         transform: translate(-50%, -50%);
         flex-shrink: 0;
+        filter: drop-shadow(0 10px 24px rgba(13, 22, 40, 0.28));
     }
 
+    /* 3D play button — gradient sphere + inset highlight + drop shadow */
     .start-play-circle {
         width: clamp(135px, 22vw, 172px);
         height: clamp(135px, 22vw, 172px);
         border-radius: 50%;
-        background: #4A6580;
-        color: #0B1E33;
+        background: linear-gradient(180deg, #5c7590 0%, #3d566f 100%);
+        color: #FFFFFF;
         border: none;
         display: inline-flex;
         align-items: center;
@@ -239,6 +277,8 @@
         top: 50%;
         left: 25%;
         transform: translate(-50%, -50%);
+        box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.22),
+                    0 16px 34px rgba(13, 22, 40, 0.4);
     }
 
     .start-play-circle i {
@@ -246,10 +286,13 @@
         line-height: 1;
         margin-left: 0.74rem;
         margin-top: 0.12rem;
+        filter: drop-shadow(0 3px 6px rgba(13, 22, 40, 0.3));
     }
 
     #startClassCard.live-class .start-play-circle {
-        background: #57C5E4;
+        background: linear-gradient(180deg, #7ad4ef 0%, var(--comet-blue) 100%);
+        box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.3),
+                    0 16px 34px rgba(13, 22, 40, 0.4);
     }
 
     .start-session-meta {
@@ -264,7 +307,7 @@
     }
 
     .start-session-title {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-weight: 600;
         font-size: clamp(1.7rem, 3.35vw, 2.5rem);
         line-height: 1.2;
@@ -276,7 +319,7 @@
         margin-top: 0.25rem;
         color: #7A99B5;
         font-size: clamp(1rem, 1.7vw, 1.35rem);
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         white-space: nowrap;
     }
 
@@ -298,11 +341,6 @@
         gap: 0.75rem;
     }
 
-    .settings-section-divider {
-        border: none;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        margin: 0.2rem 0;
-    }
 
     .settings-inline-row {
         display: flex;
@@ -313,7 +351,7 @@
 
     .settings-inline-row label {
         color: #FFFFFF;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: 0.95rem;
         margin: 0;
         white-space: nowrap;
@@ -325,7 +363,7 @@
         color: #FFFFFF;
         border-radius: 8px;
         padding: 0.35rem 0.55rem;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         width: 58%;
     }
 
@@ -363,7 +401,7 @@
         flex: 1;
         font-size: 0.8rem;
         color: #7A99B5;
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         text-align: center;
     }
 
@@ -380,49 +418,69 @@
         flex: 1;
     }
 
+    /* nudge Delete / Save down — half the gap below the buttons (card pad 1.1rem → 0.55rem → 0.275rem) */
+    #settingsCard {
+        padding-bottom: 0.275rem;
+    }
+
+    /* red pill — Delete (destructive) */
     .settings-delete-btn {
-        border: 1px solid rgba(220, 53, 69, 0.4);
-        background: rgba(220, 53, 69, 0.15);
-        color: #fca5a5;
+        border: none !important;
+        background: linear-gradient(180deg, #e5645d 0%, #c9463f 100%) !important;
+        color: #FFFFFF !important;
         border-radius: 9999px;
         padding: 0.45rem 1.1rem;
         font-size: clamp(0.8rem, 0.95vw, 0.95rem);
-        font-weight: 600;
-        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-family: var(--font-family-base) !important;
         line-height: 1.1;
-        transition: background 0.15s;
+        box-shadow: 0 6px 16px rgba(15, 30, 51, 0.14),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
-
     .settings-delete-btn:hover {
-        background: rgba(220, 53, 69, 0.28);
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
     }
 
+    /* blue pill — Save */
     .settings-save-btn {
-        border: none;
-        background: #57C5E4;
-        color: #FFFFFF;
+        border: none !important;
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
+        color: #FFFFFF !important;
         border-radius: 9999px;
         padding: 0.45rem 1.25rem;
         font-size: clamp(0.82rem, 1vw, 0.97rem);
-        font-weight: 600;
-        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        font-family: var(--font-family-base) !important;
         line-height: 1.1;
-        transition: background 0.15s;
+        box-shadow: 0 6px 16px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
     }
-
     .settings-save-btn:hover {
-        background: #3BA8C8;
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
     }
 
+    /* grading-grey scrollbar */
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(11, 30, 51, 0.2); border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(11, 30, 51, 0.35); }
+
+    /* thin bottom footer logo (fixed 100vh grid → always at the bottom) */
     .classroom-branding {
         flex-shrink: 0;
         text-align: center;
-        padding: 1.5rem 0 1.25rem;
+        padding: 0.5rem 0 0.5rem;
     }
-
     .classroom-branding img {
-        height: 34px;
+        height: 14px;
         width: auto;
+        filter: drop-shadow(0 10px 24px rgba(13, 22, 40, 0.16));
     }
 
     /* suppress auto-tooltip on class title */
@@ -439,7 +497,7 @@
     }
 
     .classroom-live-badge {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-family-base);
         font-size: clamp(1rem, 2.5vw, 1.6rem);
         font-weight: 500;
         color: #57C5E4;
@@ -593,7 +651,7 @@
     <div class="classroom-header">
         <div class="classroom-header-inner">
             <div class="classroom-header-title-group">
-                <i class="bi bi-globe2 classroom-header-icon"></i>
+                <p class="classroom-eyebrow">Classroom</p>
                 <h1 class="responsive-title" id="classTitle">{{ class_obj.name }}</h1>
             </div>
             <div class="classroom-header-actions">
@@ -671,7 +729,6 @@
                             <label for="inlineClassCode">Class Code</label>
                             <input class="settings-inline-input" id="inlineClassCode" value="{{ class_obj.class_code }}" type="text">
                         </div>
-                        <hr class="settings-section-divider">
                         <div class="settings-inline-row">
                             <label for="inlineShowFirstNameOnly">Show First Name Only</label>
                             <div class="form-check form-switch settings-toggle-wrap">
@@ -685,7 +742,6 @@
                             </div>
                         </div>
                     </div>
-                    <hr class="settings-section-divider">
                     <div class="settings-inline-actions">
                         <button type="button" class="settings-delete-btn" onclick="confirmDeleteClass()">Delete Class</button>
                         <div class="settings-inline-status" id="inlineSettingsStatus"></div>
@@ -698,9 +754,8 @@
     </div>
 
     <div class="classroom-branding">
-        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" fetchpriority="high">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
     </div>
-
 </div>
 
 <script>
@@ -826,16 +881,24 @@ function animateCounter(el, targetVal, duration, formatter) {
     requestAnimationFrame(tick);
 }
 
-function renderClassAverageBars(classAverage, animate) {
+function renderClassAverageBars(gradebookRows, animate) {
     const wrap = document.getElementById('classAverageBars');
     if (!wrap) return;
-    const avg = Math.max(0, Math.min(100, Number(classAverage) || 0));
-    const activeBin = Math.min(9, Math.floor(avg / 10));
+    // Histogram: 10 deciles (0-10% … 90-100%); a bar's height = # of students in that decile.
+    const rows = Array.isArray(gradebookRows) ? gradebookRows : [];
+    const counts = new Array(10).fill(0);
+    rows.forEach(row => {
+        const g = Math.max(0, Math.min(100, Number(row.overall_grade) || 0));
+        counts[Math.min(9, Math.floor(g / 10))] += 1;   // 100 → bin 9
+    });
+    const maxCount = Math.max.apply(null, counts);
+    const MIN = 8, FLOOR = 20, MAX = 98;   // empty = min; most-populated = max; others scale
     let barsHtml = '';
     for (let i = 0; i < 10; i += 1) {
-        const distance = Math.abs(i - activeBin);
-        const height = Math.max(16, 98 - distance * 14);
-        const isHighlight = i === activeBin;
+        const height = (maxCount === 0 || counts[i] === 0)
+            ? MIN
+            : Math.max(FLOOR, (counts[i] / maxCount) * MAX);
+        const isHighlight = maxCount > 0 && counts[i] === maxCount;
         barsHtml += `<div class="grade-range-bar ${isHighlight ? 'highlight' : ''}" data-h="${height}%"></div>`;
     }
     wrap.innerHTML = barsHtml;
@@ -941,7 +1004,7 @@ async function loadClassroomCardMetrics() {
         animateCounter(classAverageEl, Math.max(0, Math.min(100, Number(classAverage) || 0)), 2000);
         animateCounter(attendanceAverageEl, Math.max(0, Math.min(100, Number(attendanceAverage) || 0)), 2000);
 
-        renderClassAverageBars(classAverage, true);
+        renderClassAverageBars(gradebookRows, true);
         renderAttendanceDonut(attendanceAverage, true);
         renderStartClassSessionMeta(metricsRows);
     } catch (error) {
