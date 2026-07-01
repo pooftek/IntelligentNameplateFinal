@@ -3,16 +3,143 @@
 {% block title %}Comet — Preferences{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+    body:not(.theme-dark) {
+        background:
+            radial-gradient(78% 52% at 50% 40%, rgba(255,255,255,0.60), transparent 70%),
+            linear-gradient(180deg, #e8ebef 0%, #eff2f5 48%, #f6f8fa 60%, #e8ebef 100%) fixed !important;
+        color: var(--comet-navy);
+    }
+
+    .prefs-eyebrow {
+        font-family: var(--font-family-base);
+        color: var(--comet-blue);
+        font-weight: 800;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        margin: 0 0 0.25rem;
+    }
     .responsive-title {
+        font-family: var(--font-family-base);
         font-size: clamp(2rem, 6vw, 4rem);
-        font-weight: bold;
+        font-weight: 700;
+        margin: 0;
+    }
+    body:not(.theme-dark) .responsive-title {
+        color: var(--comet-navy);
+        text-shadow: 0 2px 10px rgba(13, 22, 40, 0.18);
     }
 
     .settings-card {
         max-width: 600px;
         margin: 0 auto;
+    }
+    body:not(.theme-dark) .settings-card {
+        background: #FFFFFF;
+        border: 1px solid rgba(13, 22, 40, 0.06);
+        border-radius: 22px;
+        box-shadow: 0 20px 44px rgba(13, 22, 40, 0.10);
+    }
+    body:not(.theme-dark) .settings-card .settings-section-title {
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--comet-blue);
+    }
+    body:not(.theme-dark) .settings-card .text-muted {
+        color: rgba(13, 22, 40, 0.6) !important;
+    }
+    .container .form-check-input:checked {
+        background-color: var(--comet-blue);
+        border-color: var(--comet-blue);
+    }
+
+    /* ── Pill buttons (page-scoped) ── */
+    .container .btn {
+        border-radius: 9999px !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 700 !important;
+        padding: 0.55rem 1.25rem;
+        transition: transform 0.15s, filter 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    /* blue pill — primary actions (incl. #savePrefsBtn, which comet.css forces to Inter) */
+    .container .btn-primary,
+    .container #savePrefsBtn {
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+    }
+    .container .btn-primary:hover, .container .btn-primary:focus, .container .btn-primary:active,
+    .container #savePrefsBtn:hover, .container #savePrefsBtn:focus, .container #savePrefsBtn:active {
+        color: #FFFFFF !important;
+        font-family: var(--font-family-base) !important;
+        font-weight: 800 !important;
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 26px rgba(13, 22, 40, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+    }
+    /* blue pill — Back to Dashboard (nav) */
+    .container .btn-light {
+        background: linear-gradient(180deg, var(--comet-blue) 0%, var(--comet-blue-dark) 100%) !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 20px rgba(13, 22, 40, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+    }
+
+    /* grading-grey scrollbar at the screen edge */
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(11, 30, 51, 0.2); border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(11, 30, 51, 0.35); }
+    /* footer logo — sticky to bottom when short, after content when scrolled */
+    .container.py-5 {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0;
+    }
+    .prefs-branding {
+        text-align: center;
+        padding: 1.5rem 0 0.5rem;
+        margin-top: auto;
+    }
+    .prefs-branding img {
+        height: 14px;
+        width: auto;
+        filter: drop-shadow(0 10px 24px rgba(13, 22, 40, 0.16));
+    }
+    .container .btn-light:hover, .container .btn-light:focus, .container .btn-light:active {
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 10px 22px rgba(13, 22, 40, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+    }
+    /* light pill — Account settings + Cancel */
+    .container .btn-outline-light, .container .btn-secondary {
+        background: linear-gradient(180deg, #ffffff 0%, #e6ebf1 100%) !important;
+        border: 1px solid rgba(13, 22, 40, 0.12) !important;
+        color: var(--comet-navy) !important;
+        box-shadow: 0 8px 22px rgba(13, 22, 40, 0.12),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
+    .container .btn-outline-light:hover, .container .btn-outline-light:focus, .container .btn-outline-light:active,
+    .container .btn-secondary:hover, .container .btn-secondary:focus, .container .btn-secondary:active {
+        color: var(--comet-navy) !important;
+        transform: translateY(-1px);
+        filter: brightness(1.02);
+        border-color: rgba(87, 197, 228, 0.6) !important;
+        box-shadow: 0 12px 28px rgba(13, 22, 40, 0.18),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
     }
 </style>
 {% endblock %}
@@ -20,7 +147,10 @@
 {% block content %}
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h1 class="text-white responsive-title">Settings &amp; Preferences</h1>
+        <div style="flex:1; min-width:0;">
+            <p class="prefs-eyebrow">Preferences</p>
+            <h1 class="responsive-title">Settings &amp; Preferences</h1>
+        </div>
         <div class="d-flex gap-2">
             <a href="{{ url_for('account_settings') }}" class="btn btn-outline-light">Account settings</a>
             <a href="/dashboard" class="btn btn-light">Back to Dashboard</a>
@@ -71,6 +201,9 @@
                 </div>
             </form>
         </div>
+    </div>
+    <div class="prefs-branding">
+        <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
     </div>
 </div>
 
