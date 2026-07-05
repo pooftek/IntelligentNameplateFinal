@@ -12,6 +12,8 @@ import json
 import os
 import re
 import hmac
+import urllib.parse
+import urllib.request
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
@@ -72,10 +74,19 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=3)
 if _IS_PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
 
-if _IS_PRODUCTION and not os.environ.get('MAIL_SERVER'):
+def _graph_email_configured():
+    return bool(
+        (os.environ.get('GRAPH_TENANT_ID') or '').strip()
+        and (os.environ.get('GRAPH_CLIENT_ID') or '').strip()
+        and (os.environ.get('GRAPH_CLIENT_SECRET') or '').strip()
+    )
+
+
+if _IS_PRODUCTION and not os.environ.get('MAIL_SERVER') and not _graph_email_configured():
     raise RuntimeError(
-        'MAIL_SERVER is required in production to prevent reset tokens being written to disk. '
-        'Set MAIL_SERVER (and MAIL_USERNAME, MAIL_PASSWORD) in .env.'
+        'Email is required in production to prevent reset tokens being written to disk. '
+        'Set MAIL_SERVER (and MAIL_USERNAME, MAIL_PASSWORD) or GRAPH_TENANT_ID/GRAPH_CLIENT_ID/'
+        'GRAPH_CLIENT_SECRET in .env.'
     )
 
 _ALLOWED_EMAIL_DOMAINS = [
@@ -216,6 +227,40 @@ def verify_professor_password_reset_token(token, max_age=PASSWORD_RESET_MAX_AGE)
         return None
 
 
+def _send_email_via_graph(from_addr, to_addr, subject, body, reply_to=None):
+    """Send mail through Microsoft Graph (OAuth client-credentials flow).
+    Raises on any failure so callers' existing except blocks handle logging/fallback."""
+    tenant = os.environ['GRAPH_TENANT_ID'].strip()
+    token_req = urllib.request.Request(
+        f'https://login.microsoftonline.com/{urllib.parse.quote(tenant)}/oauth2/v2.0/token',
+        data=urllib.parse.urlencode({
+            'client_id': os.environ['GRAPH_CLIENT_ID'].strip(),
+            'client_secret': os.environ['GRAPH_CLIENT_SECRET'].strip(),
+            'scope': 'https://graph.microsoft.com/.default',
+            'grant_type': 'client_credentials',
+        }).encode(),
+    )
+    with urllib.request.urlopen(token_req, timeout=15) as resp:
+        token = json.loads(resp.read())['access_token']
+    payload = {
+        'message': {
+            'subject': subject,
+            'body': {'contentType': 'Text', 'content': body},
+            'toRecipients': [{'emailAddress': {'address': to_addr}}],
+        },
+        'saveToSentItems': True,
+    }
+    if reply_to:
+        payload['message']['replyTo'] = [{'emailAddress': {'address': reply_to}}]
+    send_req = urllib.request.Request(
+        f'https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(from_addr)}/sendMail',
+        data=json.dumps(payload).encode(),
+        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+    )
+    with urllib.request.urlopen(send_req, timeout=15):
+        pass  # Graph returns 202 Accepted; non-2xx raises HTTPError
+
+
 def _send_professor_password_reset_email(professor, reset_url, delivery_email=None):
     """Send password reset instructions. PASSWORD_RESET_EMAIL_TO overrides recipient when set."""
     override = (os.environ.get('PASSWORD_RESET_EMAIL_TO') or '').strip()
@@ -239,7 +284,7 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
     mail_server = (os.environ.get('MAIL_SERVER') or '').strip()
     from_addr = (os.environ.get('MAIL_FROM') or os.environ.get('MAIL_USERNAME') or 'noreply@localhost').strip()
 
-    if not mail_server:
+    if not mail_server and not _graph_email_configured():
         app.logger.warning(
             '[password reset] No MAIL_SERVER in .env — email is NOT sent. '
             'Link for %s (intended recipient %s) written to password_reset_last_link.txt',
@@ -274,7 +319,9 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
     msg['To'] = to_addr
 
     try:
-        if port == 465:
+        if _graph_email_configured():
+            _send_email_via_graph(from_addr, to_addr, subject, body)
+        elif port == 465:
             context = ssl.create_default_context()
             with smtplib.SMTP_SSL(mail_server, port, context=context) as smtp:
                 if user:
@@ -289,7 +336,10 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
                 if user:
                     smtp.login(user, password)
                 smtp.sendmail(from_addr, [to_addr], msg.as_string())
-        app.logger.info('[password reset] Email sent via %s to %s', mail_server, to_addr)
+        app.logger.info(
+            '[password reset] Email sent via %s to %s',
+            'Microsoft Graph' if _graph_email_configured() else mail_server, to_addr,
+        )
         return True
     except Exception as e:
         app.logger.exception('Failed to send password reset email: %s', e)
@@ -325,7 +375,7 @@ def _send_inquiry_notification(inquiry):
     mail_server = (os.environ.get('MAIL_SERVER') or '').strip()
     from_addr = (os.environ.get('MAIL_FROM') or os.environ.get('MAIL_USERNAME') or 'noreply@localhost').strip()
 
-    if not mail_server:
+    if not mail_server and not _graph_email_configured():
         app.logger.warning(
             '[inquiry] No MAIL_SERVER in .env — notification NOT emailed to %s. '
             'Inquiry id=%s is saved in the database.', to_addr, inquiry.id,
@@ -341,7 +391,9 @@ def _send_inquiry_notification(inquiry):
     msg['To'] = to_addr
     msg['Reply-To'] = inquiry.email
     try:
-        if port == 465:
+        if _graph_email_configured():
+            _send_email_via_graph(from_addr, to_addr, subject, body, reply_to=inquiry.email)
+        elif port == 465:
             context = ssl.create_default_context()
             with smtplib.SMTP_SSL(mail_server, port, context=context) as smtp:
                 if user:

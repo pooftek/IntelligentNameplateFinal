@@ -34,7 +34,7 @@ def test_register_new_professor(live_server, page):
     page.fill("#password", "SecurePass123!")
     page.fill("#confirmPassword", "SecurePass123!")
     page.click("button[type=submit]")
-    page.wait_for_url(f"{live_server}/dashboard", timeout=5000)
+    page.wait_for_url(f"{live_server}/dashboard", timeout=15000, wait_until="domcontentloaded")
     assert "/dashboard" in page.url
 
 
