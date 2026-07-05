@@ -12,14 +12,19 @@ def test_faculty_dashboard_loads(professor_page, live_server, created_class):
     if not created_class:
         pytest.skip("No class available")
 
-    # Start the class first
+    # Start the class first (real UI sends a JSON body — bare POSTs get HTTP 415)
     result = professor_page.evaluate("""async (classId) => {
-        const r = await fetch(`/api/start_class/${classId}`, {method: 'POST'});
+        const r = await fetch(`/api/start_class/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        });
         return r.json();
     }""", created_class)
+    assert result.get("success"), f"start_class failed: {result!r}"
 
     professor_page.goto(f"{live_server}/faculty_dashboard/{created_class}")
-    assert professor_page.locator(".dashboard-container").is_visible()
+    assert professor_page.locator("#dashboardTab").is_visible()
 
 
 def test_faculty_dashboard_shows_stats(professor_page, live_server, created_class):
@@ -53,9 +58,10 @@ def test_clear_poll_data_no_alert_stub(professor_page, live_server, created_clas
 
     professor_page.on("dialog", handle_dialog)
 
-    # Try to invoke clearPollData with a fake poll id
-    # It will fail the fetch (no such poll) but should NOT fire the stub alert
-    professor_page.evaluate("clearPollData(99999)")
+    # Try to invoke clearPollData with a fake poll id. Don't await it:
+    # it now waits on the custom showConfirm modal, which never resolves headless.
+    # It should NOT fire the old native stub alert either way.
+    professor_page.evaluate("() => { clearPollData(99999); }")
     professor_page.wait_for_timeout(1000)
 
     assert len(stub_alert_fired) == 0, f"Stub alert still present: {stub_alert_fired}"

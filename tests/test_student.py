@@ -103,7 +103,7 @@ def test_parallel_student_bearer_tokens_same_browser(live_server, created_class,
     assert create_student("111111111", "tab1@comet.test").get("success") is True
     assert create_student("222222222", "tab2@comet.test").get("success") is True
 
-    pwd = "StudentPw99"
+    pwd = "StudentPw99!"
     out = professor_page.evaluate(
         """async ([base, pwd]) => {
         async function loginToken(student_number) {
@@ -193,7 +193,20 @@ def test_student_inactive_class_join_and_gradebook(live_server, page, created_cl
         [created_class],
     )
 
-    pwd = "ViewerPw1"
+    # Arrange: ensure the class is inactive — earlier tests may have started it.
+    professor_page.evaluate(
+        """async ([classId]) => {
+        const r = await fetch(`/api/stop_class/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        });
+        return r.json();
+    }""",
+        [created_class],
+    )
+
+    pwd = "ViewerPw123!"
     out = page.evaluate(
         """async ([base, classId, pwd]) => {
         let lr = await fetch(base + '/api/student/login', {
@@ -288,7 +301,7 @@ def test_student_settings_update_profile_and_dark_mode(live_server, page, create
         const loginData = await loginResp.json();
         if (!loginData.success) return { step: 'login', loginData };
         let token = loginData.token;
-        const setupPw = 'OldPw123';
+        const setupPw = 'OldPw123!#';
         if (loginData.needs_password) {
             const setResp = await fetch(base + '/api/student/set_password', {
                 method: 'POST',
@@ -312,9 +325,9 @@ def test_student_settings_update_profile_and_dark_mode(live_server, page, create
                 email: 'settings.updated@comet.test',
                 preferred_name: 'Setty',
                 dark_mode: true,
-                current_password: 'OldPw123',
-                new_password: 'NewPw123',
-                confirm_new_password: 'NewPw123'
+                current_password: 'OldPw123!#',
+                new_password: 'NewPw123!#',
+                confirm_new_password: 'NewPw123!#'
             })
         });
         const saveData = await saveResp.json();
@@ -325,7 +338,7 @@ def test_student_settings_update_profile_and_dark_mode(live_server, page, create
         const login2Resp = await fetch(base + '/api/student/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ identifier: '765432109', password: 'NewPw123' })
+            body: JSON.stringify({ identifier: '765432109', password: 'NewPw123!#' })
         });
         const login2Data = await login2Resp.json();
         return { saveData, curData, login2Data };
