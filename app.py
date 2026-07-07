@@ -1779,6 +1779,40 @@ def index():
     return render_template('landing.html')
 
 
+@app.route('/robots.txt')
+def robots_txt():
+    """Crawler directives. Public page is indexable; auth-gated areas are not."""
+    lines = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /dashboard',
+        'Disallow: /api/',
+        'Disallow: /student',
+        'Sitemap: https://cometinc.ca/sitemap.xml',
+    ]
+    resp = make_response('\n'.join(lines) + '\n')
+    resp.mimetype = 'text/plain'
+    return resp
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """Sitemap for search engines. Only the landing page is public; the rest is auth-gated."""
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url>\n'
+        '    <loc>https://cometinc.ca/</loc>\n'
+        '    <changefreq>monthly</changefreq>\n'
+        '    <priority>1.0</priority>\n'
+        '  </url>\n'
+        '</urlset>\n'
+    )
+    resp = make_response(xml)
+    resp.mimetype = 'application/xml'
+    return resp
+
+
 @app.route('/api/inquiry', methods=['POST'])
 @limiter.limit('5 per minute')
 def submit_inquiry():

@@ -5,6 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Comet — The Future of Learning</title>
+  <meta name="description" content="Comet turns in-class participation, attendance, polls, and quizzing into live data. Smart nameplate devices with automatic, weighted grading for professors.">
+  <link rel="canonical" href="https://cometinc.ca/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Comet">
+  <meta property="og:title" content="Comet — The Future of Learning">
+  <meta property="og:description" content="Smart nameplate devices that capture participation, attendance, polls, and quizzes automatically — with weighted grading for professors.">
+  <meta property="og:url" content="https://cometinc.ca/">
+  <meta property="og:image" content="https://cometinc.ca/static/images/og-cover.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Comet — The Future of Learning">
+  <meta name="twitter:description" content="Smart nameplate devices that capture participation, attendance, polls, and quizzes automatically.">
+  <meta name="twitter:image" content="https://cometinc.ca/static/images/og-cover.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://cometinc.ca/#organization",
+        "name": "Comet",
+        "url": "https://cometinc.ca/",
+        "logo": "https://cometinc.ca/static/images/comet_logo.svg",
+        "description": "Edtech platform for in-class participation, attendance, quizzing, and automatic grading using smart nameplate devices."
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Comet",
+        "url": "https://cometinc.ca/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "publisher": { "@id": "https://cometinc.ca/#organization" },
+        "description": "Comet turns in-class participation, attendance, polls, and quizzing into live data with automatic, weighted grading for professors."
+      }
+    ]
+  }
+  </script>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/comet_icon.svg') }}">
   <link rel="preload" href="{{ url_for('static', filename='images/comet_logo.svg') }}" as="image" type="image/svg+xml">
   <link rel="preload" href="{{ url_for('static', filename='images/nameplate.png') }}" as="image">
@@ -36,6 +74,17 @@
     }
     /* comet.css capitalizes every heading — keep our copy's case as written */
     h2, h3, h4 { text-transform: none; }
+
+    /* Semantic-only h1: read by search engines + screen readers, off-screen visually */
+    .visually-hidden {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     /* ---- Top bar ---- */
     .topbar {
@@ -966,6 +1015,7 @@
 
       <!-- Hero copy -->
       <div class="hero-copy" id="heroCopy">
+        <h1 class="visually-hidden">Comet — in-class participation, attendance, polls, and auto-grading</h1>
         <img class="wordmark" src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
         <p class="slogan">The Future of Learning.</p>
         <div class="cta-row">
