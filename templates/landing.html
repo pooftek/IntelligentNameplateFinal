@@ -788,6 +788,16 @@
       .screen-info__body  { font-size: 2.9vw; line-height: 1.4; max-width: 96%; }
     }
 
+    /* tablets: coarse pointer at desktop widths (incl. desktop-site mode) — the
+       820px query above never fires there. No hover → drop the node bubbles, and
+       shed the heaviest hero effects; ≤820px phones keep their existing treatment. */
+    @media (pointer: coarse) and (any-hover: none) and (min-width: 821px) {
+      .nodes { display: none; }
+      .meteors { display: none; }
+      /* scale is constant on touch (pre-assembled start) so layer caching is safe */
+      .device-wrap { will-change: transform; }
+    }
+
     /* about / founders */
     .founders {
       display: flex; flex-wrap: wrap; justify-content: center;
@@ -1185,6 +1195,9 @@
       var scrollCue = document.getElementById('scrollCue');
       if (!stage || !device) return;
 
+      // touch devices get the pre-assembled hero (hoisted — not per frame)
+      var isCoarse = window.matchMedia('(pointer: coarse) and (any-hover: none)').matches;
+
       function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
       function smoothstep(a, b, x) {
         var t = clamp((x - a) / (b - a), 0, 1);
@@ -1200,9 +1213,11 @@
         var p = clamp(-rect.top / total, 0, 1);
 
         var grow = smoothstep(0.05, 0.55, p);
-        // phones: hero starts at the assembled scale so the hero nameplate is the
-        // same size as the "The Nameplate" section (no grow). desktop keeps the grow.
-        var startScale = window.innerWidth <= 820 ? 0.90 : 0.70;
+        // phones + touch tablets: hero starts at the assembled scale so the hero
+        // nameplate is the same size as the "The Nameplate" section (no grow) — a
+        // constant scale also spares tablets the per-frame PNG re-raster.
+        // desktop keeps the grow.
+        var startScale = (window.innerWidth <= 820 || isCoarse) ? 0.90 : 0.70;
         var scale = lerp(startScale, 0.90, grow);
         var ty = lerp(16, -3, grow);                 // vh — assembled sits high so eyebrow clears the nav and device clears the cards
         device.style.transform = 'translate(-50%, -50%) translateY(' + ty + 'vh) scale(' + scale + ')';
@@ -1304,7 +1319,11 @@
         else if (about && y >= about.offsetTop) name = 'about';
         navLinks.forEach(function (a) { a.classList.toggle('active', a.dataset.nav === name); });
       }
-      window.addEventListener('scroll', onScroll, { passive: true });
+      // rAF-throttled like the scrub loop — offsetTop reads force layout per event otherwise
+      var spyTicking = false;
+      window.addEventListener('scroll', function () {
+        if (!spyTicking) { spyTicking = true; requestAnimationFrame(function () { spyTicking = false; onScroll(); }); }
+      }, { passive: true });
       onScroll();
 
       // reveal-on-scroll for in-page content

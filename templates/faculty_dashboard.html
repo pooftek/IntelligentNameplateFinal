@@ -6,6 +6,7 @@
 <style>
     body {
         height: 100vh;
+        height: 100dvh; /* dynamic viewport height so the bottom stays reachable under mobile browser chrome */
         overflow: hidden;
         margin: 0;
         font-family: var(--font-family-base);
@@ -19,6 +20,7 @@
 
     .fac-container {
         height: 100vh;
+        height: 100dvh;
         display: flex;
         flex-direction: column;
     }
@@ -1002,8 +1004,48 @@
         opacity: 1;
         transition: opacity 0.35s ease;
     }
+
+    /* ── Tablet: trim desktop-scale side padding + fonts so the fixed shell fits.
+       Also fires on any coarse-pointer (touch) device — tablets report desktop CSS
+       widths (or desktop-site mode) that width breakpoints miss. Releasing the
+       100dvh lock is a no-op when content fits; it only scrolls on overflow. ── */
+    @media (max-width: 1024px), (pointer: coarse) and (any-hover: none) {
+        body {
+            height: auto;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-y: auto;
+        }
+        .fac-container {
+            min-height: 100vh;
+            min-height: 100dvh;
+            height: auto;
+        }
+        /* floors so the released fr-grid cards don't collapse to content height */
+        .fac-live-metrics-card { min-height: 150px; }
+        .fac-poll-card         { min-height: 260px; }
+        .fac-hands-raised-card { min-height: 220px; }
+        .fac-attendance-grid .fac-section-card { min-height: 220px; }
+        .fac-header  { padding: 1.5rem 1.5rem 1rem; }
+        .fac-tabs    { padding: 0 1.5rem 0.75rem; }
+        .fac-content { padding: 0 1.5rem 0.75rem; }
+        .tab-pill    { font-size: 1.05rem; padding: 0.4rem 1rem; }
+    }
+    @media (max-width: 820px) {
+        .fac-header  { padding: 1.1rem 1rem 0.85rem; }
+        .fac-tabs    { padding: 0 1rem 0.6rem; flex-wrap: wrap; }
+        .fac-content { padding: 0 1rem 0.6rem; }
+        /* stack the present/absent lists so each keeps its own internal scroll */
+        .fac-attendance-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+    }
 </style>
 {% endblock %}
+
+{# page renders its own branding logo — suppress the base footer so it never doubles up #}
+{% block footer %}{% endblock %}
 
 {% block content %}
 <div class="fac-container">
@@ -2099,8 +2141,6 @@ async function stopPoll(pollId) {
 
 // Clear Live Metrics
 async function clearLiveMetrics(classId) {
-    if (!await showConfirm('Clear all live metrics (thumbs up, thumbs down, and participation counts)?')) return;
-
     try {
         await fetch(`/api/reset_thumbs_up/${classId}`, {method: 'POST'});
         await fetch(`/api/reset_thumbs_down/${classId}`, {method: 'POST'});
@@ -2238,8 +2278,6 @@ async function dismissHandRaise(studentId) {
 
 // Clear Hands Raised
 async function clearHandsRaised(classId) {
-    if (!confirm('Are you sure you want to clear all raised hands?')) return;
-
     try {
         const response = await fetch(`/api/clear_hands_raised/${classId}`, {method: 'POST'});
         const data = await response.json();

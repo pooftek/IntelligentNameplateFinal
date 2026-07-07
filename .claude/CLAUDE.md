@@ -22,6 +22,10 @@ Save learnings here as discovered. Format: `**[topic]:** [finding]`. Update, don
 
 **Test flake:** conftest `live_server` cold boot can exceed its 15s wait → every test ERRORs "Flask server did not start on port 18764"; a plain rerun passes.
 **Professor auth:** email-only login + `full_name` (non-unique) since July 2026; `username` column renamed by a table-rebuild block in `migrate_database()` — runs only via `python app.py`.
+**Fixed-viewport pages:** classroom/faculty_dashboard/class_data/students_list lock `body{height:100vh;height:100dvh;overflow:hidden}` + inner container; each releases to `height:auto;overflow-y:auto` under `@media (max-width:…), (pointer: coarse) and (any-hover: none)`. Tablets need the coarse OR-branch — they report desktop CSS widths (landscape 1280px; desktop-site mode even in portrait) so width breakpoints never fire. `and (any-hover: none)` is REQUIRED: touchscreen laptops report `pointer: coarse` too (primary is touch) and would wrongly get the compact layout — but their trackpad gives `any-hover: hover`, so this excludes them. Real tablets have no hovering device → `any-hover: none`. Release is a visual no-op when content fits.
+**Footer:** base.html wraps `.comet-footer` in `{% block footer %}`; every page with its own 14px `*-branding` logo (all professor pages + account_settings/preferences + auth pages) overrides it empty — otherwise both logos show on scrollable pages.
+**Landing tablet:** `@media (pointer: coarse) and (any-hover: none) and (min-width:821px)` hides `.nodes`/`.meteors` (≤820px block covers phones); JS `isCoarse` (same query) makes hero start pre-assembled (constant scale → no per-frame 2.28MB nameplate.png re-raster).
+**Perf debt:** base.html tooltip MutationObserver rescans whole document per mutation; faculty_dashboard rewrites `#dashboardContent` innerHTML every 2s + per socket event → continuous rescans, laggy on tablets.
 
 ## Caveman Mode
 

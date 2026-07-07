@@ -274,6 +274,9 @@
 </style>
 {% endblock %}
 
+{# page renders its own branding logo — suppress the base footer so it never doubles up #}
+{% block footer %}{% endblock %}
+
 {% block content %}
 <div class="account-container">
 

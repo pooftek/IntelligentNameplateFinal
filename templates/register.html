@@ -134,13 +134,9 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block footer %}{% endblock %}
 
-<header class="auth-topbar">
-  <a class="brand" href="{{ url_for('index') }}" aria-label="Comet home">
-    <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
-  </a>
-</header>
+{% block content %}
 
 {% if gate_required %}
 

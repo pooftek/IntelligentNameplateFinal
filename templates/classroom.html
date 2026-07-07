@@ -6,6 +6,7 @@
 <style>
     body {
         height: 100vh;
+        height: 100dvh; /* dynamic viewport height so the bottom stays reachable under mobile browser chrome */
         overflow: hidden;
         margin: 0;
         font-family: var(--font-family-base);
@@ -19,6 +20,7 @@
 
     .classroom-container {
         height: 100vh;
+        height: 100dvh;
         display: flex;
         flex-direction: column;
     }
@@ -530,15 +532,20 @@
         }
     }
 
-    @media (max-width: 992px) {
+    /* release also fires on touch tablets — they report desktop CSS widths (or
+       desktop-site mode) that width breakpoints miss. `any-hover: none` keeps this
+       off touchscreen laptops (their trackpad can hover), so laptops stay desktop. */
+    @media (max-width: 992px), (pointer: coarse) and (any-hover: none) {
         body {
             height: auto;
             min-height: 100vh;
+            min-height: 100dvh;
             overflow-y: auto;
         }
 
         .classroom-container {
             min-height: 100vh;
+            min-height: 100dvh;
             height: auto;
         }
 
@@ -644,6 +651,9 @@
 
 </style>
 {% endblock %}
+
+{# page renders its own branding logo — suppress the base footer so it never doubles up #}
+{% block footer %}{% endblock %}
 
 {% block content %}
 <div class="classroom-container">
@@ -935,13 +945,21 @@ function renderAttendanceDonut(attendanceAverage, animate) {
     const [ex, ey] = pt(-presentDeg);
     const large = presentDeg > 180 ? 1 : 0;
 
-    let svg = `<circle cx="${cx}" cy="${cy}" r="${rc}" fill="none" stroke="#D6D8DB" stroke-width="${sw}"/>`;
+    let svg = `<defs>
+        <linearGradient id="donutTrackGrad" gradientUnits="userSpaceOnUse" x1="60" y1="13" x2="60" y2="107">
+            <stop offset="0" stop-color="#eef1f4"/><stop offset="1" stop-color="#cfd3d8"/>
+        </linearGradient>
+        <linearGradient id="donutArcGrad" gradientUnits="userSpaceOnUse" x1="60" y1="13" x2="60" y2="107">
+            <stop offset="0" stop-color="#7ad4ef"/><stop offset="1" stop-color="#57C5E4"/>
+        </linearGradient>
+    </defs>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${rc}" fill="none" stroke="url(#donutTrackGrad)" stroke-width="${sw}"/>`;
 
     if (pct >= 99.5) {
-        svg += `<circle cx="${cx}" cy="${cy}" r="${rc}" fill="none" stroke="#57C5E4" stroke-width="${sw}" stroke-linecap="butt"/>`;
+        svg += `<circle cx="${cx}" cy="${cy}" r="${rc}" fill="none" stroke="url(#donutArcGrad)" stroke-width="${sw}" stroke-linecap="butt"/>`;
     } else if (pct > 0.5) {
         const dashInit = animate ? `stroke-dasharray="0 ${C.toFixed(1)}"` : `stroke-dasharray="${presentLen.toFixed(1)} ${C.toFixed(1)}"`;
-        svg += `<path id="donutArc" d="M${sx.toFixed(3)} ${sy.toFixed(3)} A${rc} ${rc} 0 ${large} 0 ${ex.toFixed(3)} ${ey.toFixed(3)}" fill="none" stroke="#57C5E4" stroke-width="${sw}" stroke-linecap="butt" ${dashInit} style="transition:stroke-dasharray 1.5s ease-out"/>`;
+        svg += `<path id="donutArc" d="M${sx.toFixed(3)} ${sy.toFixed(3)} A${rc} ${rc} 0 ${large} 0 ${ex.toFixed(3)} ${ey.toFixed(3)}" fill="none" stroke="url(#donutArcGrad)" stroke-width="${sw}" stroke-linecap="butt" ${dashInit} style="transition:stroke-dasharray 1.5s ease-out"/>`;
     }
 
     donut.innerHTML = `<svg viewBox="0 0 120 120" style="overflow:visible" role="img" aria-label="Attendance donut chart">${svg}</svg>`;

@@ -144,6 +144,9 @@
 </style>
 {% endblock %}
 
+{# page renders its own branding logo — suppress the base footer so it never doubles up #}
+{% block footer %}{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">

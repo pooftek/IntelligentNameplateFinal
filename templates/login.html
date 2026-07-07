@@ -228,6 +228,8 @@
 </style>
 {% endblock %}
 
+{% block footer %}{% endblock %}
+
 {% block content %}
 
 <div class="meteors" aria-hidden="true">
@@ -247,9 +249,6 @@
 
 <header class="auth-topbar">
   <div class="topbar-left">
-    <a class="brand" href="{{ url_for('index') }}" aria-label="Comet home">
-      <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
-    </a>
     <a class="back-link" href="{{ url_for('index') }}">&larr; Back to landing</a>
   </div>
   <a class="student-link" href="{{ url_for('student_interface') }}">Student sign-in &rarr;</a>

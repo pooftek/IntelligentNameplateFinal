@@ -6,6 +6,7 @@
 <style>
     body {
         height: 100vh;
+        height: 100dvh; /* dynamic viewport height so the bottom stays reachable under mobile browser chrome */
         overflow: hidden;
         margin: 0;
         font-family: var(--font-family-base);
@@ -18,6 +19,7 @@
     }
     .class-data-container {
         height: 100vh;
+        height: 100dvh;
         display: flex;
         flex-direction: column;
     }
@@ -181,6 +183,7 @@
     #panelQuiz {
         overflow-y: auto;
         overflow-x: hidden;
+        scrollbar-gutter: stable;
         padding: 0 8rem 0;
     }
     #panelGradebook::-webkit-scrollbar,
@@ -404,14 +407,8 @@
     .sortable.desc::after { content: ' ↓'; opacity: 1; }
 
     /* ── Grading tab ── */
-    #panelGrading {
-        align-items: stretch;
-        gap: 0;
-    }
     #gradingContent {
         display: flex;
-        flex: 1;
-        min-height: 0;
         width: 100%;
         justify-content: center;
         align-items: flex-start;
@@ -1073,14 +1070,19 @@
         }
     }
 
-    @media (max-width: 992px) {
+    /* release also fires on touch tablets — they report desktop CSS widths (or
+       desktop-site mode) that width breakpoints miss. `any-hover: none` keeps this
+       off touchscreen laptops (their trackpad can hover), so laptops stay desktop. */
+    @media (max-width: 992px), (pointer: coarse) and (any-hover: none) {
         body {
             height: auto;
             min-height: 100vh;
+            min-height: 100dvh;
             overflow-y: auto;
         }
         .class-data-container {
             min-height: 100vh;
+            min-height: 100dvh;
             height: auto;
         }
         .class-data-header {
@@ -1280,6 +1282,9 @@
     }
 </style>
 {% endblock %}
+
+{# page renders its own branding logo — suppress the base footer so it never doubles up #}
+{% block footer %}{% endblock %}
 
 {% block content %}
 <div class="class-data-container">

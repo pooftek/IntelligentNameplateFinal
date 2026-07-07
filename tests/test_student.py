@@ -157,6 +157,65 @@ def test_parallel_student_bearer_tokens_same_browser(live_server, created_class,
     assert out.get("ok1") and out.get("ok2"), out
     assert out.get("n1") == "111111111" and out.get("n2") == "222222222", out
     assert out.get("id1") != out.get("id2"), out
+    # Two *different* students keep independent sessions — single-session is per-student.
+
+
+def test_second_login_invalidates_first_token(live_server, created_class, professor_page):
+    """
+    One active session per student: logging in again mints a new token and revokes the
+    previous one, so the first browser's token stops working (new login wins).
+    """
+    if not created_class:
+        pytest.skip("No class available")
+
+    assert professor_page.evaluate(
+        """async ([classId]) => {
+        const r = await fetch(`/api/create_and_add_student/${classId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                first_name: 'Solo', last_name: 'Session',
+                student_number: '333333333', email: 'solo@comet.test'
+            })
+        });
+        return r.json();
+    }""",
+        [created_class],
+    ).get("success") is True
+
+    out = professor_page.evaluate(
+        """async ([base]) => {
+        const pwd = 'SoloPw123!#';
+        async function login(body) {
+            const r = await fetch(base + '/api/student/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            return r.json();
+        }
+        // First login (sets password on first use) → tokenA is the first browser's session.
+        let d1 = await login({ identifier: '333333333' });
+        let tokenA = d1.token;
+        if (d1.needs_password) {
+            const sr = await fetch(base + '/api/student/set_password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenA},
+                body: JSON.stringify({ password: pwd, confirm_password: pwd })
+            });
+            tokenA = (await sr.json()).token;
+        }
+        // Second login as the same student → tokenB, revoking tokenA.
+        const d2 = await login({ identifier: '333333333', password: pwd });
+        const tokenB = d2.token;
+        const a = await fetch(base + '/api/student/current', { headers: { 'Authorization': 'Bearer ' + tokenA } });
+        const b = await fetch(base + '/api/student/current', { headers: { 'Authorization': 'Bearer ' + tokenB } });
+        return { aStatus: a.status, bStatus: b.status };
+    }""",
+        [live_server],
+    )
+
+    assert out.get("aStatus") == 401, out   # first browser's token is revoked
+    assert out.get("bStatus") == 200, out   # newest login still works
 
 
 def test_student_interface_has_interaction_buttons(live_server, page):

@@ -124,3 +124,12 @@ def test_protected_route_redirects_when_not_logged_in(live_server, page):
     page.goto(f"{live_server}/dashboard")
     page.wait_for_url("**/login**", timeout=5000)
     assert "login" in page.url
+
+
+@pytest.mark.parametrize("path", ["/login", "/register", "/forgot-password"])
+def test_auth_pages_have_single_logo(live_server, page, path):
+    """Auth pages show only the one centered logo — no top-left brand, no footer logo."""
+    page.goto(f"{live_server}{path}", wait_until="domcontentloaded")
+    assert page.locator('img[src*="comet_logo"]').count() == 1
+    assert page.locator(".comet-footer").count() == 0
+    assert page.locator(".auth-topbar .brand").count() == 0

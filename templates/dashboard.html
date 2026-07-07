@@ -489,8 +489,31 @@
         color: #92a8c2 !important;
         border-color: #122638 !important;
     }
+
+    /* ── Tablet/portrait: header was flex-nowrap w/ fixed 8rem padding, so the nowrap title
+       + non-shrinking pill buttons collided with the cards below. Let the row wrap + trim padding.
+       Also fires on any coarse-pointer (touch) device — tablets report desktop CSS widths
+       (or desktop-site mode) that width breakpoints miss. ── */
+    @media (max-width: 1024px), (pointer: coarse) and (any-hover: none) {
+        .dashboard-header  { padding: 1.75rem 2rem 1.1rem; }
+        .dashboard-content { padding: 0.5rem 2rem 0; }
+        .dashboard-header .d-flex { flex-wrap: wrap; gap: 0.75rem; }
+        .header-buttons { flex-wrap: wrap; }
+        .responsive-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+    @media (max-width: 768px) {
+        .dashboard-header  { padding: 1.25rem 1rem 0.9rem; }
+        .dashboard-content { padding: 0.5rem 1rem 0; }
+    }
 </style>
 {% endblock %}
+
+{# page renders its own branding logo — suppress the base footer so it never doubles up #}
+{% block footer %}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">

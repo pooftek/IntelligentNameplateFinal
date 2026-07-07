@@ -157,21 +157,34 @@ def _student_token_serializer():
     return URLSafeTimedSerializer(app.secret_key, salt=STUDENT_TOKEN_SALT)
 
 
-def issue_student_token(student_id, needs_password=False):
-    return _student_token_serializer().dumps({'id': int(student_id), 'np': bool(needs_password)})
+def issue_student_token(student_id, needs_password=False, session_version=0):
+    return _student_token_serializer().dumps(
+        {'id': int(student_id), 'np': bool(needs_password), 'v': int(session_version)})
+
+
+def _rotate_student_session(student):
+    """Bump the student's session_version (invalidating previously issued tokens) and
+    signal any other live client to re-check its token. Enforces one active session."""
+    student.session_version = (student.session_version or 0) + 1
+    db.session.commit()
+    try:
+        socketio.emit('session_revoked', {}, room=f'student_{student.id}')
+    except Exception:
+        pass
+    return student.session_version
 
 
 def verify_student_token(token, max_age=STUDENT_TOKEN_MAX_AGE):
     if not token or not isinstance(token, str):
-        return None, None
+        return None, None, None
     try:
         data = _student_token_serializer().loads(token, max_age=max_age)
         sid = data.get('id')
         if sid is None:
-            return None, None
-        return int(sid), bool(data.get('np', False))
+            return None, None, None
+        return int(sid), bool(data.get('np', False)), int(data.get('v', 0))
     except (BadSignature, SignatureExpired, TypeError, ValueError, KeyError):
-        return None, None
+        return None, None, None
 
 
 def _bearer_token_from_request():
@@ -183,18 +196,28 @@ def _bearer_token_from_request():
     return None
 
 
+def _student_id_if_token_current(sid, ver):
+    """Return sid only if the token's session_version still matches the student's."""
+    if sid is None:
+        return None
+    student = Student.query.get(sid)
+    if student is None or (student.session_version or 0) != ver:
+        return None
+    return sid
+
+
 def _authenticated_student_id():
     token = _bearer_token_from_request()
-    student_id, _ = verify_student_token(token)
-    return student_id
+    sid, _np, ver = verify_student_token(token)
+    return _student_id_if_token_current(sid, ver)
 
 
 def _student_id_from_socket_token(data):
     if not isinstance(data, dict):
         return None
     token = data.get('token')
-    student_id, _ = verify_student_token(token)
-    return student_id
+    sid, _np, ver = verify_student_token(token)
+    return _student_id_if_token_current(sid, ver)
 
 
 def _looks_like_email(s):
@@ -438,6 +461,7 @@ class Student(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
     password_locked = db.Column(db.Boolean, default=False, nullable=False)
+    session_version = db.Column(db.Integer, default=0, nullable=False)
 
 class Class(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -4625,18 +4649,20 @@ def student_login():
                 return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
             if not student.password_hash:
                 app.logger.info('[audit] student login ok: student_id=%s method=%s', student.id, 'rfid')
+                _rotate_student_session(student)
                 return jsonify({
                     'success': True,
                     'needs_password': True,
                     'student': _student_login_payload(student),
-                    'token': issue_student_token(student.id, needs_password=True),
+                    'token': issue_student_token(student.id, needs_password=True, session_version=student.session_version),
                 })
             app.logger.info('[audit] student login ok: student_id=%s method=%s', student.id, 'rfid')
+            _rotate_student_session(student)
             return jsonify({
                 'success': True,
                 'needs_password': False,
                 'student': {k: v for k, v in _student_login_payload(student).items() if k != 'email'},
-                'token': issue_student_token(student.id, needs_password=False),
+                'token': issue_student_token(student.id, needs_password=False, session_version=student.session_version),
             })
 
     # Student number or email + password
@@ -4649,11 +4675,12 @@ def student_login():
             return jsonify({'success': False, 'error': 'You are not registered in any class. Please contact your professor.'})
         if not student.password_hash:
             app.logger.info('[audit] student login ok: student_id=%s method=%s', student.id, 'identifier-no-password')
+            _rotate_student_session(student)
             return jsonify({
                 'success': True,
                 'needs_password': True,
                 'student': _student_login_payload(student),
-                'token': issue_student_token(student.id, needs_password=True),
+                'token': issue_student_token(student.id, needs_password=True, session_version=student.session_version),
             })
         if student.password_locked:
             return jsonify({'success': False, 'error': 'Password locked after too many failed attempts. Please use your student card or contact your professor.'})
@@ -4663,11 +4690,12 @@ def student_login():
             student.failed_login_attempts = 0
             db.session.commit()
             app.logger.info('[audit] student login ok: student_id=%s method=%s', student.id, 'password')
+            _rotate_student_session(student)
             return jsonify({
                 'success': True,
                 'needs_password': False,
                 'student': {k: v for k, v in _student_login_payload(student).items() if k != 'email'},
-                'token': issue_student_token(student.id, needs_password=False),
+                'token': issue_student_token(student.id, needs_password=False, session_version=student.session_version),
             })
         student.failed_login_attempts += 1
         if student.failed_login_attempts >= 5:
@@ -4708,7 +4736,7 @@ def find_student_for_password():
             'first_name': student.first_name,
             'has_password': student.password_hash is not None
         },
-        'token': issue_student_token(student.id, needs_password=student.password_hash is None),
+        'token': issue_student_token(student.id, needs_password=student.password_hash is None, session_version=student.session_version),
     })
 
 @app.route('/api/student/set_password', methods=['POST'])
@@ -4716,7 +4744,7 @@ def find_student_for_password():
 def student_set_password():
     """Set password for student on first login"""
     token = _bearer_token_from_request()
-    student_id, needs_password = verify_student_token(token)
+    student_id, needs_password, _ = verify_student_token(token)
     if not student_id or not needs_password:
         return jsonify({'success': False, 'error': 'Not authenticated. Please find your account first using the "Set Password / Register" option.'})
 
@@ -4756,7 +4784,7 @@ def student_set_password():
             'last_name': student.last_name,
             'preferred_name': student.preferred_name,
         },
-        'token': issue_student_token(student.id, needs_password=False),
+        'token': issue_student_token(student.id, needs_password=False, session_version=student.session_version),
     })
 
 @app.route('/api/student/current', methods=['GET'])
@@ -6287,6 +6315,7 @@ def on_join_student_enrollments(data=None):
     student_id = _student_id_from_socket_token(data)
     if not student_id:
         return
+    join_room(f'student_{student_id}')
     enrollments = Enrollment.query.filter_by(
         student_id=student_id,
         is_active=True,
@@ -6469,6 +6498,7 @@ def migrate_database():
             for col_name, col_def in [
                 ('failed_login_attempts', 'INTEGER DEFAULT 0'),
                 ('password_locked', 'BOOLEAN DEFAULT 0'),
+                ('session_version', 'INTEGER DEFAULT 0'),
             ]:
                 if col_name not in student_columns:
                     try:

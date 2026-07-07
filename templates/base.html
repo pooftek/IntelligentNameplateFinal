@@ -131,9 +131,11 @@
 <body class="theme-{{ ui_theme|default('contrast') }}">
     {% block content %}{% endblock %}
 
+    {% block footer %}
     <footer class="comet-footer">
         <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet" class="comet-footer-logo">
     </footer>
+    {% endblock %}
 
     <!-- Toast container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
