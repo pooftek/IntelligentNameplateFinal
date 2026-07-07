@@ -291,13 +291,13 @@
 
     <div class="account-content">
         <div class="account-card">
-            <p class="text-muted mb-4 text-center">Change your username, email, or password. Your current password is required to save any changes.</p>
+            <p class="text-muted mb-4 text-center">Change your name, email, or password. Your current password is required to save any changes.</p>
 
             <form id="accountForm" autocomplete="off">
                 <p class="settings-section-title">Profile</p>
                 <div class="mb-3">
-                    <label for="accUsername" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="accUsername" name="username" required autocomplete="username">
+                    <label for="accFullName" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="accFullName" name="full_name" required autocomplete="name">
                 </div>
                 <div class="mb-4">
                     <label for="accEmail" class="form-label">Email</label>
@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const resp = await fetch('/api/account');
         const data = await resp.json();
         if (data.success) {
-            document.getElementById('accUsername').value = data.username || '';
+            document.getElementById('accFullName').value = data.full_name || '';
             document.getElementById('accEmail').value = data.email || '';
         }
     } catch (e) { /* ignore */ }
@@ -368,7 +368,7 @@ document.getElementById('accountForm').addEventListener('submit', async (e) => {
 
     const btn = document.getElementById('saveAccountBtn');
     const payload = {
-        username: document.getElementById('accUsername').value.trim(),
+        full_name: document.getElementById('accFullName').value.trim(),
         email: document.getElementById('accEmail').value.trim(),
         current_password: document.getElementById('currentPassword').value,
         new_password: newPw,

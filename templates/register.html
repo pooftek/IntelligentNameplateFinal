@@ -19,12 +19,37 @@
     overflow-y: auto;
   }
   .login-logo {
-    width: clamp(220px, 48vw, 320px);
+    width: clamp(150px, 30vw, 210px);
     height: auto;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.5rem;
     filter:
       drop-shadow(0 26px 64px rgba(13, 22, 40, 0.22))
       drop-shadow(0 10px 28px rgba(13, 22, 40, 0.14));
+  }
+  /* fixed top bar with the small brand mark — matches login.html */
+  .auth-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem clamp(1rem, 4vw, 2rem);
+    z-index: 10;
+  }
+  .auth-topbar .brand {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .auth-topbar .brand img {
+    height: 22px;
+    width: auto;
+    display: block;
+  }
+  @media (max-width: 480px) {
+    .auth-topbar { padding: 0.8rem 1rem; }
+    body { padding-top: 4rem; }
   }
   .login-welcome {
     font-family: var(--font-family-base);
@@ -111,6 +136,12 @@
 
 {% block content %}
 
+<header class="auth-topbar">
+  <a class="brand" href="{{ url_for('index') }}" aria-label="Comet home">
+    <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
+  </a>
+</header>
+
 {% if gate_required %}
 
 <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet logo" class="login-logo" fetchpriority="high">
@@ -159,8 +190,8 @@ document.getElementById('gateForm').addEventListener('submit', async (e) => {
   <h2 class="login-card-title">Join Comet</h2>
   <form id="registerForm">
     <div class="mb-3">
-      <label for="username" class="form-label">Full Name</label>
-      <input type="text" class="form-control" id="username" name="username" required>
+      <label for="fullName" class="form-label">Full Name</label>
+      <input type="text" class="form-control" id="fullName" name="full_name" autocomplete="name" required>
     </div>
     <div class="mb-3">
       <label for="email" class="form-label">Email</label>
@@ -203,7 +234,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     }
 
     const formData = {
-        username: document.getElementById('username').value,
+        full_name: document.getElementById('fullName').value,
         email: document.getElementById('email').value,
         password: password
     };

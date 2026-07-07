@@ -30,7 +30,7 @@ def test_class_metrics_quiz_results_per_student(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="metprof_quiz",
+            full_name="metprof_quiz",
             email="metquiz@test.local",
             password_hash=generate_password_hash("secret12"),
         )
@@ -132,7 +132,7 @@ def test_class_metrics_quiz_results_per_student(app_module):
         client.post(
             "/login",
             json={
-                "username": "metprof_quiz",
+                "email": "metquiz@test.local",
                 "password": "secret12",
                 "user_type": "professor",
             },

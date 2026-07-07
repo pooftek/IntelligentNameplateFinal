@@ -20,6 +20,9 @@ Mention (don't delete) unrelated dead code.
 
 Save learnings here as discovered. Format: `**[topic]:** [finding]`. Update, don't duplicate.
 
+**Test flake:** conftest `live_server` cold boot can exceed its 15s wait → every test ERRORs "Flask server did not start on port 18764"; a plain rerun passes.
+**Professor auth:** email-only login + `full_name` (non-unique) since July 2026; `username` column renamed by a table-rebuild block in `migrate_database()` — runs only via `python app.py`.
+
 ## Caveman Mode
 
 ACTIVE EVERY RESPONSE. Drop articles, filler, pleasantries, hedging. Fragments OK. Technical terms exact. Code unchanged.

@@ -27,7 +27,7 @@ TEST_PORT = int(os.environ.get("PYTEST_CLASSROOM_PORT", "18764"))
 # Use 127.0.0.1 so Playwright and the Flask bind (0.0.0.0) agree on IPv4; "localhost" can prefer IPv6 (::1) on Windows.
 BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
 
-TEST_PROFESSOR = {"username": "testprof", "email": "testprof@comet.test", "password": "TestPass123!"}
+TEST_PROFESSOR = {"full_name": "Test Prof", "email": "testprof@comet.test", "password": "TestPass123!"}
 TEST_CLASS = {"name": "Test Class 101", "code": "TC101"}
 TEST_STUDENT = {
     "first_name": "Alice",
@@ -100,7 +100,7 @@ def registered_professor(live_server, playwright):
     page = browser.new_page()
     page.goto(f"{live_server}/register", wait_until="domcontentloaded")
 
-    page.fill("#username", TEST_PROFESSOR["username"])
+    page.fill("#fullName", TEST_PROFESSOR["full_name"])
     page.fill("#email", TEST_PROFESSOR["email"])
     page.fill("#password", TEST_PROFESSOR["password"])
     page.fill("#confirmPassword", TEST_PROFESSOR["password"])
@@ -110,7 +110,7 @@ def registered_professor(live_server, playwright):
     except PlaywrightTimeout:
         # Another test may have registered this user first (same session DB).
         page.goto(f"{live_server}/login", wait_until='domcontentloaded')
-        page.fill("#username", TEST_PROFESSOR["username"])
+        page.fill("#email", TEST_PROFESSOR["email"])
         page.fill("#password", TEST_PROFESSOR["password"])
         page.click("button[type=submit]")
         page.wait_for_url(f"{live_server}/dashboard", timeout=15000, wait_until='domcontentloaded')
@@ -125,7 +125,7 @@ def professor_page(live_server, registered_professor, page):
     'page' is a built-in Playwright fixture — a fresh browser tab per test.
     """
     page.goto(f"{live_server}/login", wait_until="domcontentloaded")
-    page.fill("#username", registered_professor["username"])
+    page.fill("#email", registered_professor["email"])
     page.fill("#password", registered_professor["password"])
     page.click("button[type=submit]")
     page.wait_for_url(f"{live_server}/dashboard", timeout=15000, wait_until='domcontentloaded')
@@ -140,7 +140,7 @@ def created_class(live_server, registered_professor, playwright):
 
     # Login
     page.goto(f"{live_server}/login", wait_until="domcontentloaded")
-    page.fill("#username", registered_professor["username"])
+    page.fill("#email", registered_professor["email"])
     page.fill("#password", registered_professor["password"])
     page.click("button[type=submit]")
     page.wait_for_url(f"{live_server}/dashboard", timeout=15000, wait_until='domcontentloaded')

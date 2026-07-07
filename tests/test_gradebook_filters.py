@@ -31,7 +31,7 @@ def test_gradebook_poll_excludes_exclude_from_grading_session(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof1",
+            full_name="gbprof1",
             email="gb1@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -104,7 +104,7 @@ def test_count_graded_attendance_session_scoped(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof2",
+            full_name="gbprof2",
             email="gb2@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -160,7 +160,7 @@ def test_clear_poll_responses_returns_poll_id_in_socket_payload(app_module):
         from unittest.mock import patch
 
         prof = m.Professor(
-            username="gbprof3",
+            full_name="gbprof3",
             email="gb3@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -202,7 +202,7 @@ def test_effective_weights_all_graded_sessions_without_polls(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof_eff1",
+            full_name="gbprof_eff1",
             email="eff1@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -239,7 +239,7 @@ def test_effective_weights_split_when_some_sessions_have_polls(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof_eff2",
+            full_name="gbprof_eff2",
             email="eff2@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -295,7 +295,7 @@ def test_absence_exemption_skips_session_in_attendance_count(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof_ex1",
+            full_name="gbprof_ex1",
             email="ex1@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -348,7 +348,7 @@ def test_absence_exemption_all_countable_sessions_exempt(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof_ex2",
+            full_name="gbprof_ex2",
             email="ex2@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -395,7 +395,7 @@ def test_absence_exemption_api_sets_and_clears(app_module):
     st_id = None
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof_ex3",
+            full_name="gbprof_ex3",
             email="ex3@test.local",
             password_hash=generate_password_hash("secret12"),
         )
@@ -428,7 +428,7 @@ def test_absence_exemption_api_sets_and_clears(app_module):
     with m.app.test_client() as client:
         client.post(
             "/login",
-            json={"username": "gbprof_ex3", "password": "secret12", "user_type": "professor"},
+            json={"email": "ex3@test.local", "password": "secret12", "user_type": "professor"},
         )
         rv = client.post(
             f"/api/class_session/{sess_id}/absence_exemption",
@@ -459,7 +459,7 @@ def test_gradebook_attendance_hundred_when_no_countable_sessions(app_module):
     class_id = None
     with m.app.app_context():
         prof = m.Professor(
-            username="gbprof_ex4",
+            full_name="gbprof_ex4",
             email="ex4@test.local",
             password_hash=generate_password_hash("secret12"),
         )
@@ -509,7 +509,7 @@ def test_gradebook_attendance_hundred_when_no_countable_sessions(app_module):
     with m.app.test_client() as client:
         client.post(
             "/login",
-            json={"username": "gbprof_ex4", "password": "secret12", "user_type": "professor"},
+            json={"email": "ex4@test.local", "password": "secret12", "user_type": "professor"},
         )
         rv = client.get(f"/api/gradebook/{class_id}")
         rows = rv.get_json()

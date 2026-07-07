@@ -9,11 +9,18 @@ import pytest
 
 
 def test_login_page_loads(live_server, page):
-    """The login page should show a login form and password recovery link."""
+    """The login page should show an email login form and password recovery link."""
     page.goto(f"{live_server}/login")
-    assert page.locator("#username").is_visible()
+    assert page.locator("#email").is_visible()
     assert page.locator("#password").is_visible()
     assert page.get_by_role("link", name="Forgot Password?").is_visible()
+
+
+def test_login_page_has_no_username_field(live_server, page):
+    """Login is email-only — the old username field must be gone."""
+    page.goto(f"{live_server}/login")
+    assert page.locator("#username").count() == 0
+    assert page.locator("#email").get_attribute("type") == "email"
 
 
 def test_forgot_password_shows_confirmation(live_server, registered_professor, page):
@@ -29,7 +36,7 @@ def test_forgot_password_shows_confirmation(live_server, registered_professor, p
 def test_register_new_professor(live_server, page):
     """A new professor can register and gets sent to the dashboard."""
     page.goto(f"{live_server}/register")
-    page.fill("#username", "newprof_test")
+    page.fill("#fullName", "New Prof Test")
     page.fill("#email", "newprof@comet.test")
     page.fill("#password", "SecurePass123!")
     page.fill("#confirmPassword", "SecurePass123!")
@@ -38,11 +45,11 @@ def test_register_new_professor(live_server, page):
     assert "/dashboard" in page.url
 
 
-def test_register_duplicate_username(live_server, registered_professor, page):
-    """Registering with an existing username should show an error."""
+def test_register_duplicate_email(live_server, registered_professor, page):
+    """Registering with an existing email should show an error."""
     page.goto(f"{live_server}/register")
-    page.fill("#username", registered_professor["username"])
-    page.fill("#email", "other@comet.test")
+    page.fill("#fullName", "Different Person")
+    page.fill("#email", registered_professor["email"])
     page.fill("#password", "SecurePass123!")
     page.fill("#confirmPassword", "SecurePass123!")
     page.click("button[type=submit]")
@@ -51,10 +58,22 @@ def test_register_duplicate_username(live_server, registered_professor, page):
     assert page.locator("#errorMessage").is_visible()
 
 
+def test_register_duplicate_full_name_succeeds(live_server, registered_professor, page):
+    """Two professors may share a name — only the email must be unique."""
+    page.goto(f"{live_server}/register")
+    page.fill("#fullName", registered_professor["full_name"])
+    page.fill("#email", "samename@comet.test")
+    page.fill("#password", "SecurePass123!")
+    page.fill("#confirmPassword", "SecurePass123!")
+    page.click("button[type=submit]")
+    page.wait_for_url(f"{live_server}/dashboard", timeout=15000, wait_until="domcontentloaded")
+    assert "/dashboard" in page.url
+
+
 def test_register_password_mismatch(live_server, page):
     """Mismatched passwords should show a client-side error."""
     page.goto(f"{live_server}/register")
-    page.fill("#username", "anothernewprof")
+    page.fill("#fullName", "Another New Prof")
     page.fill("#email", "another@comet.test")
     page.fill("#password", "password1")
     page.fill("#confirmPassword", "password2")
@@ -66,7 +85,7 @@ def test_register_password_mismatch(live_server, page):
 def test_login_valid_credentials(live_server, registered_professor, page):
     """Login with correct credentials redirects to dashboard."""
     page.goto(f"{live_server}/login")
-    page.fill("#username", registered_professor["username"])
+    page.fill("#email", registered_professor["email"])
     page.fill("#password", registered_professor["password"])
     page.click("button[type=submit]")
     page.wait_for_url(f"{live_server}/dashboard", timeout=5000)
@@ -76,7 +95,7 @@ def test_login_valid_credentials(live_server, registered_professor, page):
 def test_login_invalid_password(live_server, registered_professor, page):
     """Login with wrong password should show an error message."""
     page.goto(f"{live_server}/login")
-    page.fill("#username", registered_professor["username"])
+    page.fill("#email", registered_professor["email"])
     page.fill("#password", "wrongpassword")
     page.click("button[type=submit]")
     page.wait_for_selector("#errorMessage:visible", timeout=3000)
@@ -84,12 +103,12 @@ def test_login_invalid_password(live_server, registered_professor, page):
 
 
 def test_account_settings_page_loads_when_logged_in(live_server, professor_page, registered_professor):
-    """Account settings shows username and email fields when logged in as a professor."""
+    """Account settings shows full name and email fields when logged in as a professor."""
     professor_page.goto(f"{live_server}/preferences/account")
     professor_page.wait_for_url(f"{live_server}/preferences/account", timeout=5000)
-    assert professor_page.locator("#accUsername").is_visible()
+    assert professor_page.locator("#accFullName").is_visible()
     assert professor_page.locator("#accEmail").is_visible()
-    assert professor_page.locator("#accUsername").input_value() == registered_professor["username"]
+    assert professor_page.locator("#accFullName").input_value() == registered_professor["full_name"]
     assert professor_page.locator("#accEmail").input_value() == registered_professor["email"]
 
 

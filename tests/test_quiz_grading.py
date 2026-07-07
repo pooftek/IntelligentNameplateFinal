@@ -32,7 +32,7 @@ def test_quiz_grade_is_mean_over_n_slots_with_zeros(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="qzprof1",
+            full_name="qzprof1",
             email="qz1@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -153,7 +153,7 @@ def test_quiz_weight_redistributes_to_attendance_when_no_quiz_sessions(app_modul
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="qzprof2",
+            full_name="qzprof2",
             email="qz2@test.local",
             password_hash=generate_password_hash("x"),
         )
@@ -216,7 +216,7 @@ def test_quiz_upload_rejected_when_quiz_count_target_zero(app_module):
     class_id = None
     with m.app.app_context():
         prof = m.Professor(
-            username="qzprof_upload_lock",
+            full_name="qzprof_upload_lock",
             email="qz_upload_lock@test.local",
             password_hash=generate_password_hash("secret12"),
         )
@@ -243,7 +243,7 @@ def test_quiz_upload_rejected_when_quiz_count_target_zero(app_module):
         client.post(
             "/login",
             json={
-                "username": "qzprof_upload_lock",
+                "email": "qz_upload_lock@test.local",
                 "password": "secret12",
                 "user_type": "professor",
             },
@@ -267,7 +267,7 @@ def test_start_quiz_rejected_when_quiz_count_target_zero(app_module):
     quiz_id = None
     with m.app.app_context():
         prof = m.Professor(
-            username="qzprof_start_lock",
+            full_name="qzprof_start_lock",
             email="qz_start_lock@test.local",
             password_hash=generate_password_hash("secret12"),
         )
@@ -324,7 +324,7 @@ def test_start_quiz_rejected_when_quiz_count_target_zero(app_module):
         client.post(
             "/login",
             json={
-                "username": "qzprof_start_lock",
+                "email": "qz_start_lock@test.local",
                 "password": "secret12",
                 "user_type": "professor",
             },

@@ -275,7 +275,7 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
     subject = 'Comet — Password reset request'
     body = (
         f"A password reset was requested for this Comet professor account:\n\n"
-        f"  Username: {professor.username}\n"
+        f"  Name: {professor.full_name}\n"
         f"  Email on file: {professor.email}\n"
         f"  Sending this message to: {to_addr}\n\n"
         f"Use this link to set a new password (expires in 1 hour):\n{reset_url}\n\n"
@@ -288,12 +288,12 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
         app.logger.warning(
             '[password reset] No MAIL_SERVER in .env — email is NOT sent. '
             'Link for %s (intended recipient %s) written to password_reset_last_link.txt',
-            professor.username,
+            professor.full_name,
             to_addr,
         )
         print(
             f"\n[password reset] NO EMAIL SENT (configure MAIL_SERVER in .env). "
-            f"Reset link for {professor.username} (would go to {to_addr}):\n{reset_url}\n",
+            f"Reset link for {professor.full_name} (would go to {to_addr}):\n{reset_url}\n",
             flush=True,
         )
         try:
@@ -302,7 +302,7 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
                 f.write(
                     'Password reset (no SMTP configured — copy link below)\n\n'
                     f'To: {to_addr}\n'
-                    f'Account: {professor.username}\n\n'
+                    f'Account: {professor.full_name}\n\n'
                     f'{reset_url}\n'
                 )
             app.logger.info('[password reset] Link saved to %s', out_path)
@@ -343,7 +343,7 @@ def _send_professor_password_reset_email(professor, reset_url, delivery_email=No
         return True
     except Exception as e:
         app.logger.exception('Failed to send password reset email: %s', e)
-        print(f"\n[password reset] Email send failed; reset link for {professor.username}:\n{reset_url}\n", flush=True)
+        print(f"\n[password reset] Email send failed; reset link for {professor.full_name}:\n{reset_url}\n", flush=True)
         try:
             out_path = os.path.join(_APP_DIR, 'password_reset_last_link.txt')
             with open(out_path, 'w', encoding='utf-8') as f:
@@ -418,7 +418,7 @@ def _send_inquiry_notification(inquiry):
 # Database Models
 class Professor(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    full_name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -1816,24 +1816,22 @@ def submit_inquiry():
 def login():
     if request.method == 'POST':
         data = request.get_json() or {}
-        username = data.get('username')
+        email = data.get('email')
         password = data.get('password')
         user_type = data.get('user_type', 'professor')
 
         if user_type == 'professor':
-            ident = (username or '').strip()
-            professor = Professor.query.filter_by(username=ident).first() if ident else None
-            if professor is None and ident:
-                professor = Professor.query.filter(
-                    func.lower(Professor.email) == ident.lower()
-                ).first()
+            ident = (email or '').strip()
+            professor = Professor.query.filter(
+                func.lower(Professor.email) == ident.lower()
+            ).first() if ident else None
             if professor and professor.account_locked:
                 return jsonify({'success': False, 'error': 'Account locked after too many failed attempts. Use "Forgot Password" to unlock.'})
             if professor and check_password_hash(professor.password_hash, password):
                 professor.failed_login_attempts = 0
                 db.session.commit()
                 login_user(professor)
-                app.logger.info('[audit] professor login ok: username=%s ip=%s', ident, request.remote_addr)
+                app.logger.info('[audit] professor login ok: email=%s ip=%s', ident, request.remote_addr)
                 return jsonify({'success': True, 'redirect': url_for('dashboard')})
             if professor:
                 professor.failed_login_attempts += 1
@@ -1864,11 +1862,11 @@ def register():
             app.logger.info('[audit] register gate fail: ip=%s', request.remote_addr)
             return jsonify({'success': False, 'error': 'Incorrect access code'}), 403
 
-        username = data.get('username')
-        email = data.get('email')
+        full_name = (data.get('full_name') or '').strip()
+        email = (data.get('email') or '').strip()
         password = data.get('password')
-        
-        if not username or not email or not password:
+
+        if not full_name or not email or not password:
             return jsonify({'success': False, 'error': 'All fields are required'})
 
         err = _validate_password_strength(password)
@@ -1880,17 +1878,13 @@ def register():
             if domain not in _ALLOWED_EMAIL_DOMAINS:
                 return jsonify({'success': False, 'error': 'Registration is restricted to authorized email domains.'})
 
-        # Check if username already exists
-        if Professor.query.filter_by(username=username).first():
-            return jsonify({'success': False, 'error': 'Username already exists'})
-        
-        # Check if email already exists
-        if Professor.query.filter_by(email=email).first():
+        # Check if email already exists (case-insensitive — email is the login identifier)
+        if Professor.query.filter(func.lower(Professor.email) == email.lower()).first():
             return jsonify({'success': False, 'error': 'Email already exists'})
-        
+
         # Create new professor
         professor = Professor(
-            username=username,
+            full_name=full_name,
             email=email,
             password_hash=generate_password_hash(password)
         )
@@ -2043,7 +2037,7 @@ def get_account():
         return jsonify({'success': False, 'error': 'Not found.'}), 404
     return jsonify({
         'success': True,
-        'username': p.username,
+        'full_name': p.full_name,
         'email': p.email,
     })
 
@@ -2051,7 +2045,7 @@ def get_account():
 @app.route('/api/account', methods=['POST'])
 @login_required
 def update_account():
-    """Update professor username, email, and/or password. Requires current password."""
+    """Update professor full name, email, and/or password. Requires current password."""
     data = request.get_json() or {}
     current_pw = (data.get('current_password') or '').strip()
     if not current_pw:
@@ -2061,23 +2055,20 @@ def update_account():
     if not prof or not check_password_hash(prof.password_hash, current_pw):
         return jsonify({'success': False, 'error': 'Current password is incorrect.'}), 400
 
-    username = (data.get('username') or '').strip()
+    full_name = (data.get('full_name') or '').strip()
     email = (data.get('email') or '').strip()
     new_pw = (data.get('new_password') or '').strip()
     confirm_pw = (data.get('confirm_password') or '').strip()
 
-    if not username:
-        return jsonify({'success': False, 'error': 'Username cannot be empty.'}), 400
+    if not full_name:
+        return jsonify({'success': False, 'error': 'Full name cannot be empty.'}), 400
     if not email or not _looks_like_email(email):
         return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
 
     changed = False
 
-    if username != prof.username:
-        taken = Professor.query.filter_by(username=username).first()
-        if taken and taken.id != prof.id:
-            return jsonify({'success': False, 'error': 'That Username is already taken.'}), 400
-        prof.username = username
+    if full_name != prof.full_name:
+        prof.full_name = full_name
         changed = True
 
     if email.lower() != prof.email.lower():
@@ -6470,6 +6461,40 @@ def migrate_database():
                         db.session.rollback()
                         print(f"[ERROR] {e}")
 
+            # Rename username -> full_name and drop its UNIQUE constraint. SQLite
+            # cannot drop a UNIQUE constraint in place, so rebuild the table
+            # (ids preserved so class.professor_id references stay valid; SQLite
+            # FK enforcement is off, so DROP TABLE is safe mid-rebuild).
+            if 'full_name' not in professor_columns and 'username' in professor_columns:
+                try:
+                    db.session.execute(text('''
+                        CREATE TABLE _professor_new (
+                            id INTEGER NOT NULL,
+                            full_name VARCHAR(80) NOT NULL,
+                            email VARCHAR(120) NOT NULL,
+                            password_hash VARCHAR(255) NOT NULL,
+                            created_at DATETIME,
+                            failed_login_attempts INTEGER DEFAULT 0 NOT NULL,
+                            account_locked BOOLEAN DEFAULT 0 NOT NULL,
+                            PRIMARY KEY (id),
+                            UNIQUE (email)
+                        )
+                    '''))
+                    db.session.execute(text('''
+                        INSERT INTO _professor_new (id, full_name, email, password_hash,
+                            created_at, failed_login_attempts, account_locked)
+                        SELECT id, username, email, password_hash, created_at,
+                               COALESCE(failed_login_attempts, 0), COALESCE(account_locked, 0)
+                        FROM professor
+                    '''))
+                    db.session.execute(text('DROP TABLE professor'))
+                    db.session.execute(text('ALTER TABLE _professor_new RENAME TO professor'))
+                    db.session.commit()
+                    print("[OK] Renamed professor.username to full_name (UNIQUE dropped)")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERROR] Error migrating professor.username to full_name: {e}")
+
         # Check if attendance table exists and add missing columns
         if 'attendance' in table_names:
             attendance_columns = [col['name'] for col in inspector.get_columns('attendance')]
@@ -6775,7 +6800,7 @@ if __name__ == '__main__':
         # Create a default professor for testing (dev only)
         if not _IS_PRODUCTION and not Professor.query.first():
             default_prof = Professor(
-                username='professor',
+                full_name='Professor',
                 email='prof@example.com',
                 password_hash=generate_password_hash('password')
             )

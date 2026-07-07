@@ -47,7 +47,7 @@ def test_instructor_and_peer_averages_in_participation(app_module):
     m = app_module
     with m.app.app_context():
         prof = m.Professor(
-            username="pgprof1",
+            full_name="pgprof1",
             email="pg1@test.local",
             password_hash=generate_password_hash("secret12"),
         )
@@ -118,7 +118,7 @@ def test_participation_grade_start_requires_active_session(app_module):
     student_id = None
     with m.app.app_context():
         prof = m.Professor(
-            username="pgprof2",
+            full_name="pgprof2",
             email="pg2@test.local",
             password_hash=generate_password_hash("secret12"),
         )
@@ -144,7 +144,7 @@ def test_participation_grade_start_requires_active_session(app_module):
     with m.app.test_client() as client:
         client.post(
             "/login",
-            json={"username": "pgprof2", "password": "secret12", "user_type": "professor"},
+            json={"email": "pg2@test.local", "password": "secret12", "user_type": "professor"},
         )
         rv = client.post(
             "/api/participation_grade/start",
@@ -158,7 +158,7 @@ def _setup_class_with_session(m, *, share_inst=50.0):
     """Professor, class, one graded session, one enrolled student; returns (class, session, student)."""
     u = uuid.uuid4().hex[:10]
     prof = m.Professor(
-        username=f"pgprof_sess_{u}",
+        full_name=f"pgprof_sess_{u}",
         email=f"sess{u}@test.local",
         password_hash=generate_password_hash("secret12"),
     )
@@ -344,14 +344,14 @@ def test_excluded_session_not_in_participation_mean(app_module):
 def test_gradebook_participation_matches_course_mean_session(app_module):
     """API gradebook participation_grade matches course_mean_session_participation."""
     m = app_module
-    prof_username = None
+    prof_email = None
     class_id = None
     student_id = None
     with m.app.app_context():
         c, sess, st = _setup_class_with_session(m)
         class_id = c.id
         student_id = st.id
-        prof_username = m.Professor.query.get(c.professor_id).username
+        prof_email = m.Professor.query.get(c.professor_id).email
         m.db.session.add(
             m.Attendance(
                 class_id=c.id,
@@ -370,7 +370,7 @@ def test_gradebook_participation_matches_course_mean_session(app_module):
     with m.app.test_client() as client:
         client.post(
             "/login",
-            json={"username": prof_username, "password": "secret12", "user_type": "professor"},
+            json={"email": prof_email, "password": "secret12", "user_type": "professor"},
         )
         rv = client.get(f"/api/gradebook/{class_id}")
         rows = rv.get_json()

@@ -19,9 +19,9 @@
     overflow-y: auto;
   }
   .login-logo {
-    width: clamp(220px, 48vw, 320px);
+    width: clamp(150px, 30vw, 210px);
     height: auto;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.5rem;
     /* same soft fade stack as landing's .wordmark */
     filter:
       drop-shadow(0 26px 64px rgba(13, 22, 40, 0.22))
@@ -122,6 +122,22 @@
     padding: 1rem clamp(1rem, 4vw, 2rem);
     z-index: 10;
   }
+  .auth-topbar .topbar-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  /* small brand mark, top-left — matches landing's .brand (22px) */
+  .auth-topbar .brand {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .auth-topbar .brand img {
+    height: 22px;
+    width: auto;
+    display: block;
+  }
   /* light 3D pill — modeled on landing's .btn-demo */
   .auth-topbar .back-link {
     color: var(--comet-navy);
@@ -168,6 +184,8 @@
   }
   @media (max-width: 480px) {
     .auth-topbar { padding: 0.8rem 1rem; }
+    /* the big centered logo already brands the page — free the bar for the pills */
+    .auth-topbar .brand { display: none; }
     body { padding-top: 4rem; }
   }
 
@@ -228,7 +246,12 @@
 </div>
 
 <header class="auth-topbar">
-  <a class="back-link" href="{{ url_for('index') }}">&larr; Back to landing</a>
+  <div class="topbar-left">
+    <a class="brand" href="{{ url_for('index') }}" aria-label="Comet home">
+      <img src="{{ url_for('static', filename='images/comet_logo.svg') }}" alt="Comet">
+    </a>
+    <a class="back-link" href="{{ url_for('index') }}">&larr; Back to landing</a>
+  </div>
   <a class="student-link" href="{{ url_for('student_interface') }}">Student sign-in &rarr;</a>
 </header>
 
@@ -240,8 +263,8 @@
   <h2 class="login-card-title">Login to Comet</h2>
   <form id="loginForm">
     <div class="mb-3">
-      <label for="username" class="form-label">Email or Username</label>
-      <input type="text" class="form-control" id="username" name="username" required>
+      <label for="email" class="form-label">Email</label>
+      <input type="email" class="form-control" id="email" name="email" autocomplete="email" required>
     </div>
     <div class="mb-3">
       <label for="password" class="form-label">Password</label>
@@ -260,11 +283,11 @@
 <script>
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const response = await csrfFetch('/login', {
         method: 'POST',
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email, password })
     });
     const data = await response.json();
     if (data.success) {
