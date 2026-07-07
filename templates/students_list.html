@@ -921,6 +921,8 @@ function switchTab(tab) {
         if (activeBadge)   { activeBadge.className   = 'tab-count-badge tab-count-unselected'; }
         if (inactiveBadge) { inactiveBadge.className = 'tab-count-badge tab-count-selected'; }
     }
+    // Remember the tab so reloads (add / edit / import / remove) land back on it
+    try { sessionStorage.setItem('studentsTab_' + classId, tab); } catch (e) { /* ignore */ }
 }
 
 // Show add student modal
@@ -1105,6 +1107,10 @@ function handleSortClick(event) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Restore the last-viewed tab (Active is the markup default)
+    let savedTab = null;
+    try { savedTab = sessionStorage.getItem('studentsTab_' + classId); } catch (e) { /* ignore */ }
+    if (savedTab === 'inactive') { switchTab('inactive'); }
     initSorting();
     const activeTableBody   = document.getElementById('activeStudentsTableBody');
     const inactiveTableBody = document.getElementById('inactiveStudentsTableBody');
@@ -1252,8 +1258,6 @@ async function toggleStudentStatus(studentId, isCurrentlyActive, studentName) {
                     targetTableBody.appendChild(newRow);
                     updateStudentCount();
                     showStatus('success', `Student "${studentName}" has been ${newStatus ? 'reactivated' : 'deactivated'}.`);
-                    // Switch to the tab where the student now lives
-                    switchTab(newStatus ? 'active' : 'inactive');
                 } else {
                     window.location.reload();
                 }
