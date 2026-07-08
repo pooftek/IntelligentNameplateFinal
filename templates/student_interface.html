@@ -1293,6 +1293,60 @@
             /* Live-class (session) view is cramped on phones — hide the centered logo there only */
             .session-bottom-logo { display: none !important; }
         }
+
+        /* On-screen keyboard — dormant everywhere unless the Pi kiosk media query below matches. */
+        .osk { display: none; }
+
+        /* Pi nameplate: two 1920x480 DSI panels STACKED into one 1920x960 (2:1) touchscreen with
+           no physical keyboard. Only there do we surface a tap keyboard for the login and
+           create-password fields, and shift the card/modal aside to make room. min-width keeps
+           2:1-ish phones (held sideways) out; pointer:coarse keeps mouse/trackpad laptops out. */
+        @media (min-width: 1400px) and (min-aspect-ratio: 19/10) and (pointer: coarse) {
+            .osk.osk-open {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                position: fixed;
+                right: 2vw;
+                top: 50%;
+                transform: translateY(-50%);
+                width: min(60vw, 1120px);
+                max-height: 92vh;
+                padding: 1rem;
+                border-radius: 18px;
+                background: linear-gradient(180deg, var(--comet-navy-mid) 0%, var(--comet-dark) 100%);
+                box-shadow: 0 30px 70px rgba(13, 22, 40, 0.45);
+                z-index: 1060;
+            }
+            .osk-row { display: flex; gap: 0.5rem; justify-content: center; }
+            .osk-key {
+                flex: 1 1 0;
+                min-width: 0;
+                padding: 0.9rem 0;
+                font-size: 1.5rem;
+                font-family: var(--font-family-base);
+                color: #0B1E33;
+                background: #FFFFFF;
+                border: none;
+                border-radius: 10px;
+                box-shadow: 0 2px 0 rgba(13, 22, 40, 0.25);
+                cursor: pointer;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+            .osk-key:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(13, 22, 40, 0.25); }
+            .osk-key.osk-space { flex: 4 1 0; }
+            .osk-key.osk-go { background: var(--comet-blue); color: #fff; font-weight: 600; }
+            .osk-key.osk-active { background: var(--comet-blue); color: #fff; }
+
+            /* Make room: slide the login card and the create-password dialog to the left. */
+            body.kb-open .back-inner-login { align-items: flex-start; padding-left: 6vw; }
+            body.kb-open .login-intro { display: none; }
+            body.kb-open #createPasswordModal .modal-dialog {
+                transform: translateX(-30vw);
+                transition: transform 0.2s ease;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1586,6 +1640,10 @@
         </div>
     </div>
 </div>
+
+<!-- On-screen touch keyboard (Pi kiosk only). Body-level so it can overlay the login card
+     AND the create-password modal. Keys are built lazily by JS the first time it opens. -->
+<div id="osk" class="osk" role="group" aria-label="On-screen keyboard" aria-hidden="true"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
@@ -2515,6 +2573,164 @@
             err.style.display = 'block';
         }
     });
+
+    // ── On-screen keyboard (Pi kiosk touchscreen only) ─────────────────────────────
+    // The stacked dual-DSI nameplate is a 1920x960 (2:1) touch display with no physical
+    // keyboard. Only there (PI_KIOSK matches) do we surface a tap keyboard for the login
+    // and create-password fields. Laptop/phone/tablet never match → completely untouched.
+    (function () {
+        var PI_KIOSK = window.matchMedia('(min-width: 1400px) and (min-aspect-ratio: 19/10) and (pointer: coarse)');
+        var FIELDS = ['loginIdentifier', 'loginPassword', 'newPassword', 'newPasswordConfirm'];
+        var osk = document.getElementById('osk');
+        if (!osk) return;
+        var activeField = null;
+        var shifted = false;
+        var symbols = false;
+        var built = false;
+
+        var LETTERS = [
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+            ['{shift}', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '{bksp}'],
+            ['{sym}', '@', '{space}', '.', '{go}', '{hide}']
+        ];
+        var SYMBOLS = [
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+            ['@', '#', '$', '_', '&', '-', '+', '(', ')'],
+            ['*', '"', "'", ':', ';', '!', '?', '/'],
+            ['%', '=', '\\', '|', '~', '<', '>', '{bksp}'],
+            ['{sym}', ',', '{space}', '.', '{go}', '{hide}']
+        ];
+
+        function label(k) {
+            switch (k) {
+                case '{shift}': return '⇧';
+                case '{bksp}': return '⌫';
+                case '{space}': return 'space';
+                case '{sym}': return symbols ? 'ABC' : '?123';
+                case '{go}': return 'Go';
+                case '{hide}': return '⌄';
+                default: return (shifted && !symbols) ? k.toUpperCase() : k;
+            }
+        }
+
+        function build() {
+            var rows = symbols ? SYMBOLS : LETTERS;
+            osk.innerHTML = '';
+            rows.forEach(function (row) {
+                var r = document.createElement('div');
+                r.className = 'osk-row';
+                row.forEach(function (k) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'osk-key';
+                    if (k === '{space}') b.className += ' osk-space';
+                    if (k === '{go}') b.className += ' osk-go';
+                    if (k === '{shift}' && shifted) b.className += ' osk-active';
+                    b.setAttribute('data-k', k);
+                    b.textContent = label(k);
+                    r.appendChild(b);
+                });
+                osk.appendChild(r);
+            });
+        }
+
+        function insert(ch) {
+            if (!activeField) return;
+            var s = activeField.selectionStart, e = activeField.selectionEnd;
+            var v = activeField.value;
+            if (s === null || s === undefined) {
+                activeField.value = v + ch;
+            } else {
+                activeField.value = v.slice(0, s) + ch + v.slice(e);
+                activeField.selectionStart = activeField.selectionEnd = s + ch.length;
+            }
+            activeField.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function backspace() {
+            if (!activeField) return;
+            var s = activeField.selectionStart, e = activeField.selectionEnd;
+            var v = activeField.value;
+            if (s === null || s === undefined) {
+                activeField.value = v.slice(0, -1);
+            } else if (s === e) {
+                if (s > 0) {
+                    activeField.value = v.slice(0, s - 1) + v.slice(e);
+                    activeField.selectionStart = activeField.selectionEnd = s - 1;
+                }
+            } else {
+                activeField.value = v.slice(0, s) + v.slice(e);
+                activeField.selectionStart = activeField.selectionEnd = s;
+            }
+            activeField.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function open(field) {
+            activeField = field;
+            if (!built) { build(); built = true; }
+            document.body.classList.add('kb-open');
+            osk.classList.add('osk-open');
+        }
+
+        function close() {
+            document.body.classList.remove('kb-open');
+            osk.classList.remove('osk-open');
+            activeField = null;
+        }
+
+        function submitActive() {
+            var f = activeField;
+            close();
+            if (!f) return;
+            if (f.id === 'loginIdentifier' || f.id === 'loginPassword') {
+                document.getElementById('studentLoginForm').requestSubmit();
+            } else {
+                document.getElementById('btnSubmitPassword').click();
+            }
+        }
+
+        function handleKey(k) {
+            switch (k) {
+                case '{shift}': shifted = !shifted; build(); break;
+                case '{sym}': symbols = !symbols; shifted = false; build(); break;
+                case '{bksp}': backspace(); break;
+                case '{space}': insert(' '); break;
+                case '{go}': submitActive(); break;
+                case '{hide}': close(); break;
+                default: insert((shifted && !symbols) ? k.toUpperCase() : k); break;
+            }
+        }
+
+        // Act on pointerdown + preventDefault so the key never steals focus: the field keeps
+        // its caret (and, inside the create-password modal, Bootstrap's focus-trap never fires).
+        osk.addEventListener('pointerdown', function (e) {
+            var btn = e.target.closest ? e.target.closest('.osk-key') : null;
+            if (!btn) return;
+            e.preventDefault();
+            handleKey(btn.getAttribute('data-k'));
+        });
+
+        FIELDS.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('focus', function () {
+                if (PI_KIOSK.matches) open(el);
+            });
+            // Close only when focus truly leaves the login fields (tapping keys keeps focus).
+            el.addEventListener('blur', function () {
+                setTimeout(function () {
+                    var a = document.activeElement;
+                    if (!a || FIELDS.indexOf(a.id) === -1) close();
+                }, 100);
+            });
+        });
+
+        var cpm = document.getElementById('createPasswordModal');
+        if (cpm) cpm.addEventListener('hidden.bs.modal', close);
+        PI_KIOSK.addEventListener('change', function (e) { if (!e.matches) close(); });
+    })();
 
     document.getElementById('btnSubmitPassword').addEventListener('click', async function () {
         const pw = document.getElementById('newPassword').value;
