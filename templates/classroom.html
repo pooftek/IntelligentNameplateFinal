@@ -532,10 +532,11 @@
         }
     }
 
-    /* release also fires on touch tablets — they report desktop CSS widths (or
-       desktop-site mode) that width breakpoints miss. `any-hover: none` keeps this
-       off touchscreen laptops (their trackpad can hover), so laptops stay desktop. */
-    @media (max-width: 992px), (pointer: coarse) and (any-hover: none) {
+    /* release also fires on pure-touch tablets — they report desktop CSS widths (or
+       desktop-site mode) that width breakpoints miss. Keyed on `not (any-pointer: fine)`:
+       every laptop has a trackpad/mouse (a fine pointer) so it can NEVER match,
+       regardless of how Chrome classifies a touchscreen's primary pointer/hover. */
+    @media (max-width: 992px), ((any-pointer: coarse) and (not (any-pointer: fine))) {
         body {
             height: auto;
             min-height: 100vh;

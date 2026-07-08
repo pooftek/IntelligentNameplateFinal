@@ -494,7 +494,7 @@
        + non-shrinking pill buttons collided with the cards below. Let the row wrap + trim padding.
        Also fires on any coarse-pointer (touch) device — tablets report desktop CSS widths
        (or desktop-site mode) that width breakpoints miss. ── */
-    @media (max-width: 1024px), (pointer: coarse) and (any-hover: none) {
+    @media (max-width: 1024px), ((any-pointer: coarse) and (not (any-pointer: fine))) {
         .dashboard-header  { padding: 1.75rem 2rem 1.1rem; }
         .dashboard-content { padding: 0.5rem 2rem 0; }
         .dashboard-header .d-flex { flex-wrap: wrap; gap: 0.75rem; }

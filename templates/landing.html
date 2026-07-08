@@ -791,7 +791,7 @@
     /* tablets: coarse pointer at desktop widths (incl. desktop-site mode) — the
        820px query above never fires there. No hover → drop the node bubbles, and
        shed the heaviest hero effects; ≤820px phones keep their existing treatment. */
-    @media (pointer: coarse) and (any-hover: none) and (min-width: 821px) {
+    @media (any-pointer: coarse) and (not (any-pointer: fine)) and (min-width: 821px) {
       .nodes { display: none; }
       .meteors { display: none; }
       /* scale is constant on touch (pre-assembled start) so layer caching is safe */
@@ -1196,7 +1196,7 @@
       if (!stage || !device) return;
 
       // touch devices get the pre-assembled hero (hoisted — not per frame)
-      var isCoarse = window.matchMedia('(pointer: coarse) and (any-hover: none)').matches;
+      var isCoarse = window.matchMedia('(any-pointer: coarse) and (not (any-pointer: fine))').matches;
 
       function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
       function smoothstep(a, b, x) {

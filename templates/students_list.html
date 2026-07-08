@@ -586,7 +586,7 @@
        Also fires on any coarse-pointer (touch) device — tablets report desktop CSS
        widths (or desktop-site mode) that width breakpoints miss. Releasing the
        100dvh lock is a no-op when content fits; it only scrolls on overflow. ── */
-    @media (max-width: 1024px), (pointer: coarse) and (any-hover: none) {
+    @media (max-width: 1024px), ((any-pointer: coarse) and (not (any-pointer: fine))) {
         body {
             height: auto;
             min-height: 100vh;
