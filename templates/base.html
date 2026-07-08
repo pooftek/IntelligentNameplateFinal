@@ -45,6 +45,7 @@
         body {
             background: var(--bg-gradient);
             min-height: 100vh;
+            min-height: 100dvh; /* dynamic viewport — 100vh can overshoot the visible area on scaled/mobile displays */
             font-family: var(--font-family-base);
         }
         .card {

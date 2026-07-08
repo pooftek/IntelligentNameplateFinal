@@ -103,6 +103,7 @@
     /* footer logo — sticky to bottom when short, after content when scrolled */
     .container.py-5 {
         min-height: 100vh;
+        min-height: 100dvh; /* dynamic viewport — 100vh can overshoot the visible area, pushing the bottom logo below the fold */
         display: flex;
         flex-direction: column;
         padding-bottom: 0;

@@ -47,6 +47,20 @@ def test_my_classes_title_clears_cards_portrait(live_server, professor_page, cre
     assert buttons["right"] <= PORTRAIT["width"] + 1, "header buttons overflow the viewport width"
 
 
+def test_dashboard_logo_at_fold_laptop(live_server, professor_page, created_class):
+    """Laptop (fine pointer), any normal window: the branding logo sits at the
+    viewport bottom with no page scroll — the page must not exceed 100dvh when
+    the cards fit (guards the 'logo hidden behind the taskbar' regression)."""
+    page = professor_page
+    for vp in ({"width": 1280, "height": 620}, {"width": 1600, "height": 800}, {"width": 1024, "height": 495}):
+        page.set_viewport_size(vp)
+        page.goto(f"{live_server}/dashboard", wait_until="networkidle")
+        doc_h, inner_h = page.evaluate("[document.documentElement.scrollHeight, innerHeight]")
+        assert doc_h <= inner_h + 1, f"{vp}: page {doc_h}px overflows {inner_h}px viewport — logo below the fold"
+        branding = page.evaluate(RECT_JS, ".dashboard-branding")
+        assert branding["bottom"] <= inner_h + 1, f"{vp}: branding logo below the fold"
+
+
 def test_classroom_settings_within_viewport_landscape(live_server, professor_page, created_class):
     """Landscape on a normal (fine-pointer) laptop: the fixed shell stays LOCKED
     (desktop look preserved — the coarse-pointer release must not leak to laptops)

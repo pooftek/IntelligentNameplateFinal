@@ -6,6 +6,7 @@
 <style>
     body {
         min-height: 100vh;
+        min-height: 100dvh; /* dynamic viewport — 100vh can overshoot the visible area (Windows scaling, mobile chrome), pushing the bottom logo below the fold */
         margin: 0;
         font-family: var(--font-family-base);
         overflow-x: hidden;
@@ -23,6 +24,7 @@
 
     .dashboard-container {
         min-height: 100vh;
+        min-height: 100dvh;
         display: flex;
         flex-direction: column;
     }
